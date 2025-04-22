@@ -70,11 +70,14 @@ const newsData = ref({}) // Stores the fetched news data object
 const isLoading = ref(true) // Tracks loading state
 const error = ref(null) // Stores any fetch error
 
+// Base URL from environment variable
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+
 // Fetch news data when component mounts
 onMounted(async () => {
   try {
-    // Use relative path for API call, Vite proxy will handle redirection locally
-    const apiUrl = '/api/news'; 
+    // const apiUrl = '/api/news'; // Original hardcoded URL
+    const apiUrl = `${baseUrl}/api/news`; // Use environment variable
     console.log(`Fetching news from: ${apiUrl}`); // Log the relative URL
     const response = await axios.get(apiUrl) // Use relative path
     newsData.value = response.data 

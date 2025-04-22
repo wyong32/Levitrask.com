@@ -34,11 +34,12 @@ import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
 
 const route = useRoute()
-
-// Reactive refs for article data, loading state, and error state
-const article = ref(null)
-const isLoading = ref(true)
+const newsDetail = ref(null)
+const loading = ref(true)
 const error = ref(null)
+
+// Base URL from environment variable
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
 // Function to update meta tags
 const updateMetaTags = (articleData) => {
@@ -67,25 +68,24 @@ const updateMetaTags = (articleData) => {
   }
 }
 
-// Fetch data when component mounts
-onMounted(async () => {
-  const articleId = route.params.id
-  isLoading.value = true
+// Function to fetch news details
+const fetchNewsDetail = async () => {
+  loading.value = true
   error.value = null
-  article.value = null
-
+  const newsId = route.params.id
   try {
-    // Use relative path for API call, Vite proxy will handle redirection locally
-    const apiUrl = '/api/news'; 
-    console.log(`Fetching article details from: ${apiUrl}`); // Debug log
-    const response = await axios.get(apiUrl) // Use relative path
-    const allNews = response.data
-
-    if (allNews && allNews[articleId]) {
-      article.value = allNews[articleId]
-      updateMetaTags(article.value)
+    // const apiUrl = '/api/news'; // Original hardcoded URL
+    const apiUrl = `${baseUrl}/api/news`; // Use environment variable
+    const response = await fetch(`${apiUrl}/${newsId}`) // Use the modified apiUrl
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    if (data && data[newsId]) {
+      newsDetail.value = data[newsId]
+      updateMetaTags(newsDetail.value)
     } else {
-      error.value = `Article with ID '${articleId}' not found.`
+      error.value = `Article with ID '${newsId}' not found.`
       updateMetaTags(null)
     }
   } catch (err) {
@@ -93,8 +93,13 @@ onMounted(async () => {
     error.value = err.response?.data?.message || err.message || 'Failed to load article details.'
     updateMetaTags(null)
   } finally {
-    isLoading.value = false
+    loading.value = false
   }
+}
+
+// Fetch data when component mounts
+onMounted(async () => {
+  await fetchNewsDetail()
 })
 </script>
 
