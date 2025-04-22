@@ -70,6 +70,9 @@ const isLoading = ref(true)
 const error = ref(null)
 const postBodyRef = ref(null) // Ref for the content container
 
+// Base URL from environment variable
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+
 // --- Fetch Blog Post Data --- 
 async function fetchBlogPost(postId) {
   if (!postId) {
@@ -87,8 +90,8 @@ async function fetchBlogPost(postId) {
   console.log(`Fetching blog post details for ID: ${postId}`)
 
   try {
-    // Use relative path for API call
-    const apiUrl = '/api/blogs'
+    // const apiUrl = '/api/blogs' // Original hardcoded URL
+    const apiUrl = `${baseUrl}/api/blogs`; // Use environment variable
     console.log(`Fetching blogs from: ${apiUrl}`);
     const response = await axios.get(apiUrl)
     const allBlogs = response.data // Expecting object keyed by blog_id

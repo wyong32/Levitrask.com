@@ -59,11 +59,14 @@ const blogsData = ref({}) // Holds the object fetched from API
 const isLoading = ref(true)
 const error = ref(null)
 
+// Base URL from environment variable
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+
 // Fetch blog data
 onMounted(async () => {
   try {
-    // Use relative path for local dev (proxy handles it)
-    const apiUrl = '/api/blogs'
+    // const apiUrl = '/api/blogs' // Original hardcoded URL
+    const apiUrl = `${baseUrl}/api/blogs`; // Use environment variable
     console.log(`Fetching blogs from: ${apiUrl}`);
     const response = await axios.get(apiUrl)
     blogsData.value = response.data // Assign the fetched object

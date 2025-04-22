@@ -40,9 +40,12 @@ const router = useRouter()
 const postBody = ref(null)
 
 // Reactive state for the question data, loading, and error
-const question = ref(null)
+const questionData = ref(null)
 const isLoading = ref(true)
 const error = ref(null)
+
+// Base URL from environment variable
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
 // Click handler remains the same
 const handleContentClick = (event) => {
@@ -90,23 +93,32 @@ const updateMetaTags = (questionData) => {
 // Fetch question data when component mounts or route changes
 async function fetchQuestionData() {
   const questionId = route.params.id
+  if (!questionId) {
+    error.value = 'No question ID provided.';
+    isLoading.value = false;
+    questionData.value = null; // Ensure reset
+    updateMetaTags(); // Update meta for no ID case
+    return;
+  }
+
   isLoading.value = true
   error.value = null
-  question.value = null
+  questionData.value = null // Reset on new fetch
 
   console.log(`Fetching question details for ID: ${questionId}`)
 
   try {
-    // Use relative path, Vite proxy handles it locally
-    const apiUrl = '/api/questions'
-    console.log(`Fetching questions from: ${apiUrl}`); // Debug log
+    // const apiUrl = '/api/questions' // Original hardcoded URL
+    const apiUrl = `${baseUrl}/api/questions`; // Use environment variable
+    console.log(`Fetching questions from: ${apiUrl}`);
+    // Fetch all questions first (assuming API returns an object keyed by ID)
     const response = await axios.get(apiUrl)
     const allQuestions = response.data // Expecting object keyed by question_id
 
     if (allQuestions && allQuestions[questionId]) {
-      question.value = allQuestions[questionId]
-      updateMetaTags(question.value) // Update meta tags after fetching
-      console.log('Question data loaded:', question.value)
+      questionData.value = allQuestions[questionId]
+      updateMetaTags(questionData.value) // Update meta tags after fetching
+      console.log('Question data loaded:', questionData.value)
     } else {
       console.warn(`Question with ID '${questionId}' not found in API response.`)
       error.value = `Question with ID '${questionId}' not found.`
@@ -126,7 +138,7 @@ watch(() => route.params.id, fetchQuestionData, { immediate: true }) // Use imme
 
 // Event listener setup/teardown (needs adjustment due to async data loading)
 // We need to ensure postBody.value exists *after* data has loaded
-watch(question, (newQuestion, oldQuestion) => {
+watch(questionData, (newQuestion, oldQuestion) => {
   // Only add listener if question is newly loaded and postBody is available
   if (newQuestion && !oldQuestion && postBody.value) {
      console.log('Adding click listener to postBody');
