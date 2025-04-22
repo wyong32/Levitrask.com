@@ -7,16 +7,25 @@
         <p>Explore insights on ED treatments, lifestyle, and related health topics.</p>
       </header>
 
-      <div class="article-list">
-        <!-- Loop through blog posts from imported data -->
-        <article v-for="post in blogsData" :key="post.id" class="article-item">
+      <!-- Loading State -->
+      <div v-if="isLoading" class="loading-message">Loading articles...</div>
+
+      <!-- Error State -->
+      <div v-else-if="error" class="error-message">
+        Failed to load articles: {{ error }}
+      </div>
+
+      <!-- Data Loaded State -->
+      <div v-else class="article-list">
+        <!-- Loop through blog posts from fetched data -->
+        <article v-for="post in blogListItems" :key="post.id" class="article-item">
           <!-- Update router-link to use named route and params -->
           <router-link
             :to="{ name: 'blog-details', params: { id: post.id } }"
             class="article-link-wrapper"
           >
             <div class="article-image">
-              <img :src="post.listImage" :alt="post.listTitle" />
+              <img :src="post.listImage || '/images/placeholder-blog.png'" :alt="post.listTitle || 'Blog post image'" />
             </div>
             <div class="article-content">
               <h2>{{ post.listTitle }}</h2>
@@ -26,6 +35,11 @@
             </div>
           </router-link>
         </article>
+
+        <!-- Show message if no blog posts -->
+        <p v-if="blogListItems.length === 0 && !isLoading && !error" class="no-articles-message">
+          No articles available at the moment.
+        </p>
       </div>
     </main>
     <PageFooter />
@@ -33,18 +47,63 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
-import blogsData from '../Datas/BlogsData.js' // Import the blog data
+// Remove static data import
+// import blogsData from '../Datas/BlogsData.js'
 
-// Remove the old hardcoded blogPosts ref
-/*
-const blogPosts = ref([...])
-*/
+// Reactive state
+const blogsData = ref({}) // Holds the object fetched from API
+const isLoading = ref(true)
+const error = ref(null)
+
+// Fetch blog data
+onMounted(async () => {
+  try {
+    // Use relative path for local dev (proxy handles it)
+    const apiUrl = '/api/blogs'
+    console.log(`Fetching blogs from: ${apiUrl}`);
+    const response = await axios.get(apiUrl)
+    blogsData.value = response.data // Assign the fetched object
+    error.value = null
+  } catch (err) {
+    console.error('Error fetching blog data:', err)
+    error.value = err.response?.data?.message || err.message || 'An unknown error occurred'
+    blogsData.value = {}
+  } finally {
+    isLoading.value = false
+  }
+})
+
+// Computed property to get an array for v-for
+const blogListItems = computed(() => {
+  return blogsData.value && typeof blogsData.value === 'object'
+    ? Object.values(blogsData.value)
+    : []
+  // Add sorting if needed, e.g., by date
+  // .sort((a, b) => new Date(b.listDate) - new Date(a.listDate))
+})
+
 </script>
 
 <style scoped>
+/* Add styles for loading and error messages */
+.loading-message,
+.error-message,
+.no-articles-message {
+  text-align: center;
+  padding: 3rem 1rem;
+  font-size: 1.2rem;
+  color: #6c757d;
+}
+
+.error-message {
+  color: #dc3545; /* Bootstrap danger color */
+}
+
+/* Existing styles */
 .articles-page {
   padding: 2rem 1rem;
   max-width: 1200px;

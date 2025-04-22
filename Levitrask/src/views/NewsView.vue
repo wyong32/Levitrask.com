@@ -73,10 +73,11 @@ const error = ref(null) // Stores any fetch error
 // Fetch news data when component mounts
 onMounted(async () => {
   try {
-    // Use relative path for API call assuming Vercel deployment handles routing
-    // Or configure proxy in vite.config.js for local dev if needed
-    const response = await axios.get('/api/news')
-    newsData.value = response.data // Assign the fetched object
+    // Use relative path for API call, Vite proxy will handle redirection locally
+    const apiUrl = '/api/news'; 
+    console.log(`Fetching news from: ${apiUrl}`); // Log the relative URL
+    const response = await axios.get(apiUrl) // Use relative path
+    newsData.value = response.data 
     error.value = null // Clear any previous errors
   } catch (err) {
     console.error('Error fetching news data:', err)

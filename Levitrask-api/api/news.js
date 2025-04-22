@@ -1,14 +1,40 @@
 const pool = require('../utils/db');
 const PROJECT_ID = 'levitrask'; // Define project identifier
 
-module.exports = async (req, res) => {
+// --- CORS Helper Function ---
+// This simple helper adds necessary CORS headers.
+// Replace 'YOUR_FRONTEND_URL' with your actual frontend deployment URL
+// or better, use an environment variable like process.env.FRONTEND_URL
+const allowCors = (handler) => async (req, res) => {
+  // IMPORTANT: Set this to your *actual* frontend deployment URL
+  // e.g., 'https://levitrask-com.vercel.app'
+  const allowedOrigin = process.env.FRONTEND_URL || '*'; // Use env var or '*' for testing
+
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle OPTIONS preflight request (sent by browsers before GET/POST etc.)
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  // Call the original handler
+  return handler(req, res);
+};
+// --- End CORS Helper ---
+
+// Original handler logic
+const newsHandler = async (req, res) => {
   if (req.method !== 'GET') {
+    // Note: CORS headers are already set by the wrapper even for errors
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
   try {
-    // This query assumes the 'news' table and 'project_id', 'news_id' columns exist
-    const result = await pool.query('SELECT * FROM news WHERE project_id = $1', [PROJECT_ID]);
+    // This query assumes the 'levitrask_news' table and 'project_id', 'news_id' columns exist
+    const result = await pool.query('SELECT * FROM levitrask_news WHERE project_id = $1', [PROJECT_ID]);
 
     // Transform array of rows into an object keyed by news_id
     const newsData = result.rows.reduce((acc, row) => {
@@ -47,4 +73,7 @@ module.exports = async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
   }
-}; 
+};
+
+// Export the wrapped handler
+module.exports = allowCors(newsHandler); 

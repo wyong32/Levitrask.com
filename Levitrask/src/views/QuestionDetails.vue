@@ -1,30 +1,25 @@
 <template>
-  <div class="question-page blog-post-page">
+  <div class="news-post-page single-column-page">
     <PageHeader />
-    <main class="content-area-3-column" v-if="question">
-      <!-- 左侧边栏 (Left Sidebar) -->
-      <SideNav
-        :sections="question.navSections || []"
-        content-selector=".post-body"
-        class="sidebar-left side-nav-component"
-      />
-
-      <!-- 主内容区域 (Main Content Area) -->
-      <article class="main-content-middle">
-        <!-- 添加 ref="postBody" -->
-        <div class="post-body" ref="postBody" v-html="question.content"></div>
+    <main class="content-area-single-column">
+      <!-- Loading State -->
+      <div v-if="isLoading" class="loading-message main-content-middle">
+        Loading question...
+      </div>
+      <!-- Error State -->
+      <div v-else-if="error" class="error-message main-content-middle">
+        Failed to load question: {{ error }}
+      </div>
+      <!-- Main content area -->
+      <article v-else-if="question" class="main-content-middle">
+        <div class="post-body">
+          <!-- Render the full HTML content string -->
+          <div v-html="question.content"></div>
+        </div>
       </article>
-
-      <!-- 右侧边栏 (Right Sidebar) -->
-      <DrugSidebar
-        :sidebar-data="question.sidebarData || {}"
-        class="sidebar-right drug-sidebar-component"
-      />
-    </main>
-    <!-- 处理找不到问题的情况 -->
-    <main v-else class="content-area-single-column">
-      <div class="main-content-middle">
-        <p>找不到指定的问题。</p>
+      <!-- Article Not Found State (handled by error now, but could be separate) -->
+      <div v-else class="main-content-middle not-found-message">
+        <p>Not Found</p>
       </div>
     </main>
     <PageFooter />
@@ -32,25 +27,24 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import PageHeader from '../components/PageHeader.vue' // 注意路径
-import PageFooter from '../components/PageFooter.vue' // 注意路径
-import SideNav from '../components/SideNav.vue' // 注意路径
-import DrugSidebar from '../components/DrugSidebar.vue' // 注意路径
-import allQuestionData from '../Datas/questionData.js' // 注意路径
+import axios from 'axios'
+import PageHeader from '../components/PageHeader.vue'
+import PageFooter from '../components/PageFooter.vue'
+import SideNav from '../components/SideNav.vue'
+import DrugSidebar from '../components/DrugSidebar.vue'
 
 const route = useRoute()
-const router = useRouter() // 获取 router 实例
-const postBody = ref(null) // 创建 ref 用于获取 .post-body 元素
+const router = useRouter()
+const postBody = ref(null)
 
-// 计算属性，根据路由 id 获取当前问题
-const question = computed(() => {
-  const questionId = route.params.id
-  return allQuestionData[questionId] || null
-})
+// Reactive state for the question data, loading, and error
+const question = ref(null)
+const isLoading = ref(true)
+const error = ref(null)
 
-// 点击处理函数
+// Click handler remains the same
 const handleContentClick = (event) => {
   const target = event.target
   // Check if the clicked element is an <a> tag within the post body
@@ -65,7 +59,7 @@ const handleContentClick = (event) => {
   }
 }
 
-// 更新 meta 标签的函数
+// Meta tag update function remains the same
 const updateMetaTags = (questionData) => {
   if (questionData) {
     document.title = questionData.metaTitle || questionData.listTitle || 'Question | Levitrask'
@@ -93,39 +87,63 @@ const updateMetaTags = (questionData) => {
   }
 }
 
-// 组件挂载时设置 meta 标签和事件监听
-onMounted(() => {
-  updateMetaTags(question.value)
-  // 确保 postBody 元素存在后再添加监听器
-  if (postBody.value) {
-    postBody.value.addEventListener('click', handleContentClick)
-  }
-})
+// Fetch question data when component mounts or route changes
+async function fetchQuestionData() {
+  const questionId = route.params.id
+  isLoading.value = true
+  error.value = null
+  question.value = null
 
-// 组件卸载时移除事件监听
+  console.log(`Fetching question details for ID: ${questionId}`)
+
+  try {
+    // Use relative path, Vite proxy handles it locally
+    const apiUrl = '/api/questions'
+    console.log(`Fetching questions from: ${apiUrl}`); // Debug log
+    const response = await axios.get(apiUrl)
+    const allQuestions = response.data // Expecting object keyed by question_id
+
+    if (allQuestions && allQuestions[questionId]) {
+      question.value = allQuestions[questionId]
+      updateMetaTags(question.value) // Update meta tags after fetching
+      console.log('Question data loaded:', question.value)
+    } else {
+      console.warn(`Question with ID '${questionId}' not found in API response.`)
+      error.value = `Question with ID '${questionId}' not found.`
+      updateMetaTags(null) // Update meta for not found case
+    }
+  } catch (err) {
+    console.error('Error fetching question details:', err)
+    error.value = err.response?.data?.message || err.message || 'Failed to load question details.'
+    updateMetaTags(null) // Update meta for error case
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Watch route parameter changes to refetch data
+watch(() => route.params.id, fetchQuestionData, { immediate: true }) // Use immediate: true to fetch on initial load
+
+// Event listener setup/teardown (needs adjustment due to async data loading)
+// We need to ensure postBody.value exists *after* data has loaded
+watch(question, (newQuestion, oldQuestion) => {
+  // Only add listener if question is newly loaded and postBody is available
+  if (newQuestion && !oldQuestion && postBody.value) {
+     console.log('Adding click listener to postBody');
+     postBody.value.addEventListener('click', handleContentClick);
+  }
+});
+
+onMounted(() => {
+  // Listener addition moved to the watcher above to ensure postBody is rendered with content
+});
+
 onUnmounted(() => {
   if (postBody.value) {
-    postBody.value.removeEventListener('click', handleContentClick)
+    console.log('Removing click listener from postBody');
+    postBody.value.removeEventListener('click', handleContentClick);
   }
-})
-
-// 监听路由变化或 question 数据变化
-watch(
-  () => route.params.id, // 监听路由参数变化
-  (newId, oldId) => {
-    if (newId !== oldId) {
-      updateMetaTags(question.value)
-      // 当问题内容更新时，可能需要重新确保监听器已附加（如果 v-if 导致元素重新渲染）
-      // Vue 3 的 v-if/v-else 切换通常会触发 onMounted/onUnmounted，所以这里可能不需要再次添加
-      // 但如果遇到问题，可以考虑在这里重新附加监听器
-    }
-  }
-)
-
-// 也监听 question 本身的变化，以防数据异步加载等情况
-watch(question, (newQuestion) => {
-  updateMetaTags(newQuestion)
-})
+});
 </script>
 
 <style scoped>

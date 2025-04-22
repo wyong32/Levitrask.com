@@ -2,40 +2,46 @@
   <div>
     <PageHeader />
     <main class="post-details-page layout-3-column">
-      <!-- Left Sidebar for Navigation -->
-      <SideNav
-        v-if="blogPost && blogPost.navSections && blogPost.navSections.length > 0"
-        :sections="blogPost.navSections"
-        content-selector=".post-body > section"
-        class="sidebar-left side-nav-component"
-      />
-      <!-- Add a placeholder or adjust grid if navSections are empty -->
-      <div v-else class="sidebar-left-placeholder"></div>
-
-      <div class="container post-container" v-if="blogPost">
-        <article class="post-content-area">
-          <!-- Main content area -->
-          <div class="post-body" ref="postBodyRef" v-html="blogPost.content"></div>
-        </article>
-
-        <aside class="post-sidebar drug-sidebar-component">
-          <!-- Replace placeholder with DrugSidebar -->
-          <DrugSidebar
-            v-if="blogPost && blogPost.sidebarData"
-            :sidebar-data="blogPost.sidebarData"
-          />
-          <!-- Placeholder for potential sidebar content (e.g., related posts) -->
-          <!-- <div class="sidebar-section related-posts">
-            <h3>Related Articles</h3>
-            <ul>
-              <li>Related post 1</li>
-              <li>Related post 2</li>
-            </ul>
-          </div> -->
-        </aside>
+      <!-- Loading State -->
+      <div v-if="isLoading" class="loading-message full-width-message">
+        Loading blog post...
       </div>
-      <div class="container" v-else>
-        <p class="not-found">Blog post not found.</p>
+      <!-- Error State -->
+      <div v-else-if="error" class="error-message full-width-message">
+        Failed to load blog post: {{ error }}
+      </div>
+
+      <!-- Data Loaded State -->
+      <template v-else-if="blogPost">
+        <!-- Left Sidebar for Navigation -->
+        <SideNav
+          v-if="blogPost.navSections && blogPost.navSections.length > 0"
+          :sections="blogPost.navSections"
+          content-selector=".post-body > section"
+          class="sidebar-left side-nav-component"
+        />
+        <!-- Add a placeholder or adjust grid if navSections are empty -->
+        <div v-else class="sidebar-left-placeholder"></div>
+
+        <div class="container post-container">
+          <article class="post-content-area">
+            <!-- Main content area -->
+            <div class="post-body" ref="postBodyRef" v-html="blogPost.content"></div>
+          </article>
+
+          <aside class="post-sidebar drug-sidebar-component">
+            <!-- DrugSidebar Component -->
+            <DrugSidebar
+              v-if="blogPost.sidebarData"
+              :sidebar-data="blogPost.sidebarData"
+            />
+          </aside>
+        </div>
+      </template>
+
+      <!-- Not Found State -->
+      <div class="container not-found-message full-width-message" v-else>
+        <p>Blog post not found.</p>
       </div>
     </main>
     <PageFooter />
@@ -43,9 +49,9 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, nextTick, computed, onUnmounted } from 'vue'
+import { ref, watch, onMounted, nextTick, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import blogsData from '../Datas/BlogsData.js'
+import axios from 'axios' // Import axios
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
 import SideNav from '../components/SideNav.vue'
@@ -57,19 +63,60 @@ const props = defineProps({
 
 const route = useRoute()
 const router = useRouter()
-const blogPost = ref(null)
 
-const loadBlogPost = (postId) => {
-  if (postId && blogsData[postId]) {
-    blogPost.value = blogsData[postId]
-    updateMetaTags()
-  } else {
-    blogPost.value = null
-    // Optionally redirect to a 404 page or BlogView
-    // router.push({ name: 'blog' });
+// Reactive state
+const blogPost = ref(null)
+const isLoading = ref(true)
+const error = ref(null)
+const postBodyRef = ref(null) // Ref for the content container
+
+// --- Fetch Blog Post Data --- 
+async function fetchBlogPost(postId) {
+  if (!postId) {
+    error.value = 'No blog post ID provided.';
+    isLoading.value = false;
+    blogPost.value = null;
+    updateMetaTags();
+    return;
+  }
+
+  isLoading.value = true
+  error.value = null
+  blogPost.value = null // Reset on new fetch
+
+  console.log(`Fetching blog post details for ID: ${postId}`)
+
+  try {
+    // Use relative path for API call
+    const apiUrl = '/api/blogs'
+    console.log(`Fetching blogs from: ${apiUrl}`);
+    const response = await axios.get(apiUrl)
+    const allBlogs = response.data // Expecting object keyed by blog_id
+
+    if (allBlogs && allBlogs[postId]) {
+      blogPost.value = allBlogs[postId]
+      updateMetaTags() // Update meta tags after fetching
+      console.log('Blog post data loaded:', blogPost.value)
+
+      // Ensure event listener is attached after content is rendered
+      await nextTick(); // Wait for DOM update cycle
+      setupContentClickListener();
+
+    } else {
+      console.warn(`Blog post with ID '${postId}' not found in API response.`)
+      error.value = `Blog post with ID '${postId}' not found.`
+      updateMetaTags() // Update meta for not found case
+    }
+  } catch (err) {
+    console.error('Error fetching blog post details:', err)
+    error.value = err.response?.data?.message || err.message || 'Failed to load blog post details.'
+    updateMetaTags() // Update meta for error case
+  } finally {
+    isLoading.value = false
   }
 }
 
+// --- Meta Tag Management --- 
 const updateMetaTags = () => {
   if (blogPost.value) {
     document.title = blogPost.value.metaTitle || 'Levitrask Blog'
@@ -92,79 +139,78 @@ const setMetaTag = (name, content) => {
   element.setAttribute('content', content)
 }
 
+// --- Content Click Handler (for internal links) --- 
+const handleContentClick = (event) => {
+  const target = event.target
+  if (target.tagName === 'A' && target.closest('.post-body')) {
+    const href = target.getAttribute('href')
+    if (href && href.startsWith('/') && href !== route.path) {
+      event.preventDefault()
+      router.push(href)
+    }
+  }
+}
+
+// Function to setup (add) the click listener
+const setupContentClickListener = () => {
+  if (postBodyRef.value) {
+    console.log('Attaching click listener to .post-body');
+    // Remove first to avoid duplicates if called multiple times
+    postBodyRef.value.removeEventListener('click', handleContentClick);
+    postBodyRef.value.addEventListener('click', handleContentClick);
+  }
+};
+
+// Function to remove the click listener
+const removeContentClickListener = () => {
+  if (postBodyRef.value) {
+    console.log('Removing click listener from .post-body');
+    postBodyRef.value.removeEventListener('click', handleContentClick);
+  }
+};
+
+// --- Lifecycle and Watchers --- 
+
 // Watch for changes in the route parameter (props.id)
 watch(
   () => props.id,
   (newId) => {
-    loadBlogPost(newId)
+    fetchBlogPost(newId)
   },
   { immediate: true } // Load immediately when component mounts
 )
 
-// Handle internal links within v-html content (if needed, similar to QuestionDetails)
 onMounted(() => {
-  // Initial load based on prop
-  loadBlogPost(props.id)
-
-  // Optional: Add click handler for internal links if blog content uses <a> tags
-  // nextTick(() => {
-  //   const contentArea = document.querySelector('.post-body');
-  //   if (contentArea) {
-  //     contentArea.addEventListener('click', handleContentClick);
-  //   }
-  // });
+  // Listener setup is now handled within fetchBlogPost after data loads
 })
 
-// Optional: Click handler for internal links
-const handleContentClick = (event) => {
-  const target = event.target
-  // Check if the clicked element is an <a> tag within the post body
-  if (target.tagName === 'A' && target.closest('.post-body')) {
-    const href = target.getAttribute('href')
-    // Check if it's an internal link and different from the current path
-    if (href && href.startsWith('/') && href !== route.path) {
-      event.preventDefault() // Prevent default browser navigation
-      router.push(href) // Use Vue Router to navigate
-    }
-    // External links or links to the same page will navigate normally or do nothing
-  }
-}
-
-// Ref for the content container
-const postBodyRef = ref(null)
-
-// Add event listener when the component mounts and cleanup
-onMounted(() => {
-  // Initial load based on prop - This seems redundant due to the watcher, consider removing if watcher works
-  // loadBlogPost(props.id);
-
-  // Add click listener
-  nextTick(() => {
-    // Use nextTick to ensure DOM is ready
-    if (postBodyRef.value) {
-      postBodyRef.value.addEventListener('click', handleContentClick)
-    }
-  })
-})
-
-// Remove event listener when the component unmounts
 onUnmounted(() => {
-  if (postBodyRef.value) {
-    postBodyRef.value.removeEventListener('click', handleContentClick)
-  }
+  removeContentClickListener(); // Cleanup listener on unmount
 })
 
-// Optional: Cleanup listener
-// import { onUnmounted } from 'vue';
-// onUnmounted(() => {
-//   const contentArea = document.querySelector('.post-body');
-//   if (contentArea) {
-//     contentArea.removeEventListener('click', handleContentClick);
-//   }
-// });
 </script>
 
 <style scoped>
+/* Add styles for loading/error/not-found messages */
+.loading-message,
+.error-message,
+.not-found-message {
+  text-align: center;
+  padding: 5rem 1rem;
+  font-size: 1.2rem;
+  color: #6c757d;
+}
+
+.error-message {
+  color: #dc3545;
+}
+
+/* Ensure message takes full width if sidebar isn't shown */
+.full-width-message {
+   grid-column: 1 / -1; /* Span all columns if in grid, or adjust layout */
+   width: 100%;
+}
+
 /* Reuse styles from QuestionDetails.vue or create specific ones */
 .post-details-page {
   padding: 2rem 1rem;
@@ -315,13 +361,6 @@ onUnmounted(() => {
 
 .sidebar-section li a:hover {
   text-decoration: underline;
-}
-
-.not-found {
-  text-align: center;
-  font-size: 1.2rem;
-  color: #6c757d;
-  padding: 3rem 0;
 }
 
 /* Responsive adjustments */

@@ -4,7 +4,7 @@
     <main class="content-area-single-column">
       <!-- Loading State -->
       <div v-if="isLoading" class="loading-message main-content-middle">
-        Loading article...
+        Loading news article...
       </div>
       <!-- Error State -->
       <div v-else-if="error" class="error-message main-content-middle">
@@ -75,7 +75,10 @@ onMounted(async () => {
   article.value = null
 
   try {
-    const response = await axios.get('/api/news')
+    // Use relative path for API call, Vite proxy will handle redirection locally
+    const apiUrl = '/api/news'; 
+    console.log(`Fetching article details from: ${apiUrl}`); // Debug log
+    const response = await axios.get(apiUrl) // Use relative path
     const allNews = response.data
 
     if (allNews && allNews[articleId]) {
