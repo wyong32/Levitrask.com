@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!api/|_next/|static/|public/|assets/|favicon.ico|robots.txt|sitemap.xml|[\\w-]+\\.\\w+).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
