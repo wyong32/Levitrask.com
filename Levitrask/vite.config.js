@@ -20,7 +20,8 @@ try {
 }
 
 // --- 使用正则表达式提取静态路由路径 --- // (修改)
-const staticPathRegex = /path:\s*'((?:\/[^\s:']*)?)\/g; // Removed comment
+const regexString = "path:\\\\s*\'((?:\\\\/[^\\\\s:\']*)?)\\\/g"; // Define as string
+const staticPathRegex = new RegExp(regexString); // Create RegExp object
 let staticRoutes = []
 let match
 while ((match = staticPathRegex.exec(routerContent)) !== null) {
