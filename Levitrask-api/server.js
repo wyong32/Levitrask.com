@@ -2,8 +2,8 @@
 require('dotenv').config(); // 加载 .env 文件变量
 const express = require('express');
 const cors = require('cors');    // 引入 cors 中间件
-const fs = require('fs');
-const path = require('path');
+// const fs = require('fs'); // No longer needed for dynamic loading
+// const path = require('path'); // No longer needed for dynamic loading
 
 const app = express();
 const port = process.env.PORT || 3000; // 后端服务器监听端口，默认为 3000
@@ -17,41 +17,30 @@ const corsOptions = {
 };
 app.use(cors(corsOptions)); // 应用 CORS 中间件
 
-// --- 动态加载 API 路由 (添加详细日志) ---
-const apiDir = path.join(__dirname, 'api');
-console.log(`[Server] Loading API routers from: ${apiDir}`);
+// --- 静态加载 API 路由 --- 
+console.log('[Server] Loading API routers statically...');
+try {
+  const newsRouter = require('./api/news');
+  const blogsRouter = require('./api/blogs');
+  const questionsRouter = require('./api/questions');
 
-fs.readdirSync(apiDir).forEach(file => {
-  if (file.endsWith('.js')) {
-    const routeName = path.basename(file, '.js');
-    const mountPath = `/api/${routeName}`;
-    const filePath = path.join(apiDir, file);
-    console.log(`[Server] Processing file: ${file}`);
-    try {
-      console.log(`[Server] Attempting to require router from: ${filePath}`);
-      const routerModule = require(filePath);
-      console.log(`[Server] Required module for ${file}. Type: ${typeof routerModule}`);
-
-      // More specific check for Express Router
-      if (routerModule && typeof routerModule === 'function' && routerModule.stack) {
-         console.log(`[Server]   ✓ Module is a valid Router. Mounting at: ${mountPath}`);
-         app.use(mountPath, routerModule);
-      } else {
-         // Log details if it's not a valid router
-         console.warn(`[Server]   ✗ Skipping ${file}: Exported module is NOT a valid Express Router.`);
-         // Avoid logging the whole object if it's large or circular
-         if (routerModule && typeof routerModule === 'object') {
-            console.warn(`[Server]   -> Exported value keys: ${Object.keys(routerModule).join(', ')}`);
-         } else {
-            console.warn(`[Server]   -> Exported value: ${routerModule}`);
-         }
-      }
-    } catch (error) {
-      // Log require/mount errors specifically
-      console.error(`[Server]   ✗ Error requiring or mounting router ${routeName} from ${file}:`, error);
-    }
+  // 可以在这里加一层验证，确保require成功
+  if (!newsRouter || !blogsRouter || !questionsRouter) {
+      throw new Error('One or more routers failed to load.');
   }
-});
+
+  app.use('/api/news', newsRouter);
+  console.log('  ✓ Mounted router for: /api/news');
+  app.use('/api/blogs', blogsRouter);
+  console.log('  ✓ Mounted router for: /api/blogs');
+  app.use('/api/questions', questionsRouter);
+  console.log('  ✓ Mounted router for: /api/questions');
+
+} catch (error) {
+    console.error('[Server] Failed to load or mount routers:', error);
+    // 可以在这里决定是否让服务器启动失败
+    // process.exit(1); // 如果加载路由失败则退出
+}
 
 // --- 启动服务器 ---
 app.listen(port, () => {
