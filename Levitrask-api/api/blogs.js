@@ -1,7 +1,7 @@
-const express = require('express');
-const pool = require('../utils/db');
-const PROJECT_ID = 'levitrask';
+import express from 'express';
+import pool from '../utils/db.js';
 
+const PROJECT_ID = 'levitrask';
 const router = express.Router();
 
 // --- GET /api/blogs/ --- (Handles request for all blogs)
@@ -82,4 +82,4 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-module.exports = router; 
+export default router; 
