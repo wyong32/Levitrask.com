@@ -17,52 +17,28 @@ const corsOptions = {
 };
 app.use(cors(corsOptions)); // 应用 CORS 中间件
 
-// --- 静态加载 API 路由 (尝试只加载 news) --- 
-console.log('[Server] Loading API routers statically (DEBUG: ONLY NEWS)...');
+// --- 简化路由加载 (仅用于调试) --- 
+console.log('[Server] Attemping to load simple news handler...');
 try {
-  console.log('[Server] Requiring news router...');
-  const newsRouter = require('./api/news');
-  console.log('[Server] --- Detailed Check for newsRouter --- ');
-  console.log(`[Server] typeof newsRouter: ${typeof newsRouter}`);
-  if (newsRouter && typeof newsRouter === 'object') {
-    console.log(`[Server] newsRouter keys: ${Object.keys(newsRouter)}`);
-    console.log(`[Server] newsRouter.stack exists?: ${!!newsRouter.stack}`);
-  } else if (typeof newsRouter === 'function') {
-      console.log(`[Server] newsRouter is a function. Stack exists?: ${!!newsRouter.stack}`);
+  const simpleNewsHandler = require('./api/news');
+
+  if (typeof simpleNewsHandler === 'function') {
+    // 使用精确路径匹配挂载简单处理器
+    app.get('/api/news', simpleNewsHandler);
+    app.get('/api/news/:id', simpleNewsHandler); // 让详情路径也能被捕获
+    console.log('  ✓ Mounted simple handler for /api/news and /api/news/:id');
   } else {
-    console.log(`[Server] newsRouter value: ${newsRouter}`);
+      console.error('[Server] Failed: require("./api/news") did not return a function. Got:', typeof simpleNewsHandler);
+      throw new Error('Simple news handler is not a function.');
   }
-  console.log('[Server] --- End Detailed Check for newsRouter --- ');
-  if (!newsRouter || typeof newsRouter !== 'function' || !newsRouter.stack) {
-    throw new Error('Failed to load a valid newsRouter.');
-  }
-  app.use('/api/news', newsRouter);
-  console.log('  ✓ Mounted router for: /api/news');
 
-  /* // Temporarily comment out blogs and questions
-  console.log('[Server] Requiring blogs router...');
-  const blogsRouter = require('./api/blogs');
-  // ... detailed check for blogsRouter ...
-   if (!blogsRouter || typeof blogsRouter !== 'function' || !blogsRouter.stack) {
-    throw new Error('Failed to load a valid blogsRouter.');
-  }
-  app.use('/api/blogs', blogsRouter);
-  console.log('  ✓ Mounted router for: /api/blogs');
-
-  console.log('[Server] Requiring questions router...');
-  const questionsRouter = require('./api/questions');
-  // ... detailed check for questionsRouter ...
-   if (!questionsRouter || typeof questionsRouter !== 'function' || !questionsRouter.stack) {
-    throw new Error('Failed to load a valid questionsRouter.');
-  }
-  app.use('/api/questions', questionsRouter);
-  console.log('  ✓ Mounted router for: /api/questions');
-  */
+  // 其他路由暂时不加载
+  console.log('[Server] Blogs and Questions routers are intentionally NOT loaded for this test.');
 
 } catch (error) {
-    console.error('[Server] Failed to load or mount routers:', error);
+    console.error('[Server] Critical error during simplified handler loading:', error);
     // 可以在这里决定是否让服务器启动失败
-    // process.exit(1); // 如果加载路由失败则退出
+    // process.exit(1); 
 }
 
 // --- 启动服务器 ---
