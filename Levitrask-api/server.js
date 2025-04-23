@@ -17,27 +17,38 @@ const corsOptions = {
 };
 app.use(cors(corsOptions)); // 应用 CORS 中间件
 
-// --- 动态加载 API 路由 (使用 Express Router) ---
+// --- 动态加载 API 路由 (添加详细日志) ---
 const apiDir = path.join(__dirname, 'api');
-console.log(`Loading API routers from: ${apiDir}`);
+console.log(`[Server] Loading API routers from: ${apiDir}`);
 
 fs.readdirSync(apiDir).forEach(file => {
   if (file.endsWith('.js')) {
     const routeName = path.basename(file, '.js');
-    const mountPath = `/api/${routeName}`; // e.g., '/api/news'
+    const mountPath = `/api/${routeName}`;
+    const filePath = path.join(apiDir, file);
+    console.log(`[Server] Processing file: ${file}`);
     try {
-      // Require the router exported from the file
-      const router = require(path.join(apiDir, file));
-      // Check if it's a valid Express Router
-      if (router && typeof router === 'function' && router.stack) {
-         console.log(`  ✓ Mounting router for: ${mountPath}`);
-         // Mount the router at the specified path
-         app.use(mountPath, router); // <--- 修改为此
+      console.log(`[Server] Attempting to require router from: ${filePath}`);
+      const routerModule = require(filePath);
+      console.log(`[Server] Required module for ${file}. Type: ${typeof routerModule}`);
+
+      // More specific check for Express Router
+      if (routerModule && typeof routerModule === 'function' && routerModule.stack) {
+         console.log(`[Server]   ✓ Module is a valid Router. Mounting at: ${mountPath}`);
+         app.use(mountPath, routerModule);
       } else {
-         console.warn(`  ✗ Skipping ${file}: module does not export a valid Express Router.`);
+         // Log details if it's not a valid router
+         console.warn(`[Server]   ✗ Skipping ${file}: Exported module is NOT a valid Express Router.`);
+         // Avoid logging the whole object if it's large or circular
+         if (routerModule && typeof routerModule === 'object') {
+            console.warn(`[Server]   -> Exported value keys: ${Object.keys(routerModule).join(', ')}`);
+         } else {
+            console.warn(`[Server]   -> Exported value: ${routerModule}`);
+         }
       }
     } catch (error) {
-      console.error(`  ✗ Error loading or mounting router ${routeName} from ${file}:`, error);
+      // Log require/mount errors specifically
+      console.error(`[Server]   ✗ Error requiring or mounting router ${routeName} from ${file}:`, error);
     }
   }
 });
