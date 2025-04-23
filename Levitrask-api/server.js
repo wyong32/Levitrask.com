@@ -17,26 +17,27 @@ const corsOptions = {
 };
 app.use(cors(corsOptions)); // 应用 CORS 中间件
 
-// --- 动态加载 API 路由 (修改) ---
+// --- 动态加载 API 路由 (使用 Express Router) ---
 const apiDir = path.join(__dirname, 'api');
-console.log(`Loading API handlers from: ${apiDir}`);
+console.log(`Loading API routers from: ${apiDir}`);
 
 fs.readdirSync(apiDir).forEach(file => {
   if (file.endsWith('.js')) {
     const routeName = path.basename(file, '.js');
-    const routePrefix = `/api/${routeName}`; // 例如 '/api/news'
+    const mountPath = `/api/${routeName}`; // e.g., '/api/news'
     try {
-      // 动态引入 api/ 目录下的 js 文件作为请求处理器
-      const handler = require(path.join(apiDir, file));
-      if (typeof handler === 'function') {
-         // 使用 app.use 捕获所有以此前缀开头的请求
-         console.log(`  ✓ Registering handler for prefix: ${routePrefix}`);
-         app.use(routePrefix, handler); // <--- 修改为此，将所有匹配此前缀的请求交给 handler
+      // Require the router exported from the file
+      const router = require(path.join(apiDir, file));
+      // Check if it's a valid Express Router
+      if (router && typeof router === 'function' && router.stack) {
+         console.log(`  ✓ Mounting router for: ${mountPath}`);
+         // Mount the router at the specified path
+         app.use(mountPath, router); // <--- 修改为此
       } else {
-         console.warn(`  ✗ Skipping ${file}: module does not export a function.`);
+         console.warn(`  ✗ Skipping ${file}: module does not export a valid Express Router.`);
       }
     } catch (error) {
-      console.error(`  ✗ Error loading route ${routeName} from ${file}:`, error);
+      console.error(`  ✗ Error loading or mounting router ${routeName} from ${file}:`, error);
     }
   }
 });
