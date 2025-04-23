@@ -20,19 +20,61 @@ app.use(cors(corsOptions)); // 应用 CORS 中间件
 // --- 静态加载 API 路由 --- 
 console.log('[Server] Loading API routers statically...');
 try {
+  console.log('[Server] Requiring news router...');
   const newsRouter = require('./api/news');
-  const blogsRouter = require('./api/blogs');
-  const questionsRouter = require('./api/questions');
-
-  // 可以在这里加一层验证，确保require成功
-  if (!newsRouter || !blogsRouter || !questionsRouter) {
-      throw new Error('One or more routers failed to load.');
+  console.log('[Server] --- Detailed Check for newsRouter --- ');
+  console.log(`[Server] typeof newsRouter: ${typeof newsRouter}`);
+  if (newsRouter && typeof newsRouter === 'object') {
+    console.log(`[Server] newsRouter keys: ${Object.keys(newsRouter)}`);
+    console.log(`[Server] newsRouter.stack exists?: ${!!newsRouter.stack}`);
+    // Avoid logging the entire object if it might be huge or circular
+  } else if (typeof newsRouter === 'function') {
+      console.log(`[Server] newsRouter is a function. Stack exists?: ${!!newsRouter.stack}`);
+  } else {
+    console.log(`[Server] newsRouter value: ${newsRouter}`);
   }
-
+  console.log('[Server] --- End Detailed Check for newsRouter --- ');
+  if (!newsRouter || typeof newsRouter !== 'function' || !newsRouter.stack) {
+    throw new Error('Failed to load a valid newsRouter.');
+  }
   app.use('/api/news', newsRouter);
   console.log('  ✓ Mounted router for: /api/news');
+
+  console.log('[Server] Requiring blogs router...');
+  const blogsRouter = require('./api/blogs');
+  console.log('[Server] --- Detailed Check for blogsRouter --- ');
+  console.log(`[Server] typeof blogsRouter: ${typeof blogsRouter}`);
+  if (blogsRouter && typeof blogsRouter === 'object') {
+    console.log(`[Server] blogsRouter keys: ${Object.keys(blogsRouter)}`);
+    console.log(`[Server] blogsRouter.stack exists?: ${!!blogsRouter.stack}`);
+  } else if (typeof blogsRouter === 'function') {
+      console.log(`[Server] blogsRouter is a function. Stack exists?: ${!!blogsRouter.stack}`);
+  } else {
+    console.log(`[Server] blogsRouter value: ${blogsRouter}`);
+  }
+  console.log('[Server] --- End Detailed Check for blogsRouter --- ');
+   if (!blogsRouter || typeof blogsRouter !== 'function' || !blogsRouter.stack) {
+    throw new Error('Failed to load a valid blogsRouter.');
+  }
   app.use('/api/blogs', blogsRouter);
   console.log('  ✓ Mounted router for: /api/blogs');
+
+  console.log('[Server] Requiring questions router...');
+  const questionsRouter = require('./api/questions');
+  console.log('[Server] --- Detailed Check for questionsRouter --- ');
+  console.log(`[Server] typeof questionsRouter: ${typeof questionsRouter}`);
+  if (questionsRouter && typeof questionsRouter === 'object') {
+    console.log(`[Server] questionsRouter keys: ${Object.keys(questionsRouter)}`);
+    console.log(`[Server] questionsRouter.stack exists?: ${!!questionsRouter.stack}`);
+  } else if (typeof questionsRouter === 'function') {
+      console.log(`[Server] questionsRouter is a function. Stack exists?: ${!!questionsRouter.stack}`);
+  } else {
+    console.log(`[Server] questionsRouter value: ${questionsRouter}`);
+  }
+  console.log('[Server] --- End Detailed Check for questionsRouter --- ');
+   if (!questionsRouter || typeof questionsRouter !== 'function' || !questionsRouter.stack) {
+    throw new Error('Failed to load a valid questionsRouter.');
+  }
   app.use('/api/questions', questionsRouter);
   console.log('  ✓ Mounted router for: /api/questions');
 
