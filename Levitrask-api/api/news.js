@@ -1,4 +1,5 @@
 const pool = require('../utils/db');
+const { URL } = require('url'); // Import URL module to parse request URL
 const PROJECT_ID = 'levitrask'; // Define project identifier
 
 // --- CORS Helper Function ---
@@ -20,12 +21,13 @@ const allowCors = (handler) => async (req, res) => {
     return;
   }
 
-  // Call the original handler
+  // Pass the original req object which might have base path info if needed by handler
+  // Although we'll rely on req.url which is modified by app.use
   return handler(req, res);
 };
 // --- End CORS Helper ---
 
-// Original handler logic
+// Modified handler logic to handle requests relative to the prefix used in app.use
 const newsHandler = async (req, res) => {
   if (req.method !== 'GET') {
     // Note: CORS headers are already set by the wrapper even for errors
@@ -33,37 +35,70 @@ const newsHandler = async (req, res) => {
   }
 
   try {
-    // This query assumes the 'levitrask_news' table and 'project_id', 'news_id' columns exist
-    const result = await pool.query('SELECT * FROM levitrask_news WHERE project_id = $1', [PROJECT_ID]);
+    // req.url is now relative to the mount point (e.g., '/' or '/some-id')
+    const relativePath = req.url;
+    const pathSegments = relativePath.split('/').filter(Boolean); // e.g., [] for '/' or ['some-id'] for '/some-id'
 
-    // Transform array of rows into an object keyed by news_id
-    const newsData = result.rows.reduce((acc, row) => {
-      // Assuming the column name in the DB is 'news_id' which corresponds to the keys in original JS data
-      const newsIdKey = row.news_id; 
-      if (newsIdKey) {
-          // Reconstruct the object structure similar to the original newsData.js
-          // We might need to adjust column names based on the actual table schema
-          acc[newsIdKey] = {
-              id: newsIdKey, // Use news_id from DB as id
-              listTitle: row.list_title,
-              listDate: row.list_date,
-              listSource: row.list_source,
-              listImage: { // Reconstruct nested object
-                  src: row.list_image_src,
-                  alt: row.list_image_alt,
-              },
-              listDescription: row.list_description,
-              metaTitle: row.meta_title,
-              metaDescription: row.meta_description,
-              metaKeywords: row.meta_keywords,
-              content: row.content, 
-              // Add other fields if necessary, matching original structure
-          };
+    let result;
+    let newsData;
+
+    // Check if the request is for a specific news ID (path has one segment: the ID)
+    if (pathSegments.length === 1) {
+      const newsId = pathSegments[0]; // Get the ID from the relative path
+      console.log(`[API Handler - news.js] Fetching news with ID: ${newsId}`);
+      result = await pool.query('SELECT * FROM levitrask_news WHERE project_id = $1 AND news_id = $2', [PROJECT_ID, newsId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: `News with ID '${newsId}' not found.` });
       }
-      return acc;
-    }, {});
 
-    res.status(200).json(newsData); // Send back the transformed object
+      // Return the single news item
+      const row = result.rows[0];
+      newsData = {
+        id: row.news_id,
+        listTitle: row.list_title,
+        listDate: row.list_date,
+        listSource: row.list_source,
+        listImage: { src: row.list_image_src, alt: row.list_image_alt },
+        listDescription: row.list_description,
+        metaTitle: row.meta_title,
+        metaDescription: row.meta_description,
+        metaKeywords: row.meta_keywords,
+        content: row.content,
+      };
+
+    } else if (pathSegments.length === 0) { // Request is for the base path (e.g., '/api/news' -> '/')
+      // Request for all news
+      console.log('[API Handler - news.js] Fetching all news');
+      result = await pool.query('SELECT * FROM levitrask_news WHERE project_id = $1', [PROJECT_ID]);
+
+      // Transform array of rows into an object keyed by news_id
+      newsData = result.rows.reduce((acc, row) => {
+        const newsIdKey = row.news_id;
+        if (newsIdKey) {
+            acc[newsIdKey] = {
+                id: newsIdKey,
+                listTitle: row.list_title,
+                listDate: row.list_date,
+                listSource: row.list_source,
+                listImage: { src: row.list_image_src, alt: row.list_image_alt },
+                listDescription: row.list_description,
+                metaTitle: row.meta_title,
+                metaDescription: row.meta_description,
+                metaKeywords: row.meta_keywords,
+                content: row.content,
+            };
+        }
+        return acc;
+      }, {});
+    } else {
+      // Invalid path relative to /api/news (e.g., /api/news/id/extra)
+      console.warn(`[API Handler - news.js] Invalid relative path: ${relativePath}`);
+      return res.status(404).json({ message: 'Not Found' });
+    }
+
+    res.status(200).json(newsData); // Send back the result
+
   } catch (error) {
     console.error('Error fetching news:', error);
     // Check if the error is due to the table not existing (common issue initially)

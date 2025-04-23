@@ -15,44 +15,80 @@ const allowCors = (handler) => async (req, res) => {
 };
 // --- End CORS Helper ---
 
-// Original handler logic
+// Modified handler logic
 const blogsHandler = async (req, res) => {
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
   try {
-    // Query the new table name
-    const result = await pool.query('SELECT * FROM levitrask_blogs WHERE project_id = $1', [PROJECT_ID]);
+    const relativePath = req.url;
+    const pathSegments = relativePath.split('/').filter(Boolean);
 
-    // Transform array of rows into an object keyed by blog_id
-    const blogsData = result.rows.reduce((acc, row) => {
-      const blogIdKey = row.blog_id;
-      if (blogIdKey) {
-        // Directly use the values from JSONB columns (pg driver parses them)
-        acc[blogIdKey] = {
+    let result;
+    let blogsData;
+
+    // Check if request is for a specific blog ID
+    if (pathSegments.length === 1) {
+      const blogId = pathSegments[0];
+      console.log(`[API Handler - blogs.js] Fetching blog with ID: ${blogId}`);
+      result = await pool.query('SELECT * FROM levitrask_blogs WHERE project_id = $1 AND blog_id = $2', [PROJECT_ID, blogId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: `Blog with ID '${blogId}' not found.` });
+      }
+
+      const row = result.rows[0];
+      blogsData = {
+        id: row.blog_id,
+        listTitle: row.list_title,
+        listDescription: row.list_description,
+        listImage: row.list_image,
+        listDate: row.list_date,
+        metaTitle: row.meta_title,
+        metaDescription: row.meta_description,
+        metaKeywords: row.meta_keywords,
+        navSections: row.nav_sections || [],
+        sidebarData: row.sidebar_data || {},
+        content: row.content,
+      };
+
+    } else if (pathSegments.length === 0) {
+      // Request for all blogs
+      console.log('[API Handler - blogs.js] Fetching all blogs');
+      result = await pool.query('SELECT * FROM levitrask_blogs WHERE project_id = $1', [PROJECT_ID]);
+
+      // Transform into object keyed by blog_id
+      blogsData = result.rows.reduce((acc, row) => {
+        const blogIdKey = row.blog_id;
+        if (blogIdKey) {
+          acc[blogIdKey] = {
             id: blogIdKey,
             listTitle: row.list_title,
             listDescription: row.list_description,
-            listImage: row.list_image, // Directly use the image path string
+            listImage: row.list_image,
             listDate: row.list_date,
             metaTitle: row.meta_title,
             metaDescription: row.meta_description,
             metaKeywords: row.meta_keywords,
-            navSections: row.nav_sections || [],  // Use directly, default to empty array
-            sidebarData: row.sidebar_data || {},  // Use directly, default to empty object
+            navSections: row.nav_sections || [],
+            sidebarData: row.sidebar_data || {},
             content: row.content,
-        };
-      }
-      return acc;
-    }, {});
+          };
+        }
+        return acc;
+      }, {});
+    } else {
+      console.warn(`[API Handler - blogs.js] Invalid relative path: ${relativePath}`);
+      return res.status(404).json({ message: 'Not Found' });
+    }
 
-    res.status(200).json(blogsData); // Send back the transformed object
+    res.status(200).json(blogsData);
 
   } catch (error) {
     console.error('Error fetching blogs:', error);
-    if (error.code === '42P01') { // undefined_table
-        res.status(500).json({ message: 'Internal Server Error: Table "levitrask_blogs" does not exist. Please create it first.' });
+    if (error.code === '42P01') {
+        res.status(500).json({ message: 'Internal Server Error: Table "levitrask_blogs" does not exist.' });
     } else {
         res.status(500).json({ message: 'Internal Server Error' });
     }

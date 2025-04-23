@@ -11,10 +11,10 @@
         Failed to load question: {{ error }}
       </div>
       <!-- Main content area -->
-      <article v-else-if="question" class="main-content-middle">
-        <div class="post-body">
+      <article v-else-if="questionData" class="main-content-middle">
+        <div ref="postBody" class="post-body">
           <!-- Render the full HTML content string -->
-          <div v-html="question.content"></div>
+          <div v-html="questionData.content"></div>
         </div>
       </article>
       <!-- Article Not Found State (handled by error now, but could be separate) -->
@@ -63,16 +63,16 @@ const handleContentClick = (event) => {
 }
 
 // Meta tag update function remains the same
-const updateMetaTags = (questionData) => {
-  if (questionData) {
-    document.title = questionData.metaTitle || questionData.listTitle || 'Question | Levitrask'
+const updateMetaTags = (qData) => {
+  if (qData) {
+    document.title = qData.metaTitle || qData.listTitle || 'Question | Levitrask'
     let descriptionTag = document.querySelector('meta[name="description"]')
     if (!descriptionTag) {
       descriptionTag = document.createElement('meta')
       descriptionTag.setAttribute('name', 'description')
       document.head.appendChild(descriptionTag)
     }
-    descriptionTag.setAttribute('content', questionData.metaDescription || '')
+    descriptionTag.setAttribute('content', qData.metaDescription || '')
 
     let keywordsTag = document.querySelector('meta[name="keywords"]')
     if (!keywordsTag) {
@@ -80,7 +80,7 @@ const updateMetaTags = (questionData) => {
       keywordsTag.setAttribute('name', 'keywords')
       document.head.appendChild(keywordsTag)
     }
-    keywordsTag.setAttribute('content', questionData.metaKeywords || '')
+    keywordsTag.setAttribute('content', qData.metaKeywords || '')
   } else {
     document.title = '找不到问题 | Levitrask'
     const descriptionTag = document.querySelector('meta[name="description"]')
@@ -97,7 +97,7 @@ async function fetchQuestionData() {
     error.value = 'No question ID provided.';
     isLoading.value = false;
     questionData.value = null; // Ensure reset
-    updateMetaTags(); // Update meta for no ID case
+    updateMetaTags(null); // Update meta for no ID case
     return;
   }
 
@@ -108,26 +108,41 @@ async function fetchQuestionData() {
   console.log(`Fetching question details for ID: ${questionId}`)
 
   try {
-    // const apiUrl = '/api/questions' // Original hardcoded URL
-    const apiUrl = `${baseUrl}/api/questions`; // Use environment variable
-    console.log(`Fetching questions from: ${apiUrl}`);
-    // Fetch all questions first (assuming API returns an object keyed by ID)
-    const response = await axios.get(apiUrl)
-    const allQuestions = response.data // Expecting object keyed by question_id
+    const apiUrl = `${baseUrl}/api/questions`; // Base API URL
+    console.log(`Fetching question from: ${apiUrl}/${questionId}`);
+    // Fetch the specific question using the ID in the URL
+    const response = await fetch(`${apiUrl}/${questionId}`); // Use fetch or axios.get
 
-    if (allQuestions && allQuestions[questionId]) {
-      questionData.value = allQuestions[questionId]
-      updateMetaTags(questionData.value) // Update meta tags after fetching
-      console.log('Question data loaded:', questionData.value)
-    } else {
-      console.warn(`Question with ID '${questionId}' not found in API response.`)
-      error.value = `Question with ID '${questionId}' not found.`
-      updateMetaTags(null) // Update meta for not found case
+    if (!response.ok) {
+      // Handle non-OK responses (like 404)
+      let errorMsg = `HTTP error! status: ${response.status}`;
+      try {
+          const errData = await response.json();
+          errorMsg = errData.message || errorMsg; 
+      } catch (parseErr) { /* Ignore if body isn't JSON */ }
+      throw new Error(errorMsg);
     }
+
+    // If response IS ok (200), parse the data
+    const data = await response.json();
+
+    // Check if the returned data is a valid object with an ID
+    if (data && data.id) {
+      questionData.value = data; // Assign the received object directly
+      updateMetaTags(questionData.value);
+      console.log('Question data loaded:', questionData.value);
+    } else {
+      // Handle case where API returns 200 OK but invalid/empty data
+      console.warn(`API returned OK but data is missing or invalid for ID '${questionId}':`, data);
+      error.value = `Received invalid data for question ID '${questionId}'.`;
+      updateMetaTags(null);
+    }
+
   } catch (err) {
-    console.error('Error fetching question details:', err)
-    error.value = err.response?.data?.message || err.message || 'Failed to load question details.'
-    updateMetaTags(null) // Update meta for error case
+    // Catch network errors or errors thrown from !response.ok check
+    console.error('Error fetching question details:', err);
+    error.value = err.message || 'Failed to load question details.';
+    updateMetaTags(null);
   } finally {
     isLoading.value = false
   }
@@ -136,18 +151,17 @@ async function fetchQuestionData() {
 // Watch route parameter changes to refetch data
 watch(() => route.params.id, fetchQuestionData, { immediate: true }) // Use immediate: true to fetch on initial load
 
-// Event listener setup/teardown (needs adjustment due to async data loading)
-// We need to ensure postBody.value exists *after* data has loaded
-watch(questionData, (newQuestion, oldQuestion) => {
-  // Only add listener if question is newly loaded and postBody is available
-  if (newQuestion && !oldQuestion && postBody.value) {
-     console.log('Adding click listener to postBody');
-     postBody.value.addEventListener('click', handleContentClick);
+// Event listener setup/teardown for internal links
+// Add ref="postBody" to the main content article tag in the template
+watch(postBody, (newPostBody) => {
+  if (newPostBody) {
+    console.log('Adding click listener to postBody for internal links');
+    newPostBody.addEventListener('click', handleContentClick);
   }
-});
+}, { flush: 'post' }); // Use flush: 'post' to ensure element exists after render
 
 onMounted(() => {
-  // Listener addition moved to the watcher above to ensure postBody is rendered with content
+  // Initial fetch is handled by the watcher with immediate: true
 });
 
 onUnmounted(() => {

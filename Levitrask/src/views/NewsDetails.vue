@@ -3,7 +3,7 @@
     <PageHeader />
     <main class="content-area-single-column">
       <!-- Loading State -->
-      <div v-if="isLoading" class="loading-message main-content-middle">
+      <div v-if="loading" class="loading-message main-content-middle">
         Loading news article...
       </div>
       <!-- Error State -->
@@ -11,10 +11,10 @@
         Failed to load article: {{ error }}
       </div>
       <!-- Main content area -->
-      <article v-else-if="article" class="main-content-middle">
+      <article v-else-if="newsDetail" class="main-content-middle">
         <div class="post-body">
           <!-- Render the full HTML content string -->
-          <div v-html="article.content"></div>
+          <div v-html="newsDetail.content"></div>
         </div>
       </article>
       <!-- Article Not Found State (handled by error now, but could be separate) -->
@@ -78,20 +78,34 @@ const fetchNewsDetail = async () => {
     const apiUrl = `${baseUrl}/api/news`; // Use environment variable
     const response = await fetch(`${apiUrl}/${newsId}`) // Use the modified apiUrl
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      // If response is not OK (e.g., 404), throw error to be caught below
+      // We can try to parse the error message from backend if available
+      let errorMsg = `HTTP error! status: ${response.status}`;
+      try {
+          const errData = await response.json();
+          errorMsg = errData.message || errorMsg; 
+      } catch (parseErr) { /* Ignore if body isn't JSON */ }
+      throw new Error(errorMsg);
     }
+    // If response IS ok (e.g., 200), parse the data
     const data = await response.json()
-    if (data && data[newsId]) {
-      newsDetail.value = data[newsId]
-      updateMetaTags(newsDetail.value)
+
+    // Check if the returned data is a valid object with an ID
+    if (data && data.id) { 
+      newsDetail.value = data; // Assign the received object directly
+      updateMetaTags(newsDetail.value);
     } else {
-      error.value = `Article with ID '${newsId}' not found.`
-      updateMetaTags(null)
+      // This case handles if API returns 200 OK but invalid/empty data
+      console.warn('API returned OK but data is missing or invalid:', data);
+      error.value = `Received invalid data for article ID '${newsId}'.`;
+      updateMetaTags(null);
     }
   } catch (err) {
-    console.error('Error fetching article details:', err)
-    error.value = err.response?.data?.message || err.message || 'Failed to load article details.'
-    updateMetaTags(null)
+    // Catch network errors or errors thrown from !response.ok check
+    console.error('Error fetching article details:', err);
+    // Use the error message thrown (which might include backend message)
+    error.value = err.message || 'Failed to load article details.';
+    updateMetaTags(null);
   } finally {
     loading.value = false
   }

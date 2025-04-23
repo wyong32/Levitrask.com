@@ -17,21 +17,21 @@ const corsOptions = {
 };
 app.use(cors(corsOptions)); // 应用 CORS 中间件
 
-// --- 动态加载 API 路由 ---
+// --- 动态加载 API 路由 (修改) ---
 const apiDir = path.join(__dirname, 'api');
 console.log(`Loading API handlers from: ${apiDir}`);
 
 fs.readdirSync(apiDir).forEach(file => {
   if (file.endsWith('.js')) {
-    const routeName = path.basename(file, '.js'); // 例如 'news'
-    const routePath = `/api/${routeName}`;       // 例如 '/api/news'
+    const routeName = path.basename(file, '.js');
+    const routePrefix = `/api/${routeName}`; // 例如 '/api/news'
     try {
       // 动态引入 api/ 目录下的 js 文件作为请求处理器
       const handler = require(path.join(apiDir, file));
       if (typeof handler === 'function') {
-         console.log(`  ✓ Registering route: GET ${routePath}`);
-         // 将 GET 请求映射到对应的处理器
-         app.get(routePath, handler);
+         // 使用 app.use 捕获所有以此前缀开头的请求
+         console.log(`  ✓ Registering handler for prefix: ${routePrefix}`);
+         app.use(routePrefix, handler); // <--- 修改为此，将所有匹配此前缀的请求交给 handler
       } else {
          console.warn(`  ✗ Skipping ${file}: module does not export a function.`);
       }
