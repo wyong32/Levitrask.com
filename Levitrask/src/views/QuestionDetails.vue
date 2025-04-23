@@ -1,7 +1,16 @@
 <template>
-  <div class="news-post-page single-column-page">
+  <div class="question-details-page" :key="route.params.id">
     <PageHeader />
-    <main class="content-area-single-column">
+    <main class="content-area-3-column">
+      <!-- Left Sidebar: SideNav -->
+      <aside v-if="!isLoading && !error && parsedNavSections.length > 0" class="sidebar-left">
+          <SideNav 
+            :sections="parsedNavSections" 
+            content-selector=".post-body" 
+          />
+      </aside>
+      <div v-else-if="!isLoading && !error" class="sidebar-left placeholder"></div> <!-- Optional: Placeholder if no nav -->
+      
       <!-- Loading State -->
       <div v-if="isLoading" class="loading-message main-content-middle">
         Loading question...
@@ -13,21 +22,27 @@
       <!-- Main content area -->
       <article v-else-if="questionData" class="main-content-middle">
         <div ref="postBody" class="post-body">
-          <!-- Render the full HTML content string -->
           <div v-html="questionData.content"></div>
         </div>
       </article>
-      <!-- Article Not Found State (handled by error now, but could be separate) -->
+      <!-- Article Not Found State -->
       <div v-else class="main-content-middle not-found-message">
-        <p>Not Found</p>
+        <p>Question Not Found</p>
       </div>
+
+      <!-- Right Sidebar: DrugSidebar -->
+      <aside v-if="!isLoading && !error && parsedSidebarData && Object.keys(parsedSidebarData).length > 0" class="sidebar-right">
+        <DrugSidebar :sidebar-data="parsedSidebarData" />
+      </aside>
+      <div v-else-if="!isLoading && !error" class="sidebar-right placeholder"></div> <!-- Optional: Placeholder if no sidebar data -->
+
     </main>
     <PageFooter />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from 'axios'
 import PageHeader from '../components/PageHeader.vue'
@@ -90,6 +105,39 @@ const updateMetaTags = (qData) => {
   }
 }
 
+// Computed properties to parse JSON safely
+const parsedNavSections = computed(() => {
+  if (questionData.value && typeof questionData.value.navSections === 'string') {
+    try {
+      const parsed = JSON.parse(questionData.value.navSections);
+      return Array.isArray(parsed) ? parsed : []; // Ensure it's an array
+    } catch (e) {
+      console.error("Error parsing navSections JSON:", e);
+      return []; // Return empty array on parse error
+    }
+  } else if (Array.isArray(questionData.value?.navSections)) {
+      // Handle case where API might already return parsed JSON (unlikely with current backend)
+      return questionData.value.navSections; 
+  }
+  return []; // Default to empty array
+});
+
+const parsedSidebarData = computed(() => {
+  if (questionData.value && typeof questionData.value.sidebarData === 'string') {
+    try {
+      const parsed = JSON.parse(questionData.value.sidebarData);
+      return typeof parsed === 'object' && parsed !== null ? parsed : {}; // Ensure it's an object
+    } catch (e) {
+      console.error("Error parsing sidebarData JSON:", e);
+      return {}; // Return empty object on parse error
+    }
+  } else if (typeof questionData.value?.sidebarData === 'object' && questionData.value?.sidebarData !== null) {
+       // Handle case where API might already return parsed JSON
+      return questionData.value.sidebarData;
+  }
+  return {}; // Default to empty object
+});
+
 // Fetch question data when component mounts or route changes
 async function fetchQuestionData() {
   const questionId = route.params.id
@@ -110,38 +158,30 @@ async function fetchQuestionData() {
   try {
     const apiUrl = `${baseUrl}/api/questions`; // Base API URL
     console.log(`Fetching question from: ${apiUrl}/${questionId}`);
-    // Fetch the specific question using the ID in the URL
-    const response = await fetch(`${apiUrl}/${questionId}`); // Use fetch or axios.get
+    // Use axios which might handle JSON parsing automatically if Content-Type is set correctly
+    const response = await axios.get(`${apiUrl}/${questionId}`); 
+    
+    // Axios throws for non-2xx, so no need for response.ok check
+    const data = response.data; // Data is already parsed by axios
 
-    if (!response.ok) {
-      // Handle non-OK responses (like 404)
-      let errorMsg = `HTTP error! status: ${response.status}`;
-      try {
-          const errData = await response.json();
-          errorMsg = errData.message || errorMsg; 
-      } catch (parseErr) { /* Ignore if body isn't JSON */ }
-      throw new Error(errorMsg);
-    }
-
-    // If response IS ok (200), parse the data
-    const data = await response.json();
-
-    // Check if the returned data is a valid object with an ID
     if (data && data.id) {
-      questionData.value = data; // Assign the received object directly
+      questionData.value = data; 
       updateMetaTags(questionData.value);
-      console.log('Question data loaded:', questionData.value);
+      console.log('Question data loaded.');
     } else {
-      // Handle case where API returns 200 OK but invalid/empty data
       console.warn(`API returned OK but data is missing or invalid for ID '${questionId}':`, data);
       error.value = `Received invalid data for question ID '${questionId}'.`;
       updateMetaTags(null);
     }
 
   } catch (err) {
-    // Catch network errors or errors thrown from !response.ok check
     console.error('Error fetching question details:', err);
-    error.value = err.message || 'Failed to load question details.';
+    // Handle axios errors (e.g., err.response.status for 404)
+    if (err.response && err.response.status === 404) {
+        error.value = `Question with ID '${questionId}' not found.`;
+    } else {
+        error.value = err.response?.data?.message || err.message || 'Failed to load question details.';
+    }
     updateMetaTags(null);
   } finally {
     isLoading.value = false
@@ -153,7 +193,10 @@ watch(() => route.params.id, fetchQuestionData, { immediate: true }) // Use imme
 
 // Event listener setup/teardown for internal links
 // Add ref="postBody" to the main content article tag in the template
-watch(postBody, (newPostBody) => {
+watch(postBody, (newPostBody, oldPostBody) => {
+  if (oldPostBody) {
+    oldPostBody.removeEventListener('click', handleContentClick);
+  }
   if (newPostBody) {
     console.log('Adding click listener to postBody for internal links');
     newPostBody.addEventListener('click', handleContentClick);
@@ -187,6 +230,7 @@ onUnmounted(() => {
   margin: 2rem auto;
   padding: 0 1rem;
   gap: 2rem;
+  min-height: calc(100vh - 405px);
 }
 
 /* Fallback style for 'not found' message */

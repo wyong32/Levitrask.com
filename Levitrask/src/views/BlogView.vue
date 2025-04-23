@@ -25,7 +25,10 @@
             class="article-link-wrapper"
           >
             <div class="article-image">
-              <img :src="post.listImage || '/images/placeholder-blog.png'" :alt="post.listTitle || 'Blog post image'" />
+              <img 
+                :src="getImageSrc(post.listImage)" 
+                :alt="post.listTitle || 'Blog post image'" 
+              />
             </div>
             <div class="article-content">
               <h2>{{ post.listTitle }}</h2>
@@ -89,6 +92,52 @@ const blogListItems = computed(() => {
   // .sort((a, b) => new Date(b.listDate) - new Date(a.listDate))
 })
 
+// REVISED function with detailed logging
+const getImageSrc = (imageValue) => {
+  const placeholder = '/images/placeholder-blog.png';
+  console.log(`getImageSrc called with: '${imageValue}'`); // Log input
+
+  if (!imageValue) {
+    console.log('Value is empty, returning placeholder.');
+    return placeholder; // Handle null, undefined, empty string
+  }
+
+  // Trim whitespace just in case
+  const trimmedValue = imageValue.trim();
+  console.log(`Trimmed value: '${trimmedValue}'`);
+
+  console.log(`Checking startsWith('data:image'):`, trimmedValue.startsWith('data:image'));
+  if (trimmedValue.startsWith('data:image')) {
+    console.log('Returning existing data URI.');
+    return trimmedValue; // Already a data URI
+  }
+
+  console.log(`Checking startsWith('/'):`, trimmedValue.startsWith('/')); // <<< Check this log
+  if (trimmedValue.startsWith('/')) {
+    console.log('Returning relative path.'); // <<< Should see this log for '/images/...'
+    return trimmedValue; // <<< THIS LOGIC IS CORRECT
+  }
+
+  console.log(`Checking startsWith('http'):`, trimmedValue.startsWith('http'));
+  if (trimmedValue.startsWith('http')) {
+    console.log('Returning absolute URL.');
+    return trimmedValue; // Absolute URL
+  }
+
+  // If it's not empty, not a data URI, not a path, not a URL,
+  // assume it's Base64 data needing the prefix.
+  console.log(`Checking length > 50:`, trimmedValue.length > 50); // <<< Check this log
+  if (trimmedValue.length > 50) { // Basic check for likely Base64 data
+      console.log('Assuming Base64, adding prefix.'); // <<< Should NOT see this for '/images/...'
+      // Assuming PNG, adjust mime type if necessary (e.g., image/jpeg)
+      return `data:image/png;base64,${trimmedValue}`; // <<< THIS IS WHERE IT SHOULDN'T GO
+  }
+
+  // Fallback to placeholder if it doesn't look like any valid format
+  console.warn(`Unrecognized image format for value: ${trimmedValue}, using placeholder.`);
+  return placeholder;
+}
+
 </script>
 
 <style scoped>
@@ -110,6 +159,7 @@ const blogListItems = computed(() => {
 .articles-page {
   padding: 2rem 1rem;
   max-width: 1200px;
+  min-height: calc(100vh - 405px);
   margin: 0 auto;
 }
 

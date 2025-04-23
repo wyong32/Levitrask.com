@@ -25,6 +25,14 @@
 
         <div class="container post-container">
           <article class="post-content-area">
+            <!-- Standalone Main Image Display -->
+            <div class="post-main-image" v-if="blogPost.listImage">
+              <img 
+                :src="getImageSrc(blogPost.listImage)" 
+                :alt="blogPost.listTitle || 'Blog main image'"
+              >
+            </div>
+
             <!-- Main content area -->
             <div class="post-body" ref="postBodyRef" v-html="blogPost.content"></div>
           </article>
@@ -90,30 +98,38 @@ async function fetchBlogPost(postId) {
   console.log(`Fetching blog post details for ID: ${postId}`)
 
   try {
-    // const apiUrl = '/api/blogs' // Original hardcoded URL
-    const apiUrl = `${baseUrl}/api/blogs`; // Use environment variable
-    console.log(`Fetching blogs from: ${apiUrl}`);
-    const response = await axios.get(apiUrl)
-    const allBlogs = response.data // Expecting object keyed by blog_id
+    // UPDATED: Use the detail endpoint
+    const detailApiUrl = `${baseUrl}/api/blogs/${postId}`; 
+    console.log(`Fetching blog detail from: ${detailApiUrl}`);
+    // Assuming the detail endpoint doesn't require auth, add config if it does
+    const response = await axios.get(detailApiUrl); 
+    const fetchedData = response.data; // Response should be the single blog object
 
-    if (allBlogs && allBlogs[postId]) {
-      blogPost.value = allBlogs[postId]
-      updateMetaTags() // Update meta tags after fetching
-      console.log('Blog post data loaded:', blogPost.value)
+    // Check if data is valid
+    if (fetchedData && fetchedData.id) { // Check for ID (or blog_id)
+      blogPost.value = fetchedData;
+      updateMetaTags(); // Update meta tags after fetching
+      console.log('Blog post data loaded:', blogPost.value);
 
-      // Ensure event listener is attached after content is rendered
       await nextTick(); // Wait for DOM update cycle
       setupContentClickListener();
 
     } else {
-      console.warn(`Blog post with ID '${postId}' not found in API response.`)
-      error.value = `Blog post with ID '${postId}' not found.`
-      updateMetaTags() // Update meta for not found case
+      // Handle cases where API returns 200 OK but invalid data
+      console.warn(`API returned OK but data is missing or invalid for blog ID '${postId}':`, fetchedData);
+      error.value = `Received invalid data for blog post with ID '${postId}'.`;
+      updateMetaTags(); // Update meta for not found case
     }
+  // UPDATED: Catch block remains similar, but error might come from detail endpoint directly
   } catch (err) {
-    console.error('Error fetching blog post details:', err)
-    error.value = err.response?.data?.message || err.message || 'Failed to load blog post details.'
-    updateMetaTags() // Update meta for error case
+    console.error('Error fetching blog post details:', err);
+    // Check for 404 specifically
+    if (err.response && err.response.status === 404) {
+        error.value = `Blog post with ID '${postId}' not found.`;
+    } else {
+        error.value = err.response?.data?.message || err.message || 'Failed to load blog post details.';
+    }
+    updateMetaTags(); // Update meta for error case
   } finally {
     isLoading.value = false
   }
@@ -172,6 +188,33 @@ const removeContentClickListener = () => {
   }
 };
 
+// ADDED: getImageSrc function (copied from BlogView.vue)
+const getImageSrc = (imageValue) => {
+  const placeholder = '/images/placeholder-blog.png'; // Ensure placeholder exists
+
+  if (!imageValue) {
+    return placeholder; 
+  }
+  const trimmedValue = imageValue.trim();
+
+  if (trimmedValue.startsWith('data:image')) {
+    return trimmedValue; 
+  }
+  if (trimmedValue.startsWith('/')) {
+    // Assuming relative paths are served correctly by the frontend deployment
+    return trimmedValue;
+  }
+  if (trimmedValue.startsWith('http')) {
+    return trimmedValue; 
+  }
+  // Assume Base64 if other checks fail and length is reasonable
+  if (trimmedValue.length > 50) { 
+      return `data:image/png;base64,${trimmedValue}`; // Assuming PNG
+  }
+  console.warn(`Unrecognized image format in BlogDetails for value: ${trimmedValue}, using placeholder.`);
+  return placeholder;
+}
+
 // --- Lifecycle and Watchers --- 
 
 // Watch for changes in the route parameter (props.id)
@@ -222,6 +265,7 @@ onUnmounted(() => {
   max-width: 1400px; /* Adjust max-width for 3 columns */
   margin: 0 auto;
   gap: 2rem; /* Adjust gap */
+  min-height: calc(100vh - 405px);
 }
 
 .sidebar-left {
@@ -411,5 +455,81 @@ onUnmounted(() => {
 /* Add scroll margin to section headers targeted by SideNav */
 .post-body :deep(section[id]) {
   scroll-margin-top: 100px; /* Adjust based on actual header height */
+}
+
+/* ADDED: Styles for the main image container */
+.post-main-image {
+  width: 100%;
+  max-height: 400px; /* Limit max height */
+  margin-bottom: 1.5rem;
+  text-align: center; /* Center image if it's narrower than container */
+  overflow: hidden; /* Hide overflow */
+  border-radius: 8px; /* Optional: add rounding */
+  background-color: #f8f9fa; /* Optional: background for loading/aspect ratio */
+}
+
+.post-main-image img {
+  max-width: 100%;
+  height: auto; /* Maintain aspect ratio */
+  max-height: 400px; /* Match container max height */
+  object-fit: contain; /* Fit within bounds, maintain aspect ratio */
+  display: block; /* Remove extra space below image */
+  margin: 0 auto; /* Center image */
+}
+
+/* Ensure layout still works */
+.layout-3-column {
+  display: flex; /* Use flex for columns */
+  max-width: 1300px; /* Adjust overall max width */
+  margin: 2rem auto;
+  padding: 0 1rem;
+  gap: 2rem;
+  align-items: flex-start; /* Align items to the top */
+}
+
+.sidebar-left {
+  flex: 0 0 220px; /* Fixed width for left nav */
+  position: sticky;
+  top: 80px; /* Adjust based on header height */
+}
+
+.sidebar-left-placeholder {
+   flex: 0 0 220px;
+}
+
+.post-container {
+  display: flex; /* Use flex for main content and right sidebar */
+  flex: 1; /* Take remaining space */
+  min-width: 0; /* Prevent overflow issues */
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.post-content-area {
+  flex: 1; /* Main content takes most space */
+  min-width: 0;
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.post-sidebar {
+  flex: 0 0 280px; /* Fixed width for right sidebar */
+  position: sticky;
+  top: 80px;
+}
+
+.post-body :deep(h1) {
+  font-size: 2rem;
+  color: #343a40;
+  margin-top: 0; /* Remove top margin if image is present */
+  margin-bottom: 1.5rem; /* Add space below h1 */
+  line-height: 1.3;
+}
+
+/* Adjust other deep styles if needed */
+.post-body :deep(p):first-of-type {
+    margin-top: 0; /* Remove top margin on first paragraph after image */
 }
 </style>

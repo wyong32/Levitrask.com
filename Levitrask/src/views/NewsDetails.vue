@@ -147,7 +147,6 @@ onMounted(async () => {
   /* 为了清晰起见，从 .blog-post-page 重命名 */
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
 }
 
 .content-area-single-column {
@@ -155,6 +154,7 @@ onMounted(async () => {
   /* 移除了列的 flex 属性 */
   flex-grow: 1;
   max-width: 900px; /* 调整了单列的可读性最大宽度 */
+  min-height: calc(100vh - 405px);
   margin: 2rem auto;
   padding: 0 1rem;
   /* 移除了 gap */

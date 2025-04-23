@@ -119,7 +119,7 @@ const newsListItems = computed(() => {
 .news-page {
   padding: 2rem 1rem;
   max-width: 950px; /* Adjusted max-width */
-  min-height: calc(100vh - 380px);
+  min-height: calc(100vh - 405px);
   margin: 0 auto;
 }
 

@@ -1,111 +1,144 @@
-const path = require('path');
+import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url'; // Import helpers
+import dotenv from 'dotenv';
+import pool from '../utils/db.js';
 
-// Load .env file from the parent directory (Levitrask-api)
-// This ensures POSTGRES_URL is loaded for the pool
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+// ES Module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const pool = require('../utils/db'); // Import the database pool utility
+// Load .env file
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-// Import the news data from the frontend project
-// We need .default because newsData.js uses ES module `export default`
-const allNewsData = require(path.resolve(__dirname, '../../Levitrask/src/Datas/newsData.js')).default;
+// Path to the news data file
+const newsDataPath = path.resolve(__dirname, '../../Levitrask/src/Datas/newsData.js');
+let allNewsData = {};
 
-const PROJECT_ID = 'levitrask'; // Use the same project identifier
+const PROJECT_ID = 'levitrask';
 
-async function migrateNews() {
-  console.log('🚀 Starting news data migration...');
-  const articles = Object.values(allNewsData); // Get an array of article objects
-  let insertedCount = 0;
-  let skippedCount = 0;
-
-  if (!articles || articles.length === 0) {
-    console.log('❌ No news articles found in the data file.');
-    return;
-  }
-
-  console.log(`📰 Found ${articles.length} articles to potentially migrate.`);
-
-  // Get a client from the pool for the migration operations
-  const client = await pool.connect();
-  console.log('🔗 Database client connected.');
-
-  try {
-    // SQL query to insert data into the levitrask_news table
-    // ON CONFLICT (news_id) DO NOTHING makes the script safe to re-run.
-    // If an article with the same news_id already exists, it will be skipped.
-    const insertQuery = `
-      INSERT INTO levitrask_news (
-          news_id, project_id, list_title, list_date, list_source,
-          list_image_src, list_image_alt, list_description,
-          meta_title, meta_description, meta_keywords, content
-      ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
-      )
-      ON CONFLICT (news_id) DO NOTHING;
-    `;
-
-    // Loop through each article in the imported data
-    for (const article of articles) {
-      // Basic validation: ensure article has an ID
-      if (!article || !article.id) {
-         console.warn('⚠️ Skipping invalid article data (missing ID):', JSON.stringify(article).substring(0, 100) + '...');
-         skippedCount++;
-         continue;
-      }
-
-      // Prepare the values array for the parameterized query
-      // Use null for potentially missing fields to avoid SQL errors
-      const values = [
-        article.id,                       // news_id ($1)
-        PROJECT_ID,                     // project_id ($2)
-        article.listTitle || null,        // list_title ($3)
-        article.listDate || null,         // list_date ($4)
-        article.listSource || null,       // list_source ($5)
-        article.listImage?.src || null,   // list_image_src ($6) - Safely access nested property
-        article.listImage?.alt || null,   // list_image_alt ($7) - Safely access nested property
-        article.listDescription || null,  // list_description ($8)
-        article.metaTitle || null,        // meta_title ($9)
-        article.metaDescription || null, // meta_description ($10)
-        article.metaKeywords || null,     // meta_keywords ($11)
-        article.content || null           // content ($12)
-      ];
-
-      try {
-        // Execute the insert query
-        const result = await client.query(insertQuery, values);
-        // Check if a row was actually inserted (vs. skipped due to conflict)
-        if (result.rowCount > 0) {
-            insertedCount++;
-            // console.log(`  -> Inserted: ${article.id}`); // Optional: more verbose logging
-        } else {
-            skippedCount++;
-            // console.log(`  -> Skipped (already exists?): ${article.id}`); // Optional: more verbose logging
-        }
-      } catch (insertError) {
-        // Log errors during insertion but continue with other articles
-        console.error(`❌ Error inserting article ${article.id}:`, insertError.message);
-        skippedCount++; // Count as skipped if an error occurs for this article
-      }
+// Async function to load data using dynamic import
+async function loadNewsData() {
+    try {
+        const newsDataUrl = pathToFileURL(newsDataPath).href;
+        console.log(`Attempting to dynamically import news data from: ${newsDataUrl}`);
+        const newsModule = await import(newsDataUrl);
+        allNewsData = newsModule.default; // Assuming default export
+        console.log('📰 News data loaded successfully.');
+    } catch (err) {
+        console.error(`❌ Failed to load news data from ${newsDataPath}:`, err);
+        allNewsData = {};
     }
-
-    console.log('\n✅ Migration finished.');
-    console.log(`   ${insertedCount} articles inserted.`);
-    console.log(`   ${skippedCount} articles skipped (due to conflict, error, or invalid data).`);
-
-  } catch (error) {
-    // Catch potential errors during connection or general script execution
-    console.error('Migration script failed:', error);
-  } finally {
-    // VERY IMPORTANT: Release the client back to the pool
-    if (client) {
-      client.release();
-      console.log('🔗 Database client released.');
-    }
-    // Close the entire pool after the script is done
-    await pool.end();
-    console.log('🚪 Database pool closed.');
-  }
 }
 
-// Run the migration function
+async function migrateNews() {
+    console.log('🚀 Starting news data migration...');
+    await loadNewsData(); // Ensure data is loaded first
+
+    const articles = Object.values(allNewsData);
+    let insertedCount = 0;
+    let skippedCount = 0;
+    let deletedCount = 0;
+
+    if (!articles || articles.length === 0) {
+        console.log('❌ No news articles found in the data file.');
+        return;
+    }
+
+    console.log(`📰 Found ${articles.length} articles to potentially migrate.`);
+
+    const client = await pool.connect();
+    console.log('🔗 Database client connected.');
+
+    try {
+        // --- Delete existing news for this project --- 
+        console.log(`🗑️ Deleting existing news for project '${PROJECT_ID}'...`);
+        const deleteResult = await client.query(
+            'DELETE FROM levitrask_news WHERE project_id = $1',
+            [PROJECT_ID]
+        );
+        deletedCount = deleteResult.rowCount;
+        console.log(`   -> ${deletedCount} existing news posts deleted.`);
+        // --- Deletion finished --- 
+
+        // Use a transaction for the inserts
+        await client.query('BEGIN');
+
+        const insertQuery = `
+          INSERT INTO levitrask_news (
+              news_id, project_id, list_title, list_date, list_source,
+              list_image_src, list_image_alt, list_description,
+              meta_title, meta_description, meta_keywords, content,
+              created_at, updated_at
+          ) VALUES (
+              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
+              CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+          )
+          -- Keep ON CONFLICT just in case, though unlikely after DELETE
+          ON CONFLICT (news_id) DO NOTHING; 
+        `;
+
+        for (const article of articles) {
+            if (!article || !article.id) {
+                console.warn('⚠️ Skipping invalid article data (missing ID):');
+                skippedCount++;
+                continue;
+            }
+
+            const values = [
+                article.id,                       
+                PROJECT_ID,                     
+                article.listTitle || null,        
+                article.listDate || null,         
+                article.listSource || null,       
+                article.listImage?.src || null,   
+                article.listImage?.alt || null,   
+                article.listDescription || null,  
+                article.metaTitle || null,        
+                article.metaDescription || null, 
+                article.metaKeywords || null,     
+                article.content || null           
+            ];
+
+            try {
+                const result = await client.query(insertQuery, values);
+                if (result.rowCount > 0) {
+                    insertedCount++;
+                } else {
+                    // This case should be rare now after deleting old data
+                    skippedCount++; 
+                    console.warn(`  -> Skipped ${article.id} (unexpectedly found conflict after delete?)`);
+                }
+            } catch (insertError) {
+                console.error(`❌ Error inserting article ${article.id}:`, insertError.message);
+                skippedCount++; 
+                // Rollback the transaction on error
+                await client.query('ROLLBACK');
+                console.error('Transaction rolled back due to insertion error.');
+                // Optionally re-throw or handle differently
+                throw insertError; // Stop the whole migration on first error
+            }
+        }
+
+        // If loop completes without error, commit the transaction
+        await client.query('COMMIT');
+        console.log('\n✅ Migration finished successfully.');
+        console.log(`   ${deletedCount} posts deleted.`);
+        console.log(`   ${insertedCount} articles inserted.`);
+        console.log(`   ${skippedCount} articles skipped.`);
+
+    } catch (error) {
+        // Catch errors from DELETE or general execution
+        console.error('Migration script failed:', error);
+        // Ensure rollback if transaction was started but failed before commit/rollback
+        try { await client.query('ROLLBACK'); } catch (rbErr) { /* ignore rollback error */ }
+    } finally {
+        if (client) {
+            client.release();
+            console.log('🔗 Database client released.');
+        }
+        await pool.end();
+        console.log('🚪 Database pool closed.');
+    }
+}
+
 migrateNews(); 

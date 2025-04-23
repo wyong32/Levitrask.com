@@ -2,6 +2,11 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { nextTick } from 'vue'
 // Removed direct imports, using lazy loading below
 
+// --- Import Admin Components (Lazy Loading) ---
+const AdminLogin = () => import('../views/admin/AdminLogin.vue');
+const AdminDashboard = () => import('../views/admin/AdminDashboard.vue');
+const NewsManagement = () => import('../views/admin/NewsManagement.vue');
+
 // --- Helper function to set meta tags (handles name and property) ---
 const setMetaTag = (attr, key, value) => {
   let element = document.querySelector(`meta[${attr}='${key}']`)
@@ -31,6 +36,18 @@ const DEFAULT_DESCRIPTION =
 const DEFAULT_KEYWORDS =
   'Levitra online,Levitra dosage, Levitra side effects, Levitra vs Viagra, Levitra vs Cialis,Stendra'
 const DEFAULT_OG_IMAGE = '/images/logo.png' // Default Open Graph image - PLEASE REPLACE
+
+// --- Admin Route Guard ---
+const requireAdminAuth = (to, from, next) => {
+  const token = localStorage.getItem('admin-auth-token');
+  if (token) {
+    // Basic check: token exists. Add more robust validation if needed (e.g., check expiration).
+    next(); // Logged in, proceed to route
+  } else {
+    // Not logged in, redirect to login page
+    next({ name: 'admin-login' });
+  }
+};
 
 // --- Navigation Guard (Example - commented out, adjust if needed) ---
 // const requireNavigationFromApp = (to, from, next) => {
@@ -192,18 +209,6 @@ const router = createRouter({
       },
     },
     {
-      path: '/blog/:id',
-      name: 'blog-details',
-      component: () => import('../views/BlogDetails.vue'),
-      props: true,
-      meta: {
-        // Default meta, component should update based on fetched data
-        title: 'Blog Post | Levitrask Demo',
-        description: 'Read this blog post about ED.',
-        keywords: 'blog post, ED information',
-      },
-    },
-    {
       path: '/questions/:id',
       name: 'question-details',
       component: () => import('../views/QuestionDetails.vue'),
@@ -272,7 +277,7 @@ const router = createRouter({
         description:
           'buy Stendra online,Why Choose to Buy Stendra Online,Steps to Buy Stendra Online,Where to Buy Stendra Online,Is It Safe and Legal to Buy Stendra Online?',
         keywords:
-          'buy Stendra online,online,vardenafil,online pharmacy ED,Where to Buy Stendra Online',
+          'buy Stendra online,online,avanafil,online pharmacy ED,Where to Buy Stendra Online',
       },
     },
     // --- Terms of Service Route ---
@@ -295,6 +300,65 @@ const router = createRouter({
         title: '隐私政策 | Levitrask Demo',
         description: '了解 Levitrask Demo 如何处理您的隐私。',
         keywords: '隐私, 政策, 数据保护, 用户隐私, 法律',
+      },
+    },
+    // --- Admin Routes ---
+    {
+      path: '/admin/login',
+      name: 'admin-login',
+      component: AdminLogin,
+      meta: {
+        title: 'Admin Login | Levitrask Management',
+        // No authentication required for login page
+      },
+    },
+    {
+      path: '/admin/dashboard',
+      component: AdminDashboard,
+      beforeEnter: requireAdminAuth, // Guard applied to the whole dashboard layout
+      redirect: '/admin/dashboard/news', // Redirect base path to news
+      children: [
+        {
+          path: 'news', // Path relative to parent: /admin/dashboard/news
+          name: 'admin-news',
+          component: NewsManagement,
+          meta: {
+            title: '新闻管理 | Levitrask' // Set specific title 
+          }
+        },
+        {
+          path: 'questions', // Add questions route
+          name: 'admin-questions',
+          component: () => import('../views/admin/QuestionManagement.vue'), // Lazy load the component
+          meta: { 
+            title: '问题管理 | Levitrask' 
+          }
+        },
+        {
+          path: 'blogs', // Relative path: /admin/dashboard/blogs
+          name: 'admin-blogs',
+          component: () => import('../views/admin/BlogManagement.vue'), // Lazy load
+          meta: {
+            title: '博客管理 | Levitrask'
+          }
+        },
+      ],
+      meta: {
+        // Parent meta might not be needed if children always set title
+        // title: 'Admin Dashboard | Levitrask Management', 
+      },
+    },
+    // MOVED blog-details route here, just before the 404 route
+    {
+      path: '/:id', // CHANGED path from '/blog/:id'
+      name: 'blog-details',
+      component: () => import('../views/BlogDetails.vue'),
+      props: true,
+      meta: {
+        // Default meta, component should update based on fetched data
+        title: 'Blog Post | Levitrask Demo',
+        description: 'Read this blog post about ED.',
+        keywords: 'blog post, ED information',
       },
     },
     // Catch-all route: Display NotFoundView for unmatched paths (Keep this last)
