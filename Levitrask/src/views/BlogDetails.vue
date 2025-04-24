@@ -25,13 +25,15 @@
 
         <div class="container post-container">
           <article class="post-content-area">
-            <!-- Standalone Main Image Display -->
+            <!-- REMOVED Standalone Main Image Display -->
+            <!-- 
             <div class="post-main-image" v-if="blogPost.listImage">
               <img 
                 :src="getImageSrc(blogPost.listImage)" 
                 :alt="blogPost.listTitle || 'Blog main image'"
               >
             </div>
+            -->
 
             <!-- Main content area -->
             <div class="post-body" ref="postBodyRef" v-html="blogPost.content"></div>

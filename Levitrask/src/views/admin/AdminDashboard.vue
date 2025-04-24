@@ -15,26 +15,68 @@
           :default-active="activeMenu"
           class="el-menu-vertical-demo"
           router
-          :default-openeds="['content']"
         >
-          <el-sub-menu index="content">
+          <!-- 1. 首页 (禁用) -->
+          <el-menu-item index="/admin/dashboard/home" disabled>
+            <el-icon><HomeFilled /></el-icon>
+            <span>首页管理</span>
+          </el-menu-item>
+
+          <!-- 2. 药物管理 (子菜单禁用) -->
+          <el-sub-menu index="admin-drugs">
             <template #title>
-              <el-icon><Folder /></el-icon>
-              <span>内容管理</span>
+              <el-icon><FirstAidKit /></el-icon>
+              <span>药物管理</span>
             </template>
-            <el-menu-item index="/admin/dashboard/news">
-              <el-icon><document /></el-icon>
-              <span>新闻管理</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/dashboard/blogs">
-              <el-icon><notebook /></el-icon>
-              <span>博客管理</span>
-            </el-menu-item>
-            <el-menu-item index="/admin/dashboard/questions">
-              <el-icon><question-filled /></el-icon>
-              <span>问题管理</span>
-            </el-menu-item>
+            <el-menu-item index="/admin/dashboard/drugs/cialis" disabled>Cialis</el-menu-item>
+            <el-menu-item index="/admin/dashboard/drugs/stendra" disabled>Stendra</el-menu-item>
+            <el-menu-item index="/admin/dashboard/drugs/viagra" disabled>Viagra</el-menu-item>
+            <el-menu-item index="/admin/dashboard/drugs/levitra" disabled>Levitra</el-menu-item>
           </el-sub-menu>
+
+          <!-- 3. 药物对比 (子菜单禁用) -->
+          <el-sub-menu index="admin-comparisons">
+            <template #title>
+              <el-icon><ScaleToOriginal /></el-icon>
+              <span>对比管理</span>
+            </template>
+            <el-menu-item index="/admin/dashboard/comparisons/levitra-cialis" disabled>Levitra vs Cialis</el-menu-item>
+            <el-menu-item index="/admin/dashboard/comparisons/levitra-stendra" disabled>Levitra vs Stendra</el-menu-item>
+            <el-menu-item index="/admin/dashboard/comparisons/levitra-viagra" disabled>Levitra vs Viagra</el-menu-item>
+            <el-menu-item index="/admin/dashboard/comparisons/cialis-stendra" disabled>Cialis vs Stendra</el-menu-item>
+            <el-menu-item index="/admin/dashboard/comparisons/cialis-viagra" disabled>Cialis vs Viagra</el-menu-item>
+            <el-menu-item index="/admin/dashboard/comparisons/stendra-viagra" disabled>Stendra vs Viagra</el-menu-item>
+          </el-sub-menu>
+
+          <!-- 4. 新闻管理 (启用) -->
+          <el-menu-item index="/admin/dashboard/news">
+            <el-icon><Document /></el-icon>
+            <span>新闻管理</span>
+          </el-menu-item>
+
+          <!-- 5. 博客管理 (启用) -->
+          <el-menu-item index="/admin/dashboard/blogs">
+            <el-icon><Notebook /></el-icon>
+            <span>博客管理</span>
+          </el-menu-item>
+
+          <!-- 6. 药物在线 (子菜单禁用) -->
+          <el-sub-menu index="admin-buy-online">
+            <template #title>
+              <el-icon><ShoppingCart /></el-icon>
+              <span>药物在线</span>
+            </template>
+            <el-menu-item index="/admin/dashboard/buy-online/levitra" disabled>Buy Levitra Online</el-menu-item>
+            <el-menu-item index="/admin/dashboard/buy-online/viagra" disabled>Buy Viagra Online</el-menu-item>
+            <el-menu-item index="/admin/dashboard/buy-online/cialis" disabled>Buy Cialis Online</el-menu-item>
+            <el-menu-item index="/admin/dashboard/buy-online/stendra" disabled>Buy Stendra Online</el-menu-item>
+          </el-sub-menu>
+
+          <!-- 7. 问题管理 (启用) -->
+          <el-menu-item index="/admin/dashboard/questions">
+            <el-icon><QuestionFilled /></el-icon>
+            <span>问题管理</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -48,13 +90,16 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   Document,
   Notebook,
   QuestionFilled,
-  Folder,
+  HomeFilled,
+  FirstAidKit,
+  ScaleToOriginal,
+  ShoppingCart
 } from '@element-plus/icons-vue'
 
 const router = useRouter();

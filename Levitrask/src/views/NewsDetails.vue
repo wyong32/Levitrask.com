@@ -223,6 +223,13 @@ onMounted(async () => {
   margin-bottom: 0.75rem;
 }
 
+.post-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
 /* 图片块样式 */
 .post-body :deep(.content-image) {
   margin: 2rem 0;

@@ -414,7 +414,9 @@
         </section>
       </article>
 
-      <DrugSidebar :sidebarData="levitraSidebarData" />
+      <aside class="sidebar-right drug-sidebar-component">
+        <DrugSidebar :sidebar-data="levitraSidebarData" />
+      </aside>
     </main>
 
     <PageFooter />
@@ -423,6 +425,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
+import axios from 'axios'
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
 import SideNav from '../components/SideNav.vue'
@@ -434,20 +437,46 @@ import { Navigation } from 'swiper/modules' // Import Navigation module
 import 'swiper/css'
 import 'swiper/css/navigation' // Import navigation styles
 
-// Updated nav sections based on the new content
-const navSections = ref([
-  { id: 'what-is-levitra', title: 'What is Levitra?' },
-  { id: 'how-to-use', title: 'How to Use' },
-  { id: 'before-taking', title: 'Before Taking' },
-  { id: 'side-effects', title: 'Side Effects' },
-  { id: 'drug-interactions', title: 'Drug Interactions' },
-  { id: 'comparison', title: 'Drug Comparison' },
-  { id: 'choosing-medication', title: 'Choosing Medication' },
-  { id: 'generic-drugs', title: 'Generic Drugs' },
-  { id: 'conclusion', title: 'Conclusion' },
-])
+// Base URL from environment variable
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
-// Sidebar data remains largely the same, but could be updated
+// State for loading/error of sidebar questions specifically
+const isLoadingQuestions = ref(false);
+const questionsError = ref(null);
+
+// --- Fetch Sidebar Questions --- 
+const fetchSidebarQuestions = async () => {
+  isLoadingQuestions.value = true;
+  questionsError.value = null;
+  try {
+    const apiUrl = `${baseUrl}/api/questions/sidebar`;
+    console.log(`Fetching sidebar questions from: ${apiUrl}`);
+    const response = await axios.get(apiUrl);
+    if (Array.isArray(response.data)) {
+      // --- UPDATE the specific part of levitraSidebarData --- 
+      if (levitraSidebarData.value) {
+          levitraSidebarData.value.frequentlyAskedQuestions = response.data;
+          console.log('Sidebar questions updated in levitraSidebarData:', response.data);
+      }
+      // --- End Update ---
+    } else {
+      console.warn('Received non-array data for sidebar questions:', response.data);
+      if (levitraSidebarData.value) {
+         levitraSidebarData.value.frequentlyAskedQuestions = []; // Set to empty on invalid data
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch sidebar questions:', error);
+    questionsError.value = error.message || 'Could not load questions';
+    if (levitraSidebarData.value) {
+       levitraSidebarData.value.frequentlyAskedQuestions = []; // Set to empty on error
+    }
+  } finally {
+    isLoadingQuestions.value = false;
+  }
+};
+
+// --- Existing Static Sidebar Data (Keep this structure) ---
 const levitraSidebarData = ref({
   drugStatus: {
     availability: { text: 'Generic Available', statusClass: 'status-active' },
@@ -487,47 +516,15 @@ const levitraSidebarData = ref({
     { text: 'Levitra vs Cialis', to: '/Levitra-vs-Cialis' },
     { text: 'Levitra vs Stendra', to: '/Levitra-vs-Stendra' },
   ],
-  frequentlyAskedQuestions: [
-    {
-      text: 'Why Is Levitra No Longer Available?',
-      to: { name: 'question-details', params: { id: 'Levitra-No-Longer-Available' } },
-    },
-    {
-      text: 'How To Make Levitra More Effective',
-      to: { name: 'question-details', params: { id: 'Make-Levitra-More-Effective' } },
-    },
-    {
-      text: 'Is Levitra Better Than Viagra',
-      to: { name: 'question-details', params: { id: 'Is-Levitra-Better-Than-Viagra' } },
-    },
-    {
-      text: 'How Long Does Levitra Last',
-      to: { name: 'question-details', params: { id: 'How-Long-Does-Levitra-Last' } },
-    },
-    {
-      text: 'What Is Levitra Used For',
-      to: { name: 'question-details', params: { id: 'What-Is-Levitra-Used-For' } },
-    },
-    {
-      text: 'Is Levitra Stronger Than Viagra?',
-      to: { name: 'question-details', params: { id: 'Is-Levitra-Stronger-Than-Viagra' } },
-    },
-    {
-      text: 'Can You Still Buy Levitra?',
-      to: { name: 'question-details', params: { id: 'Can-You-Still-Buy-Levitra' } },
-    },
-    {
-      text: 'What Does Levitra Do To a Man?',
-      to: { name: 'question-details', params: { id: 'What-Does-Levitra-Do-To-A-Man' } },
-    },
-  ],
-})
+  // Initialize frequentlyAskedQuestions as empty, will be filled by API call
+  frequentlyAskedQuestions: [] 
+});
 
-// Initialize Swiper when component is mounted
+// Fetch data when component mounts
 onMounted(() => {
-  nextTick(() => {
+  fetchSidebarQuestions(); // Fetch dynamic questions
+  nextTick(() => { // Keep Swiper initialization
     const swiper = new Swiper('.related-generics-swiper', {
-      // Optional parameters
       modules: [Navigation],
       loop: false,
       slidesPerView: 3,
@@ -536,9 +533,22 @@ onMounted(() => {
         nextEl: '.related-generics-next',
         prevEl: '.related-generics-prev',
       },
-    })
-  })
-})
+    });
+  });
+});
+
+// Updated nav sections based on the new content
+const navSections = ref([
+  { id: 'what-is-levitra', title: 'What is Levitra?' },
+  { id: 'how-to-use', title: 'How to Use' },
+  { id: 'before-taking', title: 'Before Taking' },
+  { id: 'side-effects', title: 'Side Effects' },
+  { id: 'drug-interactions', title: 'Drug Interactions' },
+  { id: 'comparison', title: 'Comparison' },
+  { id: 'choosing-medication', title: 'Choosing Medication' },
+  { id: 'generic-drugs', title: 'Generic Drugs' },
+  { id: 'conclusion', title: 'Conclusion' },
+])
 </script>
 
 <style scoped>

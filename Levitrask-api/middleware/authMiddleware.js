@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+// REMOVED: dotenv is not needed in Vercel environment
+// import dotenv from 'dotenv';
 
-dotenv.config(); // Load environment variables from .env file
+// REMOVED: dotenv.config() call
+// dotenv.config(); 
 
 const JWT_SECRET = process.env.JWT_SECRET;
 

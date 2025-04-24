@@ -45,7 +45,7 @@ router.post('/login', async (req, res) => {
     
     // 从环境变量读取 JWT 密钥和有效期
     const jwtSecret = process.env.JWT_SECRET;
-    const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '1h'; // 默认 1 小时
+    const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '1d'; // 默认 1 天
 
     if (!jwtSecret) {
       console.error('FATAL ERROR: JWT_SECRET is not defined in environment variables.');

@@ -49,7 +49,7 @@
         <el-row :gutter="20"> <!-- Use grid for better layout -->
           <el-col :span="12">
             <el-form-item label="URL Slug (路径)" prop="slug">
-              <el-input v-model="newsForm.slug" placeholder="例如: my-first-news-article" />
+              <el-input v-model="newsForm.slug" placeholder="例如: my-first-news-article" :disabled="isEditMode" />
               <!-- Add a button to generate slug from title later -->
             </el-form-item>
           </el-col>
@@ -80,33 +80,17 @@
            </el-col>
         </el-row>
         
-        <!-- Image Upload and Alt Text -->
+        <!-- Image URL Input -->
         <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="列表图片 (List Image)" prop="listImageSrc">
-              <el-upload
-                class="news-image-uploader"
-                action="#" 
-                :show-file-list="false"
-                :on-success="handleImageSuccess"
-                :before-upload="beforeImageUpload"
-                :http-request="mockHttpRequest"
-              >
-                <img v-if="newsForm.listImageSrc" :src="newsForm.listImageSrc" class="news-image-preview" alt="预览"/>
-                <el-icon v-else class="el-icon--upload"><upload-filled /></el-icon>
-                <div v-if="!newsForm.listImageSrc" class="el-upload__text">
-                  将文件拖到此处，或<em>点击上传</em>
-                </div>
-              </el-upload>
-              <div class="el-upload__tip">
-                只能上传 jpg/png 文件，且不超过 2MB
-              </div>
+          <el-col :span="12"> 
+            <el-form-item label="列表图片 URL (List Image URL)" prop="listImageSrc">
+               <el-input v-model="newsForm.listImageSrc" placeholder="请输入图片的完整 URL" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="图片 Alt 文本" prop="listImageAlt">
-              <el-input v-model="newsForm.listImageAlt" placeholder="图片的简短描述 (必填)"/>
-            </el-form-item>
+             <el-form-item label="图片 Alt 文本" prop="listImageAlt">
+                <el-input v-model="newsForm.listImageAlt" placeholder="图片的简短描述 (用于 SEO 和可访问性)"/>
+             </el-form-item>
           </el-col>
         </el-row>
 
@@ -157,7 +141,6 @@
 import { ref, reactive, onMounted, computed, nextTick } from 'vue';
 import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { UploadFilled } from '@element-plus/icons-vue'; // Import upload icon
 
 // --- State --- 
 const tableData = ref([]);
@@ -174,13 +157,13 @@ const initialNewsFormState = {
   listTitle: '',
   listDate: null, // Use null for date picker initial value
   listSource: '',
-  listImageSrc: '', // Will store the image URL
-  listImageAlt: '',
+  listImageSrc: '', // Changed: Now just the URL string
+  listImageAlt: '', // Re-added Alt text
   listDescription: '',
   metaTitle: '',
   metaDescription: '',
   metaKeywords: '',
-  content: ''       // Content from either editor
+  content: ''       
 };
 
 // --- Form Data --- 
@@ -194,7 +177,10 @@ const formRules = reactive({
       { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Slug 只能包含小写字母、数字和连字符 (-)', trigger: 'blur' }
   ],
   listTitle: [{ required: true, message: '请输入列表标题', trigger: 'blur' }],
-  listImageSrc: [{ required: true, message: '请上传列表图片', trigger: 'change' }], // Trigger on change (after upload)
+  listImageSrc: [
+      { required: true, message: '请输入列表图片 URL', trigger: 'blur' },
+      // { type: 'url', message: '请输入有效的 URL', trigger: ['blur', 'change'] } // Removed URL validation
+  ], 
   listImageAlt: [{ required: true, message: '请输入列表图片 Alt 文本', trigger: 'blur' }], 
   listDescription: [{ required: true, message: '请输入列表描述', trigger: 'blur' }],
   metaTitle: [{ required: true, message: '请输入 Meta 标题', trigger: 'blur' }],
@@ -219,9 +205,17 @@ const fetchData = async () => {
   try {
     const response = await axios.get(`${apiBaseUrl}/api/news`);
     if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-      tableData.value = Object.values(response.data);
+      tableData.value = Object.values(response.data).map(item => ({
+        ...item,
+        // Ensure listImageSrc is directly accessible for the preview in the table
+        listImageSrc: item.listImage?.src || item.listImageSrc || '' 
+      }));
     } else if (Array.isArray(response.data)) {
-      tableData.value = response.data;
+        // Adjust mapping if API returns array
+        tableData.value = response.data.map(item => ({
+          ...item,
+          listImageSrc: item.listImage?.src || item.listImageSrc || ''
+        }));
     } else {
       console.warn('API response data is neither an object nor an array:', response.data);
       tableData.value = [];
@@ -256,24 +250,19 @@ const handleEdit = async (row) => {
   resetForm(); 
   console.log("Editing row data:", JSON.parse(JSON.stringify(row))); // Log raw row data
 
-  // Use nextTick to ensure the form DOM is updated after resetForm if needed,
-  // although direct assignment to reactive object should work.
-  // await nextTick(); 
-
   // Populate the form with data from the row
-  // Use Object.assign carefully or set properties individually
   Object.assign(newsForm, {
-      slug: row.id, // Assuming row.id contains the slug (news_id)
+      slug: row.id, 
       listTitle: row.listTitle,
-      listDate: row.listDate || null, // Handle potential null/undefined date
+      listDate: row.listDate || null, 
       listSource: row.listSource || '',
-      listImageSrc: row.listImage?.src || '', // Handle potential missing image object or src
-      listImageAlt: row.listImage?.alt || '', // Handle potential missing image object or alt
+      listImageSrc: row.listImage?.src || row.listImageSrc || '', // Directly assign the URL string
+      listImageAlt: row.listImage?.alt || row.listImageAlt || '', // Re-added populating Alt text
       listDescription: row.listDescription || '',
-      metaTitle: row.metaTitle || '',       // Assuming these meta fields exist directly on the row object fetched by fetchData
+      metaTitle: row.metaTitle || '',       
       metaDescription: row.metaDescription || '',
       metaKeywords: row.metaKeywords || '',
-      content: row.content || ''             // Assuming content field exists
+      content: row.content || ''             
   });
    // Note: If fetchData doesn't fetch all meta/content fields for the list view, 
    // you might need a separate API call here (e.g., GET /api/news/:id) to get full details.
@@ -342,16 +331,14 @@ const handleSubmit = async () => {
        isSubmitting.value = true;
        console.log("Form validation successful. Preparing payload..."); 
        
-       // Prepare payload (structure remains the same)
+       // Prepare payload (Include Alt text)
        const payload = { 
          slug: newsForm.slug,
          listTitle: newsForm.listTitle,
          listDate: newsForm.listDate, 
          listSource: newsForm.listSource,
-         listImage: { 
-            src: newsForm.listImageSrc,
-            alt: newsForm.listImageAlt
-         },
+         listImageSrc: newsForm.listImageSrc, 
+         listImageAlt: newsForm.listImageAlt, // Re-added Alt text to payload
          listDescription: newsForm.listDescription,
          metaTitle: newsForm.metaTitle,
          metaDescription: newsForm.metaDescription,
@@ -376,9 +363,12 @@ const handleSubmit = async () => {
                console.log('Update response:', response);
            } else {
                // --- CREATE Logic (POST request) --- 
+               const createPayload = { ...payload }; 
+               // Ensure slug is part of create payload if backend expects it
+               if (!createPayload.slug) createPayload.slug = newsForm.slug; 
                const createUrl = `${apiBaseUrl}/api/news`;
                console.log(`Sending POST request to ${createUrl}`);
-               response = await axios.post(createUrl, payload, config);
+               response = await axios.post(createUrl, createPayload, config);
                console.log('Create response:', response);
            }
            
@@ -399,45 +389,6 @@ const handleSubmit = async () => {
       return false;
     }
   });
-};
-
-// --- Image Upload Handlers ---
-const handleImageSuccess = (response, uploadFile) => {
-  // This is where you would typically get the URL from the backend response
-  // For now, we'll use a mock URL or the generated blob URL for preview
-  const imageUrl = response?.data?.url || URL.createObjectURL(uploadFile.raw);
-  console.log("Mock Image Upload Success. URL:", imageUrl);
-  newsForm.listImageSrc = imageUrl; 
-  // Manually trigger validation for listImageSrc after successful upload
-  formRef.value?.validateField('listImageSrc'); 
-};
-
-const beforeImageUpload = (rawFile) => {
-  const isJpgOrPng = rawFile.type === 'image/jpeg' || rawFile.type === 'image/png';
-  const isLt2M = rawFile.size / 1024 / 1024 < 2;
-
-  if (!isJpgOrPng) {
-    ElMessage.error('上传图片只能是 JPG 或 PNG 格式!');
-    return false;
-  }
-  if (!isLt2M) {
-    ElMessage.error('上传图片大小不能超过 2MB!');
-    return false;
-  }
-  return true;
-};
-
-// Mock HTTP request to prevent actual upload for now
-const mockHttpRequest = (options) => {
-  console.log("Mock HTTP Request called for upload");
-  // Simulate successful upload after a short delay
-  setTimeout(() => {
-    // Create a mock success response (adjust structure based on your expected backend response)
-    const mockResponse = { data: { url: '/images/mock-uploaded-image.jpg' } }; 
-    options.onSuccess(mockResponse, { raw: options.file }); // Call the success handler
-  }, 500);
-  // Return a promise that never resolves to prevent default upload behavior
-  return new Promise(() => {});
 };
 
 // --- Lifecycle Hooks --- 
@@ -468,7 +419,8 @@ onMounted(() => {
 
 /* Add other styles as needed */
 
-/* Styles for Image Uploader */
+/* Commented out Image Uploader specific styles */
+/*
 .news-image-uploader .el-upload {
   border: 1px dashed var(--el-border-color);
   border-radius: 6px;
@@ -485,17 +437,17 @@ onMounted(() => {
 .el-icon--upload {
   font-size: 28px;
   color: #8c939d;
-  width: 178px; /* Adjust size as needed */
+  width: 178px; 
   height: 178px;
   text-align: center;
-  line-height: 178px; /* Center icon vertically */
+  line-height: 178px; 
 }
 
 .news-image-preview {
   width: 178px; 
   height: 178px;
   display: block;
-  object-fit: contain; /* Or cover, depending on desired preview */
+  object-fit: contain; 
 }
-
+*/
 </style> 

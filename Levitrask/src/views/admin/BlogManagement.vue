@@ -49,7 +49,7 @@
         <el-row :gutter="20"> 
           <el-col :span="12">
             <el-form-item label="URL Slug (路径)" prop="slug">
-              <el-input v-model="blogForm.slug" placeholder="例如: my-first-blog-post" />
+              <el-input v-model="blogForm.slug" placeholder="例如: my-first-blog-post" :disabled="isEditMode" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -81,25 +81,14 @@
         
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="列表图片 (List Image)" prop="listImageSrc">
-              <el-upload
-                class="blog-image-uploader" 
-                action="#" 
-                :show-file-list="false"
-                :on-success="handleImageSuccess" 
-                :before-upload="beforeImageUpload"
-                :http-request="mockHttpRequest" 
-              >
-                <img v-if="blogForm.listImageSrc" :src="blogForm.listImageSrc" class="blog-image-preview" alt="预览"/>
-                <el-icon v-else class="el-icon--upload"><upload-filled /></el-icon>
-                <div v-if="!blogForm.listImageSrc" class="el-upload__text">
-                  将文件拖到此处，或<em>点击上传</em>
-                </div>
-              </el-upload>
-              <div class="el-upload__tip">
-                只能上传 jpg/png 文件，且不超过 2MB
-              </div>
+             <el-form-item label="列表图片 URL (List Image URL)" prop="listImageSrc">
+               <el-input v-model="blogForm.listImageSrc" placeholder="请输入图片的完整 URL" />
             </el-form-item>
+          </el-col>
+           <el-col :span="12">
+             <el-form-item label="图片 Alt 文本" prop="listImageAlt">
+                <el-input v-model="blogForm.listImageAlt" placeholder="图片的简短描述 (用于 SEO 和可访问性)"/>
+             </el-form-item>
           </el-col>
         </el-row>
 
@@ -226,7 +215,7 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { UploadFilled, Plus, Delete } from '@element-plus/icons-vue'; // Import upload icon
+import { Plus, Delete } from '@element-plus/icons-vue'; // Removed UploadFilled
 
 // --- State --- 
 const tableData = ref([]);
@@ -244,7 +233,8 @@ const getInitialFormState = () => ({
   listTitle: '',
   listDate: null, // Use null for date picker initial value
   listSource: '',
-  listImageSrc: '', // Will store the image URL or base64
+  listImageSrc: '', // Changed: Now just the URL string
+  listImageAlt: '', // Re-added Alt text
   listDescription: '',
   metaTitle: '',
   metaDescription: '',
@@ -268,7 +258,10 @@ const formRules = reactive({
       { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Slug 只能包含小写字母、数字和连字符 (-)', trigger: 'blur' }
   ],
   listTitle: [{ required: true, message: '请输入列表标题', trigger: 'blur' }],
-  listImageSrc: [{ required: true, message: '请上传列表图片', trigger: 'change' }],
+  listImageSrc: [
+      { required: true, message: '请输入列表图片 URL', trigger: 'blur' }, 
+  ],
+  listImageAlt: [{ required: true, message: '请输入列表图片 Alt 文本', trigger: 'blur' }],
   listDescription: [{ required: true, message: '请输入列表描述', trigger: 'blur' }],
   metaTitle: [{ required: true, message: '请输入 Meta 标题', trigger: 'blur' }],
   metaDescription: [{ required: true, message: '请输入 Meta 描述', trigger: 'blur' }],
@@ -296,9 +289,16 @@ const fetchData = async () => {
   try {
     const response = await axios.get(`${apiBaseUrl}/api/blogs`);
      if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-      tableData.value = Object.entries(response.data).map(([id, blog]) => ({ ...blog, id })); 
+      tableData.value = Object.entries(response.data).map(([id, blog]) => ({
+         ...blog, 
+         id, 
+         listImageSrc: blog.listImage?.src || blog.listImageSrc || '' // Ensure preview works
+        })); 
     } else if (Array.isArray(response.data)) {
-      tableData.value = response.data; 
+      tableData.value = response.data.map(blog => ({ 
+         ...blog, 
+         listImageSrc: blog.listImage?.src || blog.listImageSrc || ''
+       }));
     } else {
       console.warn('API response data for blogs is not in the expected format:', response.data);
       tableData.value = [];
@@ -368,9 +368,8 @@ const handleSubmit = async () => {
             listTitle: blogForm.listTitle,
             listDate: blogForm.listDate,
             listSource: blogForm.listSource,
-            listImage: {
-                src: blogForm.listImageSrc,
-            },
+            listImageSrc: blogForm.listImageSrc,
+            listImageAlt: blogForm.listImageAlt,
             listDescription: blogForm.listDescription,
             metaTitle: blogForm.metaTitle,
             metaDescription: blogForm.metaDescription,
@@ -406,9 +405,11 @@ const handleSubmit = async () => {
           console.log('Update response:', response);
           ElMessage.success('博客更新成功！');
         } else {
+          const createPayload = { ...payload };
+          if (!createPayload.slug) createPayload.slug = blogForm.slug;
           const createUrl = `${apiBaseUrl}/api/blogs`;
           console.log(`Sending POST request to ${createUrl}`);
-          const response = await axios.post(createUrl, payload, config);
+          const response = await axios.post(createUrl, createPayload, config);
           console.log('Create response:', response);
           ElMessage.success('博客创建成功！');
         }
@@ -430,41 +431,6 @@ const handleSubmit = async () => {
       return false;
     }
   });
-};
-
-const handleImageSuccess = (response, uploadFile) => {
-    console.log("handleImageSuccess called, src should be set by mockHttpRequest", blogForm.listImageSrc);
-    formRef.value?.validateField('listImageSrc');
-};
-
-const beforeImageUpload = (rawFile) => {
-  const allowedTypes = ['image/jpeg', 'image/png'];
-  const maxSize = 2 * 1024 * 1024; // 2MB
-
-  if (!allowedTypes.includes(rawFile.type)) {
-    ElMessage.error('图片只能是 JPG 或 PNG 格式!');
-    return false;
-  }
-  if (rawFile.size > maxSize) {
-    ElMessage.error('图片大小不能超过 2MB!');
-    return false;
-  }
-  return true;
-};
-
-const mockHttpRequest = ({ file, onSuccess, onError }) => {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    blogForm.listImageSrc = e.target.result; 
-    onSuccess(true); 
-    formRef.value?.validateField('listImageSrc'); 
-  };
-  reader.onerror = (e) => {
-    console.error("File reading error:", e);
-    ElMessage.error('图片读取失败。');
-    onError(e);
-  };
-  reader.readAsDataURL(file);
 };
 
 onMounted(() => {
@@ -495,8 +461,9 @@ const handleEdit = async (row) => {
     blogForm.listDate = fetchedData.listDate || null;
     blogForm.listSource = fetchedData.listSource || ''; // Assuming listSource exists in fetched data
     
-    // Handle listImage - assuming fetchedData.listImage contains the Base64 string or URL
-    blogForm.listImageSrc = fetchedData.listImage || ''; 
+    // Directly assign image URL
+    blogForm.listImageSrc = fetchedData.listImage?.src || fetchedData.listImageSrc || fetchedData.listImage || ''; 
+    blogForm.listImageAlt = fetchedData.listImage?.alt || fetchedData.listImageAlt || '';
     blogForm.listDescription = fetchedData.listDescription || '';
     blogForm.metaTitle = fetchedData.metaTitle || '';
     blogForm.metaDescription = fetchedData.metaDescription || '';
@@ -626,6 +593,8 @@ const handleDelete = async (row) => {
 }
 
 /* Styles for image upload */
+/* Commented out image upload specific styles */
+/*
 .blog-image-uploader .el-upload {
   border: 1px dashed var(--el-border-color);
   border-radius: 6px;
@@ -651,8 +620,9 @@ const handleDelete = async (row) => {
   width: 178px;
   height: 178px;
   display: block;
-  object-fit: contain; /* Ensure image fits within bounds */
+  object-fit: contain; 
 }
+*/
 
 /* Add style for loading details inside dialog if needed */
 .dialog-loading-overlay {

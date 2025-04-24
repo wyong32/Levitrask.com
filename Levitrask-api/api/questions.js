@@ -36,6 +36,33 @@ questionsRouter.get('/', async (req, res) => {
   }
 });
 
+// --- GET /api/questions/sidebar --- (For public sidebar list)
+// Define this BEFORE the /:id route
+questionsRouter.get('/sidebar', async (req, res) => {
+  console.log(`[${new Date().toISOString()}] GET /api/questions/sidebar request received`);
+  // const limit = 5; // REMOVED limit constant
+
+  try {
+    // REMOVED LIMIT $2 from the query
+    const result = await pool.query(
+      'SELECT question_id, list_title FROM levitrask_questions WHERE project_id = $1 ORDER BY created_at DESC', 
+      [PROJECT_ID]
+    );
+
+    const sidebarQuestions = result.rows.map(row => ({
+      text: row.list_title,
+      to: `/questions/${row.question_id}`
+    }));
+
+    console.log(`[${new Date().toISOString()}] Successfully fetched ${sidebarQuestions.length} questions for sidebar (all)`);
+    res.json(sidebarQuestions);
+
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error fetching questions for sidebar:`, error);
+    res.status(500).json({ message: 'Error fetching sidebar questions', error: error.message });
+  }
+});
+
 // --- GET /api/questions/:id --- (Handles request for a single question item)
 questionsRouter.get('/:id', async (req, res) => {
   const questionId = req.params.id;
@@ -275,6 +302,34 @@ questionsRouter.put('/:id', authenticateAdmin, async (req, res) => {
     res.status(500).json({ message: 'Error updating question', error: error.message });
   } finally {
     client.release();
+  }
+});
+
+// --- GET /api/questions/sidebar --- (For public sidebar list)
+// No authentication needed for this public endpoint
+questionsRouter.get('/sidebar', async (req, res) => {
+  console.log(`[${new Date().toISOString()}] GET /api/questions/sidebar request received`);
+  const limit = 5; // Limit the number of questions shown in sidebar
+
+  try {
+    const result = await pool.query(
+      // Select the text ID (slug) and title, order by creation date DESC, limit results
+      'SELECT question_id, list_title FROM levitrask_questions WHERE project_id = $1 ORDER BY created_at DESC LIMIT $2', 
+      [PROJECT_ID, limit]
+    );
+
+    // Format data for the sidebar: [{ text: '...', to: '...' }]
+    const sidebarQuestions = result.rows.map(row => ({
+      text: row.list_title,
+      to: `/questions/${row.question_id}` // Construct the link
+    }));
+
+    console.log(`[${new Date().toISOString()}] Successfully fetched ${sidebarQuestions.length} questions for sidebar`);
+    res.json(sidebarQuestions);
+
+  } catch (error) {
+    console.error(`[${new Date().toISOString()}] Error fetching questions for sidebar:`, error);
+    res.status(500).json({ message: 'Error fetching sidebar questions', error: error.message });
   }
 });
 

@@ -341,6 +341,12 @@ onUnmounted(() => {
   text-align: left;
   vertical-align: top;
 }
+.post-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
 
 .post-body :deep(th) {
   background-color: #f8f9fa;

@@ -38,7 +38,7 @@
         <el-row :gutter="20">
            <el-col :span="12">
             <el-form-item label="URL Slug (路径)" prop="slug">
-              <el-input v-model="questionForm.slug" placeholder="例如: why-levitra-unavailable" />
+              <el-input v-model="questionForm.slug" placeholder="例如: why-levitra-unavailable" :disabled="isEditMode" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
