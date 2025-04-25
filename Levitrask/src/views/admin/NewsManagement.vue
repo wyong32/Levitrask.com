@@ -20,7 +20,7 @@
             <span v-else>-</span>
          </template>
       </el-table-column>
-      <el-table-column prop="listTitle" label="标题" />
+      <el-table-column prop="listTitle" label="标题 (默认语言)" />
       <!-- Add more relevant columns later if needed -->
       <el-table-column label="操作" width="180">
         <template #default="scope">
@@ -48,21 +48,39 @@
       >
         <el-row :gutter="20"> <!-- Use grid for better layout -->
           <el-col :span="12">
+             <el-form-item label="编辑语言 (Language)" prop="languageCode">
+                 <el-select 
+                   v-model="selectedLanguage" 
+                   placeholder="选择语言" 
+                   style="width: 100%"
+                   @change="loadLanguageForEdit" 
+                   :disabled="!isEditMode"  
+                 >
+                    <el-option
+                      v-for="lang in supportedLanguages"
+                      :key="lang.code"
+                      :label="lang.name"
+                      :value="lang.code"
+                    />
+                 </el-select>
+             </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="URL Slug (路径)" prop="slug">
               <el-input v-model="newsForm.slug" placeholder="例如: my-first-news-article" :disabled="isEditMode" />
               <!-- Add a button to generate slug from title later -->
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="列表标题 (List Title)" prop="listTitle">
-              <el-input v-model="newsForm.listTitle" />
-            </el-form-item>
-          </el-col>
         </el-row>
 
         <el-row :gutter="20">
-           <el-col :span="12">
-             <el-form-item label="列表日期 (List Date)" prop="listDate">
+          <el-col :span="12">
+             <el-form-item label="列表标题 (List Title - 当前语言)" prop="listTitle">
+                <el-input v-model="newsForm.listTitle" />
+             </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="列表日期 (List Date)" prop="listDate">
                 <el-date-picker
                   v-model="newsForm.listDate"
                   type="date"
@@ -70,12 +88,21 @@
                   format="YYYY-MM-DD"
                   value-format="YYYY-MM-DD"
                   style="width: 100%"
+                  :disabled="isEditMode && selectedLanguage !== 'en'" 
                 />
               </el-form-item>
-           </el-col>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
            <el-col :span="12">
              <el-form-item label="列表来源 (List Source)" prop="listSource">
-                <el-input v-model="newsForm.listSource" />
+                <el-input v-model="newsForm.listSource" :disabled="isEditMode && selectedLanguage !== 'en'"/>
+             </el-form-item>
+           </el-col>
+           <el-col :span="12">
+             <el-form-item label="列表图片 URL (List Image URL)" prop="listImageSrc">
+                <el-input v-model="newsForm.listImageSrc" placeholder="请输入图片的完整 URL" :disabled="isEditMode && selectedLanguage !== 'en'"/>
              </el-form-item>
            </el-col>
         </el-row>
@@ -83,22 +110,18 @@
         <!-- Image URL Input -->
         <el-row :gutter="20">
           <el-col :span="12"> 
-            <el-form-item label="列表图片 URL (List Image URL)" prop="listImageSrc">
-               <el-input v-model="newsForm.listImageSrc" placeholder="请输入图片的完整 URL" />
+            <el-form-item label="图片 Alt 文本 (当前语言)" prop="listImageAlt">
+               <el-input v-model="newsForm.listImageAlt" placeholder="图片的简短描述 (用于 SEO 和可访问性)"/>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-             <el-form-item label="图片 Alt 文本" prop="listImageAlt">
-                <el-input v-model="newsForm.listImageAlt" placeholder="图片的简短描述 (用于 SEO 和可访问性)"/>
+             <el-form-item label="列表描述 (List Description - 当前语言)" prop="listDescription">
+                <el-input type="textarea" v-model="newsForm.listDescription" :rows="3" />
              </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="列表描述 (List Description)" prop="listDescription">
-           <el-input type="textarea" v-model="newsForm.listDescription" :rows="3" />
-        </el-form-item>
-        
-        <el-divider>SEO Meta 信息</el-divider>
+        <el-divider>SEO Meta 信息 (当前语言)</el-divider>
 
         <el-form-item label="Meta 标题 (Meta Title)" prop="metaTitle">
            <el-input v-model="newsForm.metaTitle" />
@@ -110,7 +133,7 @@
             <el-input v-model="newsForm.metaKeywords" placeholder="请用英文逗号分隔"/>
         </el-form-item>
 
-         <el-divider>主要内容</el-divider>
+         <el-divider>主要内容 (当前语言)</el-divider>
 
         <!-- Content Input Area - Always HTML Source -->
         <el-form-item label="内容 (Content - HTML Source)" prop="content">
@@ -128,7 +151,7 @@
         <span class="dialog-footer">
           <el-button @click="closeDialog">取消</el-button>
           <el-button type="primary" @click="handleSubmit" :loading="isSubmitting">
-            {{ isEditMode ? '更新' : '创建' }}
+            {{ isEditMode ? '更新 ' + selectedLanguage : '创建 ' + selectedLanguage }}
           </el-button>
         </span>
       </template>
@@ -150,15 +173,26 @@ const isSubmitting = ref(false);
 const isDialogVisible = ref(false);
 const isEditMode = ref(false); 
 const currentEditId = ref(null); 
+const selectedLanguage = ref('en'); // Default language for the form
+
+// Define supported languages (adjust as needed)
+const supportedLanguages = [
+  { code: 'en', name: 'English' },
+  { code: 'zh-CN', name: '中文 (简体)' },
+  // Add more languages here, e.g.:
+  // { code: 'zh-TW', name: '中文 (繁體)' },
+  // { code: 'ru', name: 'Русский' }, 
+];
 
 // --- Form Initial State --- 
 const initialNewsFormState = {
   slug: '',
+  // Language Code will be handled by selectedLanguage ref
   listTitle: '',
-  listDate: null, // Use null for date picker initial value
+  listDate: null,
   listSource: '',
-  listImageSrc: '', // Changed: Now just the URL string
-  listImageAlt: '', // Re-added Alt text
+  listImageSrc: '',
+  listImageAlt: '',
   listDescription: '',
   metaTitle: '',
   metaDescription: '',
@@ -173,27 +207,27 @@ const newsForm = reactive({ ...initialNewsFormState });
 const formRules = reactive({
   slug: [
       { required: true, message: '请输入 URL Slug', trigger: 'blur' },
-      // Basic slug validation: only lowercase letters, numbers, and hyphens
       { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Slug 只能包含小写字母、数字和连字符 (-)', trigger: 'blur' }
   ],
+  // Add language validation if needed, though selection handles it
   listTitle: [{ required: true, message: '请输入列表标题', trigger: 'blur' }],
   listImageSrc: [
       { required: true, message: '请输入列表图片 URL', trigger: 'blur' },
-      // { type: 'url', message: '请输入有效的 URL', trigger: ['blur', 'change'] } // Removed URL validation
   ], 
   listImageAlt: [{ required: true, message: '请输入列表图片 Alt 文本', trigger: 'blur' }], 
   listDescription: [{ required: true, message: '请输入列表描述', trigger: 'blur' }],
   metaTitle: [{ required: true, message: '请输入 Meta 标题', trigger: 'blur' }],
   metaDescription: [{ required: true, message: '请输入 Meta 描述', trigger: 'blur' }],
   metaKeywords: [{ required: true, message: '请输入 Meta 关键词', trigger: 'blur' }],
-  content: [{ required: true, message: '请输入内容', trigger: 'blur' }], // Basic validation, might need adjustment based on editor
-  // listDate is optional, no required rule
-  // listSource is optional
+  content: [{ required: true, message: '请输入内容', trigger: 'blur' }],
 });
 const formRef = ref(null); 
 
 // --- Computed --- 
-const dialogTitle = computed(() => isEditMode.value ? '编辑新闻' : '创建新新闻');
+const dialogTitle = computed(() => {
+    const langName = supportedLanguages.find(l => l.code === selectedLanguage.value)?.name || selectedLanguage.value;
+    return `${isEditMode.value ? '编辑' : '创建'}新闻 (${langName})`;
+});
 
 // --- API Base URL ---
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
@@ -203,7 +237,7 @@ const fetchData = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const response = await axios.get(`${apiBaseUrl}/api/news`);
+    const response = await axios.get(`${apiBaseUrl}/api/news?lang=en`); // Fetching english for the table
     if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
       tableData.value = Object.values(response.data).map(item => ({
         ...item,
@@ -232,160 +266,190 @@ const fetchData = async () => {
 
 const resetForm = () => {
   if (formRef.value) {
-    formRef.value.resetFields(); // Resets validation state
+    formRef.value.resetFields();
   }
-  // Reset reactive form manually to initial state
-  Object.assign(newsForm, initialNewsFormState); 
+  Object.assign(newsForm, initialNewsFormState);
   currentEditId.value = null; 
+  selectedLanguage.value = 'en'; // Reset language to default
 };
 
 const openCreateDialog = () => {
   isEditMode.value = false;
-  resetForm(); 
+  resetForm();
   isDialogVisible.value = true;
 };
 
 const handleEdit = async (row) => {
   isEditMode.value = true;
   resetForm(); 
-  console.log("Editing row data:", JSON.parse(JSON.stringify(row))); // Log raw row data
+  currentEditId.value = row.id; // Store the slug (news_id)
+  selectedLanguage.value = 'en'; // Default to loading English first
+  console.log(`Editing news with slug: ${currentEditId.value}, starting with lang: ${selectedLanguage.value}`);
 
-  // Populate the form with data from the row
-  Object.assign(newsForm, {
-      slug: row.id, 
-      listTitle: row.listTitle,
-      listDate: row.listDate || null, 
-      listSource: row.listSource || '',
-      listImageSrc: row.listImage?.src || row.listImageSrc || '', // Directly assign the URL string
-      listImageAlt: row.listImage?.alt || row.listImageAlt || '', // Re-added populating Alt text
-      listDescription: row.listDescription || '',
-      metaTitle: row.metaTitle || '',       
-      metaDescription: row.metaDescription || '',
-      metaKeywords: row.metaKeywords || '',
-      content: row.content || ''             
-  });
-   // Note: If fetchData doesn't fetch all meta/content fields for the list view, 
-   // you might need a separate API call here (e.g., GET /api/news/:id) to get full details.
-   // For now, we assume the row object from the list contains enough info.
+  // --- Load data for the selected language --- 
+  isLoading.value = true; // Use main loading indicator briefly?
+  errorMessage.value = '';
+  try {
+      const apiUrl = `${apiBaseUrl}/api/news/${currentEditId.value}`;
+      const response = await axios.get(apiUrl, { params: { lang: selectedLanguage.value } });
+      const dataToEdit = response.data;
+      
+      // Populate the form with fetched data
+      newsForm.slug = dataToEdit.id; // Slug comes from the main ID field now
+      newsForm.listTitle = dataToEdit.listTitle || '';
+      newsForm.listDate = dataToEdit.listDate; // Non-translatable
+      newsForm.listSource = dataToEdit.listSource || ''; // Non-translatable
+      newsForm.listImageSrc = dataToEdit.listImage?.src || ''; // Non-translatable
+      newsForm.listImageAlt = dataToEdit.listImage?.alt || ''; // Translatable
+      newsForm.listDescription = dataToEdit.listDescription || '';
+      newsForm.metaTitle = dataToEdit.metaTitle || '';
+      newsForm.metaDescription = dataToEdit.metaDescription || '';
+      newsForm.metaKeywords = dataToEdit.metaKeywords || '';
+      newsForm.content = dataToEdit.content || '';
+      
+      isDialogVisible.value = true;
+      console.log('Form populated for editing.');
 
-  currentEditId.value = row.id; // Store the ID (slug) for the PUT request
-  console.log("Form populated for edit:", JSON.parse(JSON.stringify(newsForm)));
-  isDialogVisible.value = true;
+  } catch (error) {
+       console.error(`获取新闻详情失败 (slug: ${currentEditId.value}, lang: ${selectedLanguage.value}):`, error);
+       errorMessage.value = `无法加载编辑数据 (${error.response?.data?.message || error.message || '未知错误'})。`;
+       ElMessage.error('加载编辑数据失败!');
+       isEditMode.value = false; // Reset mode if load fails
+       currentEditId.value = null;
+  } finally {
+       isLoading.value = false;
+  }
+};
+
+// TODO: Add function to load different language into the form when editing
+const loadLanguageForEdit = async (langCode) => {
+   if (!isEditMode.value || !currentEditId.value) return;
+   selectedLanguage.value = langCode;
+   console.log(`Attempting to load language '${langCode}' for slug '${currentEditId.value}' into form.`);
+   // Similar fetch logic as in handleEdit, but only update translatable fields
+   isSubmitting.value = true; // Use submitting indicator for loading language
+   try {
+      const apiUrl = `${apiBaseUrl}/api/news/${currentEditId.value}`;
+      const response = await axios.get(apiUrl, { params: { lang: langCode } });
+      const langData = response.data;
+
+      // Update only translatable fields in the form
+      newsForm.listTitle = langData.listTitle || '';
+      newsForm.listImageAlt = langData.listImage?.alt || ''; 
+      newsForm.listDescription = langData.listDescription || '';
+      newsForm.metaTitle = langData.metaTitle || '';
+      newsForm.metaDescription = langData.metaDescription || '';
+      newsForm.metaKeywords = langData.metaKeywords || '';
+      newsForm.content = langData.content || '';
+      
+      ElMessage.success(`已加载 ${langCode} 语言内容`);
+      // Reset validation state for the loaded fields if needed
+      await nextTick(); // Wait for DOM update
+      if (formRef.value) {
+           formRef.value.clearValidate(['listTitle', 'listImageAlt', 'listDescription', 'metaTitle', 'metaDescription', 'metaKeywords', 'content']);
+      }
+
+   } catch (error) {
+        console.error(`加载语言内容失败 (slug: ${currentEditId.value}, lang: ${langCode}):`, error);
+        // If language not found (404), maybe clear the fields?
+        if (error.response && error.response.status === 404) {
+            ElMessage.info(`新闻 '${currentEditId.value}' 的 '${langCode}' 语言版本不存在，请填写新内容。`);
+            // Clear translatable fields
+            newsForm.listTitle = '';
+            newsForm.listImageAlt = ''; 
+            newsForm.listDescription = '';
+            newsForm.metaTitle = '';
+            newsForm.metaDescription = '';
+            newsForm.metaKeywords = '';
+            newsForm.content = '';
+        } else {
+             ElMessage.error(`加载 ${langCode} 内容失败: ${error.response?.data?.message || error.message}`);
+        }
+        // Optionally switch back to default lang? Or let user fill it?
+   } finally {
+        isSubmitting.value = false;
+   }
 };
 
 const handleDelete = async (row) => {
-  // Confirm before deleting
-  ElMessageBox.confirm(
-    `确定要删除新闻 "${row.listTitle}" (ID: ${row.id}) 吗？此操作无法撤销。`,
-    '确认删除',
-    {
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  )
-    .then(async () => {
-      console.log(`Attempting to delete news item with ID: ${row.id}`);
-      // --- API Call to Delete News ---
-      try {
-         const token = localStorage.getItem('admin-auth-token');
-         if (!token) {
-             ElMessage({ type: 'error', message: '认证失败，请重新登录' });
-             // Optionally redirect to login: router.push('/admin/login');
-             return; 
-         }
-
-         const apiUrl = `${apiBaseUrl}/api/news/${row.id}`; // Use row.id (which is the slug/news_id)
-         const config = {
-             headers: { 
-                 Authorization: `Bearer ${token}` 
-             }
-         };
-
-         console.log(`Sending DELETE request to ${apiUrl}`);
-         await axios.delete(apiUrl, config);
-         
-         ElMessage({ type: 'success', message: '删除成功' });
-         await fetchData(); // Refresh list after successful deletion
-      } catch (error) {
-         console.error('删除新闻失败:', error);
-         const message = error.response?.data?.message || error.message || '删除失败';
-         ElMessage({ type: 'error', message: `删除失败: ${message}` });
-      }
-    })
-    .catch(() => {
-      // User cancelled the confirmation dialog
-      ElMessage({ type: 'info', message: '已取消删除' });
-    });
+    const newsId = row.id; // Use slug (news_id) from the row data
+     if (!newsId) {
+         ElMessage.error('无法获取新闻 ID');
+         return;
+     }
+    ElMessageBox.confirm(
+        `确定要删除新闻 "${row.listTitle || newsId}" 吗？此操作将删除所有语言版本且无法撤销。`,
+        '警告',
+        {
+          confirmButtonText: '确定删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      )
+      .then(async () => {
+          try {
+              console.log(`Sending DELETE request for slug: ${newsId}`);
+              const apiUrl = `${apiBaseUrl}/api/news/${newsId}`;
+              await axios.delete(apiUrl);
+              ElMessage.success('删除成功!');
+              fetchData(); // Refresh table data
+          } catch (error) {
+              console.error('删除新闻失败:', error.response || error);
+              ElMessage.error(`删除失败: ${error.response?.data?.message || error.message || '未知错误'}`);
+          }
+      })
+      .catch(() => {
+          // User cancelled
+          ElMessage.info('删除已取消');
+      });
 };
 
 const closeDialog = () => {
   isDialogVisible.value = false;
+  // Reset form is handled by @close event on el-dialog
 };
 
 const handleSubmit = async () => {
   if (!formRef.value) return;
-
-  await formRef.value.validate(async (valid) => {
+  formRef.value.validate(async (valid) => {
     if (valid) {
-       isSubmitting.value = true;
-       console.log("Form validation successful. Preparing payload..."); 
-       
-       // Prepare payload (Include Alt text)
-       const payload = { 
-         slug: newsForm.slug,
-         listTitle: newsForm.listTitle,
-         listDate: newsForm.listDate, 
-         listSource: newsForm.listSource,
-         listImageSrc: newsForm.listImageSrc, 
-         listImageAlt: newsForm.listImageAlt, // Re-added Alt text to payload
-         listDescription: newsForm.listDescription,
-         metaTitle: newsForm.metaTitle,
-         metaDescription: newsForm.metaDescription,
-         metaKeywords: newsForm.metaKeywords,
-         content: newsForm.content
-       };
-       console.log("Payload to send:", payload);
-
-       try {
-           let response;
-           const config = {
-               headers: { 
-                   Authorization: `Bearer ${localStorage.getItem('admin-auth-token')}` 
-               }
-           };
-
-           if (isEditMode.value) {
-               // --- UPDATE Logic (PUT request) --- 
-               const updateUrl = `${apiBaseUrl}/api/news/${currentEditId.value}`;
-               console.log(`Sending PUT request to ${updateUrl}`);
-               response = await axios.put(updateUrl, payload, config);
-               console.log('Update response:', response);
-           } else {
-               // --- CREATE Logic (POST request) --- 
-               const createPayload = { ...payload }; 
-               // Ensure slug is part of create payload if backend expects it
-               if (!createPayload.slug) createPayload.slug = newsForm.slug; 
-               const createUrl = `${apiBaseUrl}/api/news`;
-               console.log(`Sending POST request to ${createUrl}`);
-               response = await axios.post(createUrl, createPayload, config);
-               console.log('Create response:', response);
-           }
-           
-           ElMessage({ type: 'success', message: isEditMode.value ? '更新成功' : '创建成功' });
-           closeDialog();
-           await fetchData(); 
-       } catch (error) { 
-           console.error('Submit failed:', error);
-           const message = error.response?.data?.message || error.message || (isEditMode.value ? '更新失败' : '创建失败');
-           ElMessage({ type: 'error', message: `${isEditMode.value ? '更新' : '创建'}失败: ${message}` });
-       } finally {
-           isSubmitting.value = false;
-       }
-
+      isSubmitting.value = true;
+      const payload = { 
+          ...newsForm, // Include all form fields
+          languageCode: selectedLanguage.value // Add the selected language code
+      };
+      // Ensure listDate is not empty string if it was null
+      if (payload.listDate === null || payload.listDate === '') {
+          delete payload.listDate; // Let backend handle default
+      }
+      
+      try {
+        let response;
+        if (isEditMode.value) {
+          // --- PUT Request (Update) ---
+          console.log(`Sending PUT request for slug: ${currentEditId.value}, lang: ${payload.languageCode}`);
+          const apiUrl = `${apiBaseUrl}/api/news/${currentEditId.value}`;
+          response = await axios.put(apiUrl, payload);
+          ElMessage.success('新闻更新成功!');
+        } else {
+          // --- POST Request (Create) ---
+          console.log(`Sending POST request for slug: ${payload.slug}, lang: ${payload.languageCode}`);
+          const apiUrl = `${apiBaseUrl}/api/news`;
+          response = await axios.post(apiUrl, payload);
+          ElMessage.success('新闻创建成功!');
+        }
+        console.log('API Response:', response.data);
+        closeDialog();
+        fetchData(); // Refresh table data
+      } catch (error) {
+        console.error('提交新闻失败:', error.response || error);
+        ElMessage.error(`操作失败: ${error.response?.data?.message || error.message || '未知错误'}`);
+      } finally {
+        isSubmitting.value = false;
+      }
     } else {
-      console.log('Form validation failed');
-      ElMessage({ type: 'error', message: '请检查表单输入' });
+      console.log('表单验证失败!');
+      ElMessage.warning('请检查表单输入项!');
       return false;
     }
   });

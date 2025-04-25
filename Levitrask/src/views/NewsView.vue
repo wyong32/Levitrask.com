@@ -3,15 +3,15 @@
     <PageHeader />
     <main class="news-page">
       <header class="news-header">
-        <h1>Latest News & Updates</h1>
+        <h1>{{ $t('newsList.pageTitle') }}</h1>
       </header>
 
       <!-- Loading State -->
-      <div v-if="isLoading" class="loading-message">Loading news articles...</div>
+      <div v-if="isLoading" class="loading-message">{{ $t('newsList.loading') }}</div>
 
       <!-- Error State -->
       <div v-else-if="error" class="error-message">
-        Failed to load news: {{ error }}
+        {{ $t('newsList.errorPrefix') }} {{ error }}
       </div>
 
       <!-- Data Loaded State -->
@@ -19,38 +19,33 @@
         <!-- Loop through news items from data -->
         <article v-for="item in newsListItems" :key="item.id" class="news-item">
           <div class="news-image">
-            <!-- Use listImage if available, otherwise fallback -->
             <img
-              :src="item.listImage?.src || '/images/placeholder-news.png'"
-              :alt="item.listImage?.alt || item.listTitle || 'News article image'"
+              :src="item.listImageSrc || '/images/placeholder-news.png'"
+              :alt="item.listImageAlt || item.listTitle || 'News image'"
             />
           </div>
           <div class="news-content">
-            <!-- Use listTitle or fallback to metaTitle (or a generic placeholder) -->
-            <h2>{{ item.listTitle || item.metaTitle || 'News Article' }}</h2>
+            <h2>{{ item.listTitle || 'News Article' }}</h2>
             <p class="news-meta">
-              <!-- Display date/source if available in data -->
               <span v-if="item.listDate" class="news-date">{{ item.listDate }}</span>
               <span v-if="item.listDate && item.listSource"> | </span>
-              <span v-if="item.listSource" class="news-source">Source: {{ item.listSource }}</span>
+              <span v-if="item.listSource" class="news-source">{{ $t('newsList.sourceLabel') }} {{ item.listSource }}</span>
             </p>
-            <!-- Use listDescription for snippet -->
             <p>
-              {{ item.listDescription || 'Read more...' }}
+              {{ item.listDescription || '...' }}
             </p>
             <router-link
-              :to="{ name: 'news-details', params: { id: item.id } }"
+              :to="{ name: 'news-details', params: { lang: locale.value, id: item.id } }"
               class="read-more-link"
             >
-              Read Full Story &raquo;
-              <!-- Adjusted text -->
+              {{ $t('newsList.readMore') }}
             </router-link>
           </div>
         </article>
 
-        <!-- Show message if no news items and not loading/error -->
+        <!-- Show message if no news items -->
         <p v-if="newsListItems.length === 0 && !isLoading && !error" class="no-news-message">
-          No news articles available at the moment.
+          {{ $t('newsList.noNews') }}
         </p>
       </div>
     </main>
@@ -59,11 +54,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue' // Import ref and onMounted
+import { ref, computed, onMounted, watch } from 'vue' // Import ref, onMounted, and watch
 import axios from 'axios' // Import axios
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
-// Removed: import allNewsData from '../Datas/newsData.js'
+import { useI18n } from 'vue-i18n' // Import useI18n
+
+// i18n
+const { locale, t } = useI18n(); // Get locale and t
 
 // Reactive state for data, loading, and errors
 const newsData = ref({}) // Stores the fetched news data object
@@ -73,32 +71,46 @@ const error = ref(null) // Stores any fetch error
 // Base URL from environment variable
 const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
-// Fetch news data when component mounts
-onMounted(async () => {
+// Function to fetch news data based on language
+const fetchNewsData = async (lang) => {
+  isLoading.value = true
+  error.value = null
   try {
-    // const apiUrl = '/api/news'; // Original hardcoded URL
-    const apiUrl = `${baseUrl}/api/news`; // Use environment variable
-    console.log(`Fetching news from: ${apiUrl}`); // Log the relative URL
-    const response = await axios.get(apiUrl) // Use relative path
-    newsData.value = response.data 
-    error.value = null // Clear any previous errors
+    const apiUrl = `${baseUrl}/api/news`;
+    console.log(`Fetching news from: ${apiUrl} for lang: ${lang}`);
+    // Pass language as a query parameter
+    const response = await axios.get(apiUrl, { params: { lang } })
+    newsData.value = response.data
   } catch (err) {
     console.error('Error fetching news data:', err)
     error.value = err.response?.data?.message || err.message || 'An unknown error occurred'
     newsData.value = {} // Clear data on error
   } finally {
-    isLoading.value = false // Set loading to false regardless of outcome
+    isLoading.value = false
   }
+}
+
+// Fetch initial data when component mounts
+onMounted(() => {
+  fetchNewsData(locale.value)
+})
+
+// Watch for locale changes and re-fetch data
+watch(locale, (newLocale) => {
+  fetchNewsData(newLocale)
 })
 
 // Convert the fetched news data object into an array for v-for
 const newsListItems = computed(() => {
-  // Check if newsData.value is an object before calling Object.values
   return newsData.value && typeof newsData.value === 'object'
-    ? Object.values(newsData.value)
+    ? Object.values(newsData.value).map(item => ({
+          ...item, // Keep other properties from the API response
+          id: item.news_id || item.id, // Use news_id if available, fallback to id
+          // Use the correct nested fields for image source and alt text
+          listImageSrc: item.listImage?.src,
+          listImageAlt: item.listImage?.alt
+      }))
     : []
-  // You might want to add sorting here later, e.g., by date
-  // .sort((a, b) => new Date(b.date) - new Date(a.date))
 })
 </script>
 

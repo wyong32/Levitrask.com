@@ -14,9 +14,9 @@
           <h1>Cialis: Complete Guide to Uses, Dosage, Side Effects, and Safety</h1>
           <p>
             Cialis, known by its generic name
-            <router-link to="/blog/tadalafil-generic-faq">Tadalafil</router-link>, is a widely used
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }">Tadalafil</router-link>, is a widely used
             medication primarily prescribed for the treatment of
-            <router-link to="/blog/understanding-ed">erectile dysfunction (ED)</router-link> and
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">erectile dysfunction (ED)</router-link> and
             benign prostatic hyperplasia (BPH). This prescription medication belongs to the class of
             drugs called phosphodiesterase type 5 (PDE5) inhibitors, which work by increasing blood
             flow to specific areas of the body, especially the penis and the prostate. Here is a
@@ -43,7 +43,7 @@
           <p>Cialis is most commonly used for the following conditions:</p>
           <h3>1. Erectile Dysfunction (ED)</h3>
           <p>
-            <router-link to="/blog/understanding-ed">Erectile dysfunction</router-link>, commonly
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">Erectile dysfunction</router-link>, commonly
             known as impotence, is a condition in which a man is unable to achieve or sustain an
             erection sufficient for sexual activity. Cialis helps treat ED by increasing blood flow
             to the penis when sexually stimulated. It does not cause an erection on its own but
@@ -133,7 +133,7 @@
             <li>
               <strong>Lifestyle Factors:</strong> Certain lifestyle choices can affect how well ED
               medications work. Learn more about
-              <router-link to="/blog/lifestyle-impact"
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'lifestyle-impact' } }"
                 >lifestyle factors and ED treatment</router-link
               >.
             </li>
@@ -190,7 +190,7 @@
           <p>
             If you experience severe side effects, seek immediate medical attention. For more
             information on handling common issues, read our guide on
-            <router-link to="/blog/managing-side-effects"
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'managing-side-effects' } }"
               >managing ED medication side effects</router-link
             >.
           </p>
@@ -214,7 +214,7 @@
           <p>Finally, Cialis is not recommended for women or children under the age of 18.</p>
           <p>
             It is crucial to have an open
-            <router-link to="/blog/talking-to-doctor-ed">conversation with your doctor</router-link>
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">conversation with your doctor</router-link>
             about your full medical history and all medications you are taking before starting
             Cialis.
           </p>
@@ -224,31 +224,31 @@
           <h2>Generic Drugs (Tadalafil)</h2>
           <p>
             Generic versions of Cialis contain the same active ingredient,
-            <router-link to="/blog/tadalafil-generic-faq">Tadalafil</router-link>, and offer a
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }">Tadalafil</router-link>, and offer a
             potentially more affordable option for treating ED and BPH. A prescription is still
             required.
           </p>
           <p><strong>Explore More on Generic ED Drugs:</strong></p>
           <ul>
             <li>
-              <router-link to="/blog/generic-vs-brand-deep-dive"
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'generic-vs-brand-deep-dive' } }"
                 >Generic vs. Brand Name: Understanding the Differences</router-link
               >
             </li>
             <li>
-              <router-link to="/blog/sildenafil-generic-info"
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'sildenafil-generic-info' } }"
                 >Generic Viagra (Sildenafil): What to Know</router-link
               >
             </li>
             <!-- Assuming an avanafil article exists -->
             <li>
-              <router-link to="/blog/avanafil-patient-guide"
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'avanafil-patient-guide' } }"
                 >Generic Stendra (Avanafil): Patient Guide</router-link
               >
             </li>
             <li>
-              <router-link to="/blog/saving-on-ed-meds"
-                >How to Save Money on ED Medications</router-link
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'saving-on-ed-meds' } }"
+                >Tips for Saving Money on ED Medications</router-link
               >
             </li>
             <li>
@@ -285,10 +285,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../../components/PageHeader.vue' // Adjusted path
 import PageFooter from '../../components/PageFooter.vue' // Adjusted path
 import SideNav from '../../components/SideNav.vue' // Adjusted path
 import DrugSidebar from '../../components/DrugSidebar.vue' // Adjusted path
+
+// Get locale for links
+const { locale } = useI18n()
 
 // Updated nav sections based on the provided content
 const navSections = ref([
@@ -327,21 +331,21 @@ const cialisSidebarData = ref({
     alt: 'Cialis (Tadalafil) pills',
   },
   relatedResources: [
-    { text: 'Understanding Erectile Dysfunction (ED)', to: '/blog/understanding-ed' },
-    { text: 'Managing Side Effects of ED Medications', to: '/blog/managing-side-effects' },
-    { text: 'Tadalafil (Generic Cialis): FAQs', to: '/blog/tadalafil-generic-faq' },
-    { text: 'Lifestyle Factors Affecting ED', to: '/blog/lifestyle-impact' },
-    { text: 'FDA Drug Information: Tadalafil', to: '/blog/fda-tadalafil-info' },
+    { text: 'Understanding Erectile Dysfunction (ED)', to: { name: 'blog-details', params: { id: 'understanding-ed' } } },
+    { text: 'Managing Side Effects of ED Medications', to: { name: 'blog-details', params: { id: 'managing-side-effects' } } },
+    { text: 'Tadalafil (Generic Cialis): FAQs', to: { name: 'blog-details', params: { id: 'tadalafil-generic-faq' } } },
+    { text: 'Lifestyle Factors Affecting ED', to: { name: 'blog-details', params: { id: 'lifestyle-impact' } } },
+    { text: 'FDA Drug Information: Tadalafil', to: { name: 'blog-details', params: { id: 'fda-tadalafil-info' } } },
   ],
   similarDrugs: [
-    { text: 'Levitra (vardenafil)', to: '/' },
-    { text: 'Stendra (avanafil)', to: '/Stendra' },
-    { text: 'Viagra (sildenafil)', to: '/Viagra' },
+    { text: 'Levitra (vardenafil)', to: { name: 'home' } },
+    { text: 'Stendra (avanafil)', to: { name: 'stendra-blog' } },
+    { text: 'Viagra (sildenafil)', to: { name: 'viagra-blog' } },
   ],
   drugComparison: [
-    { text: 'Cialis vs Levitra', to: '/Levitra-vs-Cialis' },
-    { text: 'Cialis vs Viagra', to: '/cialis-vs-viagra' },
-    { text: 'Cialis vs Stendra', to: '/cialis-vs-stendra' },
+    { text: 'Cialis vs Levitra', to: { name: 'compare-levitra-cialis' } },
+    { text: 'Cialis vs Viagra', to: { name: 'compare-cialis-viagra' } },
+    { text: 'Cialis vs Stendra', to: { name: 'compare-cialis-stendra' } },
     // Add other comparison links
   ],
 })

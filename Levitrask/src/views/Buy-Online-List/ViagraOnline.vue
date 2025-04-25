@@ -14,9 +14,9 @@
         <header class="page-header-content">
           <h1>Buy Viagra Online: The Modern Man's Guide to Safe and Discreet ED Treatment</h1>
           <p>
-            <router-link to="/blog/understanding-ed">Erectile dysfunction (ED)</router-link> is more
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">Erectile dysfunction (ED)</router-link> is more
             common than many realize, and for millions of men,
-            <router-link to="/Viagra">Viagra</router-link> remains the go-to solution. In today's
+            <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link> remains the go-to solution. In today's
             digital age, you no longer need to schedule a doctor's visit or wait in line at a
             pharmacy — now you can Buy Viagra Online quickly, privately, and securely.
           </p>
@@ -39,11 +39,11 @@
             <li>✅ Discreet Delivery: No labels, no questions</li>
             <li>
               ✅ Affordable: Compare prices and generics when you Buy Viagra Online (see
-              <router-link to="/blog/sildenafil-generic-info">sildenafil</router-link> options)
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'sildenafil-generic-info' } }">sildenafil</router-link> options)
             </li>
             <li>
               ✅ Licensed Support: Speak with certified
-              <router-link to="/blog/talking-to-doctor-ed">doctors</router-link> from home
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctors</router-link> from home
             </li>
           </ul>
           <p>
@@ -56,12 +56,12 @@
           <h2>How Viagra Works</h2>
           <p>
             Before you Buy Viagra Online, it's important to understand how Viagra works. Its active
-            ingredient, <router-link to="/blog/sildenafil-generic-info">sildenafil</router-link>,
+            ingredient, <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'sildenafil-generic-info' } }">sildenafil</router-link>,
             increases blood flow to the penis by relaxing blood vessels, allowing for a firmer,
             longer-lasting erection during sexual stimulation.
           </p>
           <p>
-            <router-link to="/Viagra">Viagra</router-link> typically starts working within 30–60
+            <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link> typically starts working within 30–60
             minutes and lasts 4–6 hours. For many men, it's a game-changer — one of the many reasons
             to Buy Viagra Online.
           </p>
@@ -75,7 +75,7 @@
             <li>Complete a digital consultation (just a few health questions).</li>
             <li>
               Get approved by a licensed
-              <router-link to="/blog/talking-to-doctor-ed">doctor</router-link>.
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctor</router-link>.
             </li>
             <li>Choose your preferred dose and quantity.</li>
             <li>Buy Viagra Online through a secure checkout.</li>
@@ -139,10 +139,10 @@
           <h2>Brand Name or Generic? What to Choose When You Buy Viagra Online</h2>
           <p>
             When you Buy Viagra Online, you'll often be offered brand-name
-            <router-link to="/Viagra">Viagra</router-link> or generic
-            <router-link to="/blog/sildenafil-generic-info">sildenafil</router-link>. Both options
+            <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link> or generic
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'sildenafil-generic-info' } }">sildenafil</router-link>. Both options
             contain the same active ingredient and work identically. See our
-            <router-link to="/blog/generic-vs-brand-deep-dive">comparison</router-link>.
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'generic-vs-brand-deep-dive' } }">comparison</router-link>.
           </p>
           <p>
             The key difference? Price. <br />Generic versions can be up to 80% cheaper — making them
@@ -169,7 +169,7 @@
           <h2>Final Thoughts: Should You Buy Viagra Online?</h2>
           <p>
             There's no doubt about it: to Buy Viagra Online is one of the smartest, most modern ways
-            to handle <router-link to="/blog/understanding-ed">ED</router-link> today. You save
+            to handle <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">ED</router-link> today. You save
             time, avoid embarrassment, and get trusted treatment — all from the comfort of home.
           </p>
           <p>
@@ -188,10 +188,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../../components/PageHeader.vue'
 import PageFooter from '../../components/PageFooter.vue'
 import SideNav from '../../components/SideNav.vue'
 import DrugSidebar from '../../components/DrugSidebar.vue'
+
+const { locale } = useI18n()
 
 const navSections = ref([
   { id: 'popularity-viagra', title: 'Why Buy Online?' },
@@ -205,13 +208,13 @@ const navSections = ref([
 
 const sidebarData = ref({
   relatedResources: [
-    { text: 'Viagra Overview', to: '/Viagra' },
-    { text: 'Generic Sildenafil Info', to: '/blog/sildenafil-generic-info' },
-    { text: 'FDA Info: Sildenafil', to: '/blog/fda-sildenafil-info' },
-    { text: 'Generic vs. Brand Name ED Drugs', to: '/blog/generic-vs-brand-deep-dive' },
-    { text: 'Managing Side Effects', to: '/blog/managing-side-effects' },
-    { text: 'Saving Money on ED Meds', to: '/blog/saving-on-ed-meds' },
-    { text: 'Talking to Your Doctor About ED', to: '/blog/talking-to-doctor-ed' },
+    { text: 'Viagra Overview', to: { name: 'viagra-blog' } },
+    { text: 'Generic Sildenafil Info', to: { name: 'blog-details', params: { id: 'sildenafil-generic-info' } } },
+    { text: 'FDA Info: Sildenafil', to: { name: 'blog-details', params: { id: 'fda-sildenafil-info' } } },
+    { text: 'Generic vs. Brand Name ED Drugs', to: { name: 'blog-details', params: { id: 'generic-vs-brand-deep-dive' } } },
+    { text: 'Managing Side Effects', to: { name: 'blog-details', params: { id: 'managing-side-effects' } } },
+    { text: 'Saving Money on ED Meds', to: { name: 'blog-details', params: { id: 'saving-on-ed-meds' } } },
+    { text: 'Talking to Your Doctor About ED', to: { name: 'blog-details', params: { id: 'talking-to-doctor-ed' } } },
   ],
 })
 </script>

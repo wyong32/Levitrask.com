@@ -20,7 +20,7 @@
           <p>
             From how they work, to their duration, side effects, and more—this Levitra VS Cialis
             guide will help you make an informed decision when discussing ED treatment with your
-            <router-link to="/blog/talking-to-doctor-ed">healthcare provider</router-link>.
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">healthcare provider</router-link>.
           </p>
         </header>
 
@@ -32,18 +32,18 @@
           </p>
           <ul>
             <li>
-              <router-link to="/">Levitra</router-link> typically takes 25 to 60 minutes to begin
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> typically takes 25 to 60 minutes to begin
               working and lasts for about 4 to 6 hours.
             </li>
             <li>
-              <router-link to="/Cialis">Cialis</router-link> takes about 30 to 45 minutes to kick in
+              <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> takes about 30 to 45 minutes to kick in
               but can last up to 36 hours, earning it the nickname "the weekend pill."
             </li>
           </ul>
           <p>
             So in the Levitra VS Cialis debate,
-            <router-link to="/Cialis">Cialis</router-link> may be preferable for those who want more
-            spontaneity, while <router-link to="/">Levitra</router-link> could be a better option
+            <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> may be preferable for those who want more
+            spontaneity, while <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> could be a better option
             for shorter, more predictable timeframes.
           </p>
         </section>
@@ -53,17 +53,17 @@
           <p>Another key factor in Levitra VS Cialis is how each drug is dosed.</p>
           <ul>
             <li>
-              <router-link to="/">Levitra</router-link> is usually taken on demand, before sexual
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> is usually taken on demand, before sexual
               activity.
             </li>
             <li>
-              <router-link to="/Cialis">Cialis</router-link> can be taken on demand or daily at a
+              <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> can be taken on demand or daily at a
               lower dose, allowing for regular sexual activity without needing to plan in advance.
             </li>
           </ul>
           <p>
             If you prefer a medication you don't have to think about every time,
-            <router-link to="/Cialis">Cialis</router-link> has the advantage in the Levitra VS
+            <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> has the advantage in the Levitra VS
             Cialis matchup.
           </p>
         </section>
@@ -78,17 +78,17 @@
           <h3>Common side effects include:</h3>
           <ul>
             <li>
-              <strong><router-link to="/">Levitra</router-link>:</strong> Headache, flushing, stuffy
+              <strong><router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link>:</strong> Headache, flushing, stuffy
               nose, dizziness, indigestion
             </li>
             <li>
-              <strong><router-link to="/Cialis">Cialis</router-link>:</strong> Back pain, muscle
+              <strong><router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link>:</strong> Back pain, muscle
               aches, headache, flushing, nasal congestion
             </li>
           </ul>
           <p>
             One point worth noting in the Levitra VS Cialis debate is that
-            <router-link to="/Cialis">Cialis</router-link> users are more likely to report back and
+            <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> users are more likely to report back and
             muscle pain, likely due to its longer duration in the body.
           </p>
         </section>
@@ -101,11 +101,11 @@
           </p>
           <ul>
             <li>
-              <router-link to="/">Levitra</router-link> may be slightly affected by high-fat meals,
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> may be slightly affected by high-fat meals,
               which can slow its absorption.
             </li>
             <li>
-              <router-link to="/Cialis">Cialis</router-link> is not significantly affected by food.
+              <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> is not significantly affected by food.
             </li>
           </ul>
           <p>
@@ -122,9 +122,9 @@
             comparison more personal than clinical.
           </p>
           <p>
-            Some men prefer <router-link to="/">Levitra</router-link> for its strong, focused
+            Some men prefer <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> for its strong, focused
             effect, especially those with conditions like diabetes. Others choose
-            <router-link to="/Cialis">Cialis</router-link> for its extended duration and
+            <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> for its extended duration and
             flexibility. In the end, the winner of Levitra VS Cialis may depend on your own
             experience and goals.
           </p>
@@ -137,8 +137,8 @@
             versions available— Levitra VS Cialis —which can significantly reduce the price.
           </p>
           <p>
-            Generally, <router-link to="/Cialis">Cialis</router-link> generics are more commonly
-            prescribed and slightly cheaper than <router-link to="/">Levitra</router-link> generics,
+            Generally, <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> generics are more commonly
+            prescribed and slightly cheaper than <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> generics,
             but prices may vary depending on your location and insurance coverage.
           </p>
         </section>
@@ -154,18 +154,18 @@
               <thead>
                 <tr>
                   <th>Feature</th>
-                  <th><router-link to="/">Levitra</router-link></th>
-                  <th><router-link to="/Cialis">Cialis</router-link></th>
+                  <th><router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link></th>
+                  <th><router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link></th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>Active Ingredient</td>
                   <td>
-                    <router-link to="/blog/vardenafil-generic-info">Vardenafil</router-link>
+                    <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'vardenafil-generic-info' } }">Vardenafil</router-link>
                   </td>
                   <td>
-                    <router-link to="/blog/tadalafil-generic-faq">Tadalafil</router-link>
+                    <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }">Tadalafil</router-link>
                   </td>
                 </tr>
                 <tr>
@@ -198,7 +198,7 @@
           </div>
           <p>
             When weighing Levitra VS Cialis, talk to your
-            <router-link to="/blog/talking-to-doctor-ed">doctor</router-link> about your lifestyle,
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctor</router-link> about your lifestyle,
             health conditions, and what you're looking for in an ED treatment. Both are proven,
             effective, and safe when used correctly.
           </p>
@@ -223,10 +223,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../../components/PageHeader.vue'
 import PageFooter from '../../components/PageFooter.vue'
 import SideNav from '../../components/SideNav.vue'
 import DrugSidebar from '../../components/DrugSidebar.vue' // 引入 DrugSidebar
+
+// Get locale for generating links
+const { locale } = useI18n()
 
 // 定义比较页面的导航项数据 (Updated to match new content)
 const comparisonSections = ref([
@@ -256,10 +260,10 @@ const cialisComparisonSidebarData = ref({
     ],
   },
   relatedResources: [
-    { text: 'Levitra vs Viagra', to: '/Levitra-vs-Viagra' },
-    { text: 'Levitra vs Stendra', to: '/Levitra-vs-Stendra' },
-    { text: 'Cialis vs Viagra', to: '/Cialis-vs-Viagra' },
-    { text: 'Cialis vs Stendra', to: '/Cialis-vs-Stendra' }, // Added missing comparison
+    { text: 'Levitra vs Viagra', to: { name: 'compare-levitra-viagra' } },
+    { text: 'Levitra vs Stendra', to: { name: 'compare-levitra-stendra' } },
+    { text: 'Cialis vs Viagra', to: { name: 'compare-cialis-viagra' } },
+    { text: 'Cialis vs Stendra', to: { name: 'compare-cialis-stendra' } }, // Added missing comparison
   ],
 })
 

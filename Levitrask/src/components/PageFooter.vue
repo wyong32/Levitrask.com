@@ -2,19 +2,14 @@
   <footer class="page-footer professional-footer">
     <div class="footer-content">
       <div class="footer-links">
-        <router-link to="/">Home</router-link>
-        <router-link to="/blog">Blog</router-link>
-        <!-- Add Terms and Privacy links -->
-        <router-link to="/terms">Terms of Service</router-link>
-        <router-link to="/privacy">Privacy Policy</router-link>
-        <!-- Add more relevant links here -->
-        <!-- Example: <router-link to="/about">About Us</router-link> -->
-        <!-- Example: <router-link to="/contact">Contact</router-link> -->
+        <router-link :to="{ name: 'home', params: { lang: locale.value } }">{{ $t('navigation.home') }}</router-link>
+        <router-link :to="{ name: 'blog', params: { lang: locale.value } }">{{ $t('navigation.blog') }}</router-link>
+        <router-link :to="{ name: 'terms', params: { lang: locale.value } }">{{ $t('navigation.terms') }}</router-link>
+        <router-link :to="{ name: 'privacy', params: { lang: locale.value } }">{{ $t('navigation.privacy') }}</router-link>
       </div>
 
-      <!-- Update Social Media Links Section for Direct Linking -->
       <div class="social-media-links">
-        <span class="social-label">Follow us:</span>
+        <span class="social-label">{{ $t('footer.followUs') }}</span>
         <a
           href="https://x.com/laura48803/status/1913544726663581780"
           target="_blank"
@@ -62,20 +57,22 @@
 
       <div class="disclaimer">
         <p>
-          <strong>Disclaimer:</strong> The content on this site is for informational purposes only
-          and does not constitute medical advice. Always consult a healthcare professional for any
-          health concerns or before making any decisions related to your health or treatment.
+          <strong>{{ $t('footer.disclaimerTitle') }}</strong> {{ $t('footer.disclaimerText') }}
         </p>
       </div>
 
       <div class="copyright">
-        <p>&copy; 2025 Levitrask. All rights reserved.</p>
+        <p v-html="$t('footer.copyright')"></p>
       </div>
     </div>
   </footer>
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
+
+const { locale, t } = useI18n();
+
 // No share functions needed anymore
 </script>
 

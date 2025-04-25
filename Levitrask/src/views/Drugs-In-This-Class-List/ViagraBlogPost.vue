@@ -15,7 +15,7 @@
           <p>
             Viagra, a well-known medication, has gained worldwide recognition for its role in
             treating
-            <router-link to="/blog/understanding-ed">erectile dysfunction (ED)</router-link>. But
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">erectile dysfunction (ED)</router-link>. But
             there's more to this little blue pill than its widespread fame. In this blog post, we'll
             take a detailed look at Viagra, including its official name, its uses, dosage
             guidelines, possible side effects, and important warnings.
@@ -24,7 +24,7 @@
           <p><strong>Brand Name:</strong> Viagra</p>
           <p>
             <strong>Generic Name:</strong>
-            <router-link to="/blog/sildenafil-generic-info">Sildenafil Citrate</router-link>
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'sildenafil-generic-info' } }">Sildenafil Citrate</router-link>
           </p>
           <p><strong>Drug Category:</strong> Phosphodiesterase type 5 (PDE5) Inhibitors</p>
         </header>
@@ -33,7 +33,7 @@
           <h2>What is Viagra?</h2>
           <p>
             Viagra is a prescription medication primarily used to treat
-            <router-link to="/blog/understanding-ed">erectile dysfunction (ED)</router-link>, a
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">erectile dysfunction (ED)</router-link>, a
             condition in which a man has difficulty achieving or maintaining an erection sufficient
             for sexual activity. It was developed by Pfizer and first approved by the U.S. Food and
             Drug Administration (FDA) in 1998. Since then, it has helped millions of men regain
@@ -85,7 +85,7 @@
             The effects of Viagra can last for up to 4-5 hours, but this can vary from person to
             person. It's essential not to take more than one dose in a 24-hour period. Remember that
             certain
-            <router-link to="/blog/lifestyle-impact">lifestyle factors</router-link>
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'lifestyle-impact' } }">lifestyle factors</router-link>
             can also influence how well ED medications work.
           </p>
         </section>
@@ -116,9 +116,7 @@
           <p>
             If you experience any of these serious side effects, you should seek medical attention
             immediately. For guidance on handling common side effects, check our post on
-            <router-link to="/blog/managing-side-effects"
-              >managing ED medication side effects</router-link
-            >.
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'managing-side-effects' } }">managing ED medication side effects</router-link>.
           </p>
         </section>
 
@@ -154,9 +152,7 @@
           <p>
             Older men (especially those over 65) may need a lower dose of Viagra, as they are more
             likely to experience side effects or slower metabolism of the drug. Always
-            <router-link to="/blog/talking-to-doctor-ed"
-              >discuss your health profile with your doctor</router-link
-            >
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">discuss your health profile with your doctor</router-link>
             before starting any new medication.
           </p>
         </section>
@@ -180,41 +176,29 @@
           <h2>Generic Drugs (Sildenafil)</h2>
           <p>
             Generic Viagra, containing
-            <router-link to="/blog/sildenafil-generic-info">Sildenafil Citrate</router-link>, is
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'sildenafil-generic-info' } }">Sildenafil Citrate</router-link>, is
             widely available and often provides a more cost-effective option for treating ED. As
             with the brand name, a prescription is required.
           </p>
           <p><strong>Explore More on ED Drugs:</strong></p>
           <ul>
             <li>
-              <router-link to="/blog/generic-vs-brand-deep-dive"
-                >Generic vs. Brand Name: Key Differences Explained</router-link
-              >
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'generic-vs-brand-deep-dive' } }">Generic vs. Brand Name: Key Differences Explained</router-link>
             </li>
             <li>
-              <router-link to="/blog/tadalafil-generic-faq"
-                >Generic Cialis (Tadalafil) FAQ</router-link
-              >
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }">Generic Cialis (Tadalafil) FAQ</router-link>
             </li>
             <li>
-              <router-link to="/blog/vardenafil-generic-info"
-                >Generic Levitra (Vardenafil) Information</router-link
-              >
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'vardenafil-generic-info' } }">Generic Levitra (Vardenafil) Information</router-link>
             </li>
             <li>
-              <router-link to="/blog/avanafil-patient-guide"
-                >Generic Stendra (Avanafil): Patient Guide</router-link
-              >
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'avanafil-patient-guide' } }">Generic Stendra (Avanafil): Patient Guide</router-link>
             </li>
             <li>
-              <router-link to="/blog/saving-on-ed-meds"
-                >Tips for Saving Money on ED Medication</router-link
-              >
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'saving-on-ed-meds' } }">Tips for Saving Money on ED Medication</router-link>
             </li>
             <li>
-              <router-link to="/blog/comparing-factors"
-                >Comparing Different ED Treatment Options</router-link
-              >
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'comparing-factors' } }">Comparing Different ED Treatment Options</router-link>
             </li>
           </ul>
         </section>
@@ -230,9 +214,9 @@
           </p>
           <p>
             If you're struggling with
-            <router-link to="/blog/understanding-ed">erectile dysfunction</router-link>, don't
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">erectile dysfunction</router-link>, don't
             hesitate to
-            <router-link to="/blog/talking-to-doctor-ed">speak with your doctor</router-link>.
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">speak with your doctor</router-link>.
             Viagra could be the solution that helps you regain your confidence and improve your
             quality of life.
           </p>
@@ -248,10 +232,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../../components/PageHeader.vue' // Adjusted path
 import PageFooter from '../../components/PageFooter.vue' // Adjusted path
 import SideNav from '../../components/SideNav.vue' // Adjusted path
 import DrugSidebar from '../../components/DrugSidebar.vue' // Adjusted path
+
+const { locale } = useI18n()
 
 // Updated nav sections based on the provided content
 const navSections = ref([
@@ -289,22 +276,21 @@ const viagraSidebarData = ref({
     alt: 'Viagra (Sildenafil) 100mg pills',
   },
   relatedResources: [
-    { text: 'Understanding Erectile Dysfunction (ED)', to: '/blog/understanding-ed' }, // Existing blog
-    { text: 'Managing Side Effects of ED Medications', to: '/blog/managing-side-effects' }, // New blog
-    { text: 'Sildenafil (Generic Viagra): What to Expect', to: '/blog/sildenafil-generic-info' }, // New blog
-    { text: 'Lifestyle Factors Affecting ED', to: '/blog/lifestyle-impact' }, // Existing blog
-    { text: 'FDA Drug Information: Sildenafil', to: '/blog/fda-sildenafil-info' }, // New blog
+    { text: 'Understanding Erectile Dysfunction (ED)', to: { name: 'blog-details', params: { id: 'understanding-ed' } } },
+    { text: 'Managing Side Effects of ED Medications', to: { name: 'blog-details', params: { id: 'managing-side-effects' } } },
+    { text: 'Sildenafil (Generic Viagra): What to Expect', to: { name: 'blog-details', params: { id: 'sildenafil-generic-info' } } },
+    { text: 'Lifestyle Factors Affecting ED', to: { name: 'blog-details', params: { id: 'lifestyle-impact' } } },
+    { text: 'FDA Drug Information: Sildenafil', to: { name: 'blog-details', params: { id: 'fda-viagra-info' } } },
   ],
   similarDrugs: [
-    { text: 'Cialis (tadalafil)', to: '/Cialis' }, // Updated path
-    { text: 'Levitra (vardenafil)', to: '/' }, // Path to Levitra (Index) remains '/'
-    { text: 'Stendra (avanafil)', to: '/Stendra' }, // Updated path
+    { text: 'Cialis (tadalafil)', to: { name: 'cialis-blog' } },
+    { text: 'Levitra (vardenafil)', to: { name: 'home' } },
+    { text: 'Stendra (avanafil)', to: { name: 'stendra-blog' } },
   ],
   drugComparison: [
-    { text: 'Viagra vs Levitra', to: '/Levitra-vs-Viagra' },
-    { text: 'Viagra vs Cialis', to: '/Cialis-vs-Viagra' },
-    { text: 'Viagra vs Stendra', to: '/Stendra-vs-Viagra' },
-    // Add other comparison links (e.g., Cialis, Stendra)
+    { text: 'Viagra vs Levitra', to: { name: 'compare-levitra-viagra' } },
+    { text: 'Viagra vs Cialis', to: { name: 'compare-cialis-viagra' } },
+    { text: 'Viagra vs Stendra', to: { name: 'compare-stendra-viagra' } },
   ],
 })
 </script>

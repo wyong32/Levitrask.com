@@ -8,6 +8,10 @@ import newsRouter from './news.js';
 import blogsRouter from './blogs.js';
 import questionsRouter from './questions.js';
 import authRouter from './auth.js'; // <-- 引入认证路由
+// Import the new homepage router
+import homepageRouter from './admin_homepage.js';
+// Import the new public content router
+import contentRouter from './content.js'; 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -31,7 +35,16 @@ app.use(express.urlencoded({ extended: true }));
 
 // --- Mount Routers ---
 console.log('[API Entry] Mounting routers...');
-app.use('/api/auth', authRouter); // <-- 挂载认证路由
+// Mount public content routes (e.g., under /api)
+app.use('/api', contentRouter);
+console.log('  ✓ Mounted /api (public content)');
+
+// Mount admin-specific routes under /api/admin
+app.use('/api/admin', homepageRouter); 
+console.log('  ✓ Mounted /api/admin (homepage blocks)');
+
+// Mount other existing resource routes
+app.use('/api/auth', authRouter);
 console.log('  ✓ Mounted /api/auth');
 app.use('/api/news', newsRouter);
 console.log('  ✓ Mounted /api/news');

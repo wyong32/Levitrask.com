@@ -25,26 +25,19 @@
 
         <div class="container post-container">
           <article class="post-content-area">
-            <!-- REMOVED Standalone Main Image Display -->
-            <!-- 
-            <div class="post-main-image" v-if="blogPost.listImage">
-              <img 
-                :src="getImageSrc(blogPost.listImage)" 
-                :alt="blogPost.listTitle || 'Blog main image'"
-              >
-            </div>
-            -->
-
             <!-- Main content area -->
             <div class="post-body" ref="postBodyRef" v-html="blogPost.content"></div>
           </article>
-
+          
           <aside class="post-sidebar drug-sidebar-component">
             <!-- DrugSidebar Component -->
             <DrugSidebar
-              v-if="blogPost.sidebarData"
-              :sidebar-data="blogPost.sidebarData"
+              v-if="blogPost.sidebarData && blogPost.sidebarData.length > 0"
+              :blocks="blogPost.sidebarData"
             />
+            <div v-else>
+              <!-- No sidebar content for this post -->
+            </div>
           </aside>
         </div>
       </template>
@@ -162,15 +155,32 @@ const setMetaTag = (name, content) => {
 
 // --- Content Click Handler (for internal links) --- 
 const handleContentClick = (event) => {
-  const target = event.target
-  if (target.tagName === 'A' && target.closest('.post-body')) {
-    const href = target.getAttribute('href')
-    if (href && href.startsWith('/') && href !== route.path) {
-      event.preventDefault()
-      router.push(href)
-    }
+  const target = event.target.closest('a'); // Check closest anchor tag
+  if (target && target.closest('.post-body')) { 
+    let href = target.getAttribute('href');
+    
+    // Basic check for internal links (starts with / but not //)
+    if (href && href.startsWith('/') && !href.startsWith('//')) {
+      event.preventDefault();
+
+      // --- Check if link ALREADY has language prefix --- 
+      const langParam = route.params.lang; // Get current language from route
+      const hasLangPrefix = href.startsWith(`/${langParam}/`) || href === `/${langParam}`;
+
+      // If it does NOT have the prefix, add it
+      if (!hasLangPrefix && langParam) {
+          // Ensure we don't double-slash if href is just '/'
+          href = href === '/' ? `/${langParam}` : `/${langParam}${href}`;
+      }
+      
+      // Navigate using router.push
+      if (href !== route.fullPath) { // Avoid navigating to the same page
+        router.push(href);
+      }
+    } 
+    // External links or non-navigational links will behave normally
   }
-}
+};
 
 // Function to setup (add) the click listener
 const setupContentClickListener = () => {

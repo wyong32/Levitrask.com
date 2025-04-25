@@ -14,17 +14,15 @@
         <header class="page-header-content">
           <h1>Buy Cialis Online: The Smarter, Safer Way to Treat ED with Confidence</h1>
           <p>
-            <router-link to="/blog/understanding-ed">Erectile dysfunction (ED)</router-link> doesn't
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">Erectile dysfunction (ED)</router-link> doesn't
             have to define your confidence or limit your relationships. Thanks to modern telehealth
             services, more men are choosing to Buy Cialis Online — a convenient, private, and
             effective solution for managing ED.
           </p>
           <p>
             Whether you're looking for daily support or on-demand results,
-            <router-link to="/Cialis">Cialis</router-link> (<router-link
-              to="/blog/tadalafil-generic-faq"
-              >tadalafil</router-link
-            >) is one of the most versatile and trusted treatments on the market. In this guide,
+            <router-link :to="{ name: 'cialis-blog' }">Cialis</router-link> (<router-link
+              :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }">tadalafil</router-link>) is one of the most versatile and trusted treatments on the market. In this guide,
             we'll explore why more men than ever are choosing to Buy Cialis Online, how it works,
             and where to purchase it safely.
           </p>
@@ -43,12 +41,12 @@
             <li>✅ Fast shipping and plain packaging</li>
             <li>
               ✅ Access to licensed
-              <router-link to="/blog/talking-to-doctor-ed">doctors</router-link>
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctors</router-link>
               online
             </li>
             <li>
               ✅ Generic options available when you Buy Cialis Online (see
-              <router-link to="/blog/tadalafil-generic-faq">tadalafil</router-link>)
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }">tadalafil</router-link>)
             </li>
             <li>✅ Longer-lasting results (up to 36 hours)</li>
           </ul>
@@ -62,11 +60,11 @@
           <h2>How Cialis Works</h2>
           <p>
             Before you Buy Cialis Online, it's important to understand how the medication works.
-            <router-link to="/Cialis">Cialis</router-link> contains the active ingredient
-            <router-link to="/blog/tadalafil-generic-faq">tadalafil</router-link>, which improves
+            <router-link :to="{ name: 'cialis-blog' }">Cialis</router-link> contains the active ingredient
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }">tadalafil</router-link>, which improves
             blood flow to the penis by inhibiting the PDE5 enzyme. Unlike
-            <router-link to="/Viagra">Viagra</router-link>, which lasts 4–6 hours,
-            <router-link to="/Cialis">Cialis</router-link> can stay effective for up to 36 hours —
+            <router-link :to="{ name: 'viagra-blog' }">Viagra</router-link>, which lasts 4–6 hours,
+            <router-link :to="{ name: 'cialis-blog' }">Cialis</router-link> can stay effective for up to 36 hours —
             earning it the nickname "The Weekend Pill."
           </p>
           <p>
@@ -83,7 +81,7 @@
             <li>Visit a licensed telehealth provider.</li>
             <li>Fill out a short online consultation form.</li>
             <li>
-              A licensed <router-link to="/blog/talking-to-doctor-ed">doctor</router-link> reviews
+              A licensed <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctor</router-link> reviews
               your information.
             </li>
             <li>If approved, get a digital prescription.</li>
@@ -147,11 +145,11 @@
         <section id="brand-vs-generic-cialis">
           <h2>Cialis vs Generic Tadalafil: What's Better When You Buy Cialis Online?</h2>
           <p>
-            Both <router-link to="/Cialis">Cialis</router-link> and generic
-            <router-link to="/blog/tadalafil-generic-faq">tadalafil</router-link> offer the same
+            Both <router-link :to="{ name: 'cialis-blog' }">Cialis</router-link> and generic
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }">tadalafil</router-link> offer the same
             active ingredient and effectiveness. The key difference? Cost. Generic versions are
             significantly cheaper — often 50–80% less — with identical performance. See our
-            <router-link to="/blog/generic-vs-brand-deep-dive">comparison</router-link>.
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'generic-vs-brand-deep-dive' } }">comparison</router-link>.
           </p>
           <p>
             When you Buy Cialis Online, most platforms give you the option to choose. For many men,
@@ -176,7 +174,7 @@
           <h2>Final Thoughts: Should You Buy Cialis Online Today?</h2>
           <p>
             If you want a discreet, flexible, and highly effective solution for
-            <router-link to="/blog/understanding-ed">ED</router-link>, then yes — it's time to Buy
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">ED</router-link>, then yes — it's time to Buy
             Cialis Online. You'll save time, avoid unnecessary embarrassment, and gain access to
             real medical support from the comfort of your home.
           </p>
@@ -196,10 +194,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../../components/PageHeader.vue'
 import PageFooter from '../../components/PageFooter.vue'
 import SideNav from '../../components/SideNav.vue'
 import DrugSidebar from '../../components/DrugSidebar.vue'
+
+const { locale } = useI18n()
 
 // Updated nav sections to match new content
 const navSections = ref([
@@ -215,13 +216,13 @@ const navSections = ref([
 // Sidebar data remains relevant
 const sidebarData = ref({
   relatedResources: [
-    { text: 'Cialis Overview', to: '/Cialis' },
-    { text: 'Generic Tadalafil FAQ', to: '/blog/tadalafil-generic-faq' },
-    { text: 'FDA Info: Tadalafil', to: '/blog/fda-tadalafil-info' },
-    { text: 'Generic vs. Brand Name ED Drugs', to: '/blog/generic-vs-brand-deep-dive' },
-    { text: 'Managing Side Effects', to: '/blog/managing-side-effects' },
-    { text: 'Saving Money on ED Meds', to: '/blog/saving-on-ed-meds' },
-    { text: 'Talking to Your Doctor About ED', to: '/blog/talking-to-doctor-ed' }, // Added this link previously
+    { text: 'Cialis Overview', to: { name: 'cialis-blog' } },
+    { text: 'Generic Tadalafil FAQ', to: { name: 'blog-details', params: { id: 'tadalafil-generic-faq' } } },
+    { text: 'FDA Info: Tadalafil', to: { name: 'blog-details', params: { id: 'fda-tadalafil-info' } } },
+    { text: 'Generic vs. Brand Name ED Drugs', to: { name: 'blog-details', params: { id: 'generic-vs-brand-deep-dive' } } },
+    { text: 'Managing Side Effects', to: { name: 'blog-details', params: { id: 'managing-side-effects' } } },
+    { text: 'Saving Money on ED Meds', to: { name: 'blog-details', params: { id: 'saving-on-ed-meds' } } },
+    { text: 'Talking to Your Doctor About ED', to: { name: 'blog-details', params: { id: 'talking-to-doctor-ed' } } },
   ],
 })
 </script>

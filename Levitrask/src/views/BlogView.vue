@@ -26,7 +26,7 @@
           >
             <div class="article-image">
               <img 
-                :src="getImageSrc(post.listImage)" 
+                :src="getImageSrc(post.listImageSrc)" 
                 :alt="post.listTitle || 'Blog post image'" 
               />
             </div>

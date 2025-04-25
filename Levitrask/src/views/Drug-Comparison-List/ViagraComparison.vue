@@ -14,11 +14,11 @@
         <header class="drug-header">
           <h1>Levitra VS Viagra: A Comprehensive Comparison of ED Medications</h1>
           <p>
-            <router-link to="/blog/understanding-ed">Erectile dysfunction (ED)</router-link> affects
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">Erectile dysfunction (ED)</router-link> affects
             millions of men worldwide, and fortunately, several treatment options are available.
             Among the most commonly prescribed medications are
-            <router-link to="/">Levitra</router-link> and
-            <router-link to="/Viagra">Viagra</router-link>. This article dives into Levitra VS
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> and
+            <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link>. This article dives into Levitra VS
             Viagra, examining their differences, similarities, effectiveness, side effects, and more
             to help you make an informed decision.
           </p>
@@ -34,12 +34,12 @@
           </p>
           <ul>
             <li>
-              <router-link to="/">Levitra</router-link> contains
-              <router-link to="/blog/vardenafil-generic-info">vardenafil</router-link>.
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> contains
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'vardenafil-generic-info' } }">vardenafil</router-link>.
             </li>
             <li>
-              <router-link to="/Viagra">Viagra</router-link> contains
-              <router-link to="/blog/sildenafil-generic-info">sildenafil</router-link>.
+              <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link> contains
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'sildenafil-generic-info' } }">sildenafil</router-link>.
             </li>
           </ul>
           <p>
@@ -56,11 +56,11 @@
           </p>
           <ul>
             <li>
-              <router-link to="/">Levitra</router-link> usually takes effect in about 25 to 60
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> usually takes effect in about 25 to 60
               minutes and lasts up to 5 hours.
             </li>
             <li>
-              <router-link to="/Viagra">Viagra</router-link> generally takes effect within 30 to 60
+              <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link> generally takes effect within 30 to 60
               minutes and lasts about 4 hours.
             </li>
           </ul>
@@ -74,7 +74,7 @@
           <h2>Levitra VS Viagra: Effectiveness</h2>
           <p>
             Both drugs are highly effective, but some studies suggest that
-            <router-link to="/">Levitra</router-link> may work better in men with diabetes. That
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> may work better in men with diabetes. That
             said, individual response varies. In the Levitra VS Viagra comparison, some men prefer
             one over the other based on how their bodies respond.
           </p>
@@ -84,7 +84,7 @@
           <h2>Levitra VS Viagra: Side Effects</h2>
           <p>
             As with any medication, Levitra VS Viagra comes with potential
-            <router-link to="/blog/managing-side-effects">side effects</router-link>. Here's a
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'managing-side-effects' } }">side effects</router-link>. Here's a
             comparison:
           </p>
           <div class="comparison-table-container">
@@ -98,13 +98,13 @@
               <tbody>
                 <tr>
                   <td>
-                    <strong><router-link to="/Viagra">Viagra</router-link></strong>
+                    <strong><router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link></strong>
                   </td>
                   <td>Headache, flushing, nasal congestion, dizziness, vision changes.</td>
                 </tr>
                 <tr>
                   <td>
-                    <strong><router-link to="/">Levitra</router-link></strong>
+                    <strong><router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link></strong>
                   </td>
                   <td>Headache, stuffy nose, indigestion, dizziness, and flushing.</td>
                 </tr>
@@ -112,7 +112,7 @@
             </table>
           </div>
           <p>
-            <router-link to="/">Levitra</router-link> is less likely to cause vision-related side
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> is less likely to cause vision-related side
             effects, which could be a deciding factor in the Levitra VS Viagra conversation.
           </p>
         </section>
@@ -125,11 +125,11 @@
           </p>
           <ul>
             <li>
-              <router-link to="/Viagra">Viagra</router-link> may be less effective if taken with a
+              <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link> may be less effective if taken with a
               heavy or high-fat meal.
             </li>
             <li>
-              <router-link to="/">Levitra</router-link> is less affected by food, offering more
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> is less affected by food, offering more
               flexibility.
             </li>
           </ul>
@@ -143,11 +143,11 @@
           <h2>Levitra VS Viagra: Dosage and Availability</h2>
           <ul>
             <li>
-              <router-link to="/Viagra">Viagra</router-link> is available in 25 mg, 50 mg, and 100
+              <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link> is available in 25 mg, 50 mg, and 100
               mg tablets.
             </li>
             <li>
-              <router-link to="/">Levitra</router-link> comes in 5 mg, 10 mg, and 20 mg tablets.
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> comes in 5 mg, 10 mg, and 20 mg tablets.
             </li>
           </ul>
           <p>
@@ -159,12 +159,12 @@
         <section id="cost-coverage" class="tab-content">
           <h2>Levitra VS Viagra: Cost and Insurance Coverage</h2>
           <p>
-            In terms of cost, both <router-link to="/">Levitra</router-link> and
-            <router-link to="/Viagra">Viagra</router-link> have generic versions, making them more
+            In terms of cost, both <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> and
+            <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link> have generic versions, making them more
             affordable. Still, prices vary depending on location and insurance coverage. In the
             Levitra VS Viagra cost comparison, generics help reduce financial concerns for many
             users. Find tips on
-            <router-link to="/blog/saving-on-ed-meds">saving on ED meds</router-link>.
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'saving-on-ed-meds' } }">saving on ED meds</router-link>.
           </p>
         </section>
 
@@ -179,18 +179,18 @@
               <thead>
                 <tr>
                   <th>Feature</th>
-                  <th><router-link to="/">Levitra</router-link></th>
-                  <th><router-link to="/Viagra">Viagra</router-link></th>
+                  <th><router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link></th>
+                  <th><router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link></th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
                   <td>Active Ingredient</td>
                   <td>
-                    <router-link to="/blog/vardenafil-generic-info">Vardenafil</router-link>
+                    <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'vardenafil-generic-info' } }">Vardenafil</router-link>
                   </td>
                   <td>
-                    <router-link to="/blog/sildenafil-generic-info">Sildenafil</router-link>
+                    <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'sildenafil-generic-info' } }">Sildenafil</router-link>
                   </td>
                 </tr>
                 <tr>
@@ -219,7 +219,7 @@
           <p>
             Ultimately, both are effective ED treatments, and the Levitra VS Viagra decision should
             be made in consultation with a
-            <router-link to="/blog/talking-to-doctor-ed">healthcare provider</router-link>.
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">healthcare provider</router-link>.
           </p>
         </section>
       </article>
@@ -241,6 +241,9 @@ import PageFooter from '../../components/PageFooter.vue'
 import { ref } from 'vue'
 import SideNav from '../../components/SideNav.vue'
 import DrugSidebar from '../../components/DrugSidebar.vue'
+import { useI18n } from 'vue-i18n'
+
+const { locale } = useI18n()
 
 // 定义比较页面的导航项数据 (Updated Titles & IDs to match new content)
 const comparisonSections = ref([
@@ -271,11 +274,23 @@ const viagraComparisonSidebarData = ref({
     ],
   },
   relatedResources: [
-    { text: 'Levitra vs Cialis', to: '/Levitra-vs-Cialis' },
-    { text: 'Levitra vs Stendra', to: '/Levitra-vs-Stendra' }, // Updated link
-    { text: 'Stendra vs Viagra', to: '/Stendra-vs-Viagra' },
-    { text: 'Cialis vs Viagra', to: '/Cialis-vs-Viagra' }, // Added missing comparison
+    { text: 'Levitra vs Cialis', to: { name: 'compare-levitra-cialis' } },
+    { text: 'Levitra vs Stendra', to: { name: 'compare-levitra-stendra' } },
+    { text: 'Stendra vs Viagra', to: { name: 'compare-stendra-viagra' } },
+    { text: 'Cialis vs Viagra', to: { name: 'compare-cialis-viagra' } },
   ],
+  similarDrugs: [
+    { text: 'Cialis (Tadalafil)', to: { name: 'cialis-blog' } },
+    { text: 'Stendra (Avanafil)', to: { name: 'stendra-blog' } },
+  ],
+  drugComparison: [
+    { text: 'Levitra vs Cialis', to: { name: 'compare-levitra-cialis' } },
+    { text: 'Levitra vs Stendra', to: { name: 'compare-levitra-stendra' } },
+  ],
+  frequentlyAskedQuestions: [
+    { text: 'Is Levitra stronger than Viagra?', to: { name: 'question-details', params: { id: 'levitra-stronger-viagra' } } },
+    { text: 'Which works faster?', to: { name: 'question-details', params: { id: 'faster-levitra-vs-viagra' } } },
+  ]
 })
 
 // Define custom titles for the sidebar (Optional - Add if needed)

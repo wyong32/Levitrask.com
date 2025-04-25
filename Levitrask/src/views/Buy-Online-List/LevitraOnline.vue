@@ -15,13 +15,11 @@
           <!-- Updated Header -->
           <h1>Buy Levitra Online: Fast, Secure, and Discreet ED Treatment at Your Fingertips</h1>
           <p>
-            <router-link to="/blog/understanding-ed">Erectile dysfunction (ED)</router-link> affects
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">Erectile dysfunction (ED)</router-link> affects
             millions of men worldwide, but modern solutions make it easier than ever to manage. One
             of the most effective medications available is
-            <router-link to="/">Levitra</router-link> (<router-link
-              to="/blog/vardenafil-generic-info"
-              >vardenafil</router-link
-            >). If you're looking for privacy, speed, and convenience, the best option is to Buy
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> (<router-link
+              :to="{ name: 'blog-details', params: { lang: locale, id: 'vardenafil-generic-info' } }">vardenafil</router-link>), if you're looking for privacy, speed, and convenience, the best option is to Buy
             Levitra Online.
           </p>
           <p>
@@ -46,7 +44,7 @@
             <li>💬 Private service with no face-to-face embarrassment</li>
             <li>💲 Affordable options when you Buy Levitra Online with generics</li>
             <li>
-              🧑‍⚕️ Licensed <router-link to="/blog/talking-to-doctor-ed">doctors</router-link>
+              🧑‍⚕️ Licensed <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctors</router-link>
               review your case before prescribing
             </li>
           </ul>
@@ -64,10 +62,10 @@
             helping you achieve and sustain an erection.
           </p>
           <p>
-            <router-link to="/">Levitra</router-link> typically works within 30 to 60 minutes and
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> typically works within 30 to 60 minutes and
             remains effective for 4 to 5 hours. Many men find it more reliable than other ED
-            medications like <router-link to="/viagra-vs-levitra">Viagra</router-link> or
-            <router-link to="/cialis-vs-levitra">Cialis</router-link>, making it a great reason to
+            medications like <router-link :to="{ name: 'compare-levitra-viagra', params: { lang: locale } }">Viagra</router-link> or
+            <router-link :to="{ name: 'compare-levitra-cialis', params: { lang: locale } }">Cialis</router-link>, making it a great reason to
             Buy Levitra Online and try it for yourself.
           </p>
         </section>
@@ -80,7 +78,7 @@
             <li>Fill out a medical intake form honestly.</li>
             <li>
               Connect with a licensed
-              <router-link to="/blog/talking-to-doctor-ed">doctor</router-link> online.
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctor</router-link> online.
             </li>
             <li>Get a prescription if appropriate.</li>
             <li>Buy Levitra Online through a secure checkout system.</li>
@@ -142,10 +140,10 @@
           <h2>Brand vs Generic: What's Better When You Buy Levitra Online?</h2>
           <p>
             When you Buy Levitra Online, you'll likely see both brand-name
-            <router-link to="/">Levitra</router-link> and its generic version,
-            <router-link to="/blog/vardenafil-generic-info">vardenafil</router-link>. Both are
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> and its generic version,
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'vardenafil-generic-info' } }">vardenafil</router-link>. Both are
             FDA-approved and equally effective. The only real difference? Price. See our
-            <router-link to="/blog/generic-vs-brand-deep-dive">comparison</router-link>.
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'generic-vs-brand-deep-dive' } }">comparison</router-link>.
           </p>
           <p>
             Choosing the generic option when you Buy Levitra Online can save you up to 70%, making
@@ -192,10 +190,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../../components/PageHeader.vue'
 import PageFooter from '../../components/PageFooter.vue'
 import SideNav from '../../components/SideNav.vue'
 import DrugSidebar from '../../components/DrugSidebar.vue'
+
+const { locale } = useI18n()
 
 // Updated nav sections to match new content and titles
 const navSections = ref([
@@ -211,12 +212,12 @@ const navSections = ref([
 // Keep existing sidebar data
 const sidebarData = ref({
   relatedResources: [
-    { text: 'Levitra Overview', to: '/' },
-    { text: 'Vardenafil (Generic) Info', to: '/blog/vardenafil-generic-info' },
-    { text: 'Generic vs. Brand Name ED Drugs', to: '/blog/generic-vs-brand-deep-dive' },
-    { text: 'Managing Side Effects', to: '/blog/managing-side-effects' },
-    { text: 'Saving Money on ED Meds', to: '/blog/saving-on-ed-meds' },
-    { text: 'Talking to Your Doctor About ED', to: '/blog/talking-to-doctor-ed' },
+    { text: 'Levitra Overview', to: { name: 'home' } },
+    { text: 'Vardenafil (Generic) Info', to: { name: 'blog-details', params: { id: 'vardenafil-generic-info' } } },
+    { text: 'Generic vs. Brand Name ED Drugs', to: { name: 'blog-details', params: { id: 'generic-vs-brand-deep-dive' } } },
+    { text: 'Managing Side Effects', to: { name: 'blog-details', params: { id: 'managing-side-effects' } } },
+    { text: 'Saving Money on ED Meds', to: { name: 'blog-details', params: { id: 'saving-on-ed-meds' } } },
+    { text: 'Talking to Your Doctor About ED', to: { name: 'blog-details', params: { id: 'talking-to-doctor-ed' } } },
   ],
 })
 

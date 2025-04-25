@@ -1,11 +1,16 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, RouterView } from 'vue-router'
 import { nextTick } from 'vue'
+import i18n from '../i18n' // 导入 i18n 实例
 // Removed direct imports, using lazy loading below
 
 // --- Import Admin Components (Lazy Loading) ---
 const AdminLogin = () => import('../views/admin/AdminLogin.vue');
 const AdminDashboard = () => import('../views/admin/AdminDashboard.vue');
 const NewsManagement = () => import('../views/admin/NewsManagement.vue');
+const BlogManagement = () => import('../views/admin/BlogManagement.vue'); // Assuming this component exists
+const QuestionManagement = () => import('../views/admin/QuestionManagement.vue'); // Assuming
+const HomeManagement = () => import('../views/admin/HomeManagement.vue');
+// Add imports for other admin components if needed
 
 // --- Helper function to set meta tags (handles name and property) ---
 const setMetaTag = (attr, key, value) => {
@@ -49,329 +54,337 @@ const requireAdminAuth = (to, from, next) => {
   }
 };
 
-// --- Navigation Guard (Example - commented out, adjust if needed) ---
-// const requireNavigationFromApp = (to, from, next) => {
-//   // If from.name is undefined, it means direct access or refresh
-//   if (from.name === undefined && to.name !== 'levitra') { // Allow direct access to home
-//     // Redirect to home page
-//     next({ name: 'levitra' }) // Or next('/')
-//   } else {
-//     // Otherwise, allow normal navigation
-//     next()
-//   }
-// }
+// --- Define public routes ---
+const publicRoutes = [
+  {
+    path: '', // 对应 /en 或 /zh (改回空字符串)
+    name: 'home', // 路由名称保持唯一，但现在会带 lang 参数
+    component: () => import('../views/IndexView.vue'), 
+    meta: {
+      title: 'Levitra:Dosage, Side Effects-levitra online-Levitrask.com',
+      description:
+        'Levitra is an effective ED treatment. Find information on how to use Levitra, side effects, interactions, and comparisons with Viagra, Cialis, and Stendra.',
+      keywords:
+        'Levitra online,Levitra dosage, Levitra side effects, Levitra vs Viagra, Levitra vs Cialis,Stendra',
+    },
+  },
+  {
+    path: 'Levitra-vs-Cialis', // 路径不再以 / 开头
+    name: 'compare-levitra-cialis',
+    component: () => import('../views/Drug-Comparison-List/CialisComparison.vue'),
+    meta: {
+      title: 'Levitra vs Cialis Comparison | Levitrask.com',
+      description:
+        'Compare Levitra vs Cialis: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
+      keywords:
+        'Levitra vs Cialis,Levitra,Cialis,Side Effects,Onset Time and Duration,ED drug comparison',
+    },
+  },
+  {
+    path: 'Levitra-vs-Stendra',
+    name: 'compare-levitra-stendra',
+    component: () => import('../views/Drug-Comparison-List/StendraComparison.vue'),
+    meta: {
+      title: 'Levitra vs Stendra Comparison | Levitrask.com',
+      description:
+        'Compare Levitra vs Stendra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
+      keywords:
+        'Levitra vs Stendra,Levitra,Stendra,Side Effects,Onset Time and Duration,ED drug comparison',
+    },
+  },
+  {
+    path: 'Levitra-vs-Viagra',
+    name: 'compare-levitra-viagra',
+    component: () => import('../views/Drug-Comparison-List/ViagraComparison.vue'),
+    meta: {
+      title: 'Levitra vs Viagra Comparison | Levitrask.com',
+      description:
+        'Compare Levitra vs Viagra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
+      keywords:
+        'Levitra vs Viagra,Levitra,Viagra,Side Effects,Onset Time and Duration,ED drug comparison',
+    },
+  },
+  {
+    path: 'Cialis-vs-Stendra',
+    name: 'compare-cialis-stendra',
+    component: () => import('../views/Drug-Comparison-List/CialisStendraComparison.vue'),
+    meta: {
+      title: 'Cialis vs Stendra Comparison | Levitrask.com',
+      description:
+        'Compare Cialis vs Stendra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
+      keywords:
+        'Cialis vs Stendra,Cialis,Stendra,Side Effects,Onset Time and Duration,ED drug comparison',
+    },
+  },
+  {
+    path: 'Cialis-vs-Viagra',
+    name: 'compare-cialis-viagra',
+    component: () => import('../views/Drug-Comparison-List/CialisViagraComparison.vue'),
+    meta: {
+      title: 'Cialis vs Viagra Comparison | Levitrask.com',
+      description:
+        'Compare Cialis vs Viagra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
+      keywords:
+        'Cialis vs Viagra,Cialis,Viagra,Side Effects,Onset Time and Duration,ED drug comparison',
+    },
+  },
+  {
+    path: 'Stendra-vs-Viagra',
+    name: 'compare-stendra-viagra',
+    component: () => import('../views/Drug-Comparison-List/StendraViagraComparison.vue'),
+    meta: {
+      title: 'Stendra vs Viagra Comparison | Levitrask.com',
+      description:
+        'Compare Stendra vs Viagra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
+      keywords:
+        'Stendra vs Viagra,Stendra,Viagra,Side Effects,Onset Time and Duration,ED drug comparison',
+    },
+  },
+  {
+    path: 'Cialis',
+    name: 'cialis-blog',
+    component: () => import('../views/Drugs-In-This-Class-List/CialisBlogPost.vue'),
+    meta: {
+      title: 'Cialis Dosage, Side Effects-Cialis online-Levitrask.com',
+      description:
+        'Cialis,a long-lasting ED medication. Covers Cialis usage, Cialis dosage, Cialis side effects, What is Cialis, Cialis generic, Cialis vs Viagra and more.',
+      keywords:
+        'Cialis dosage, Cialis side effects,  Cialis vs Viagra, Cialis vs Lavitra,Stendra,Cialis online',
+    },
+  },
+  {
+    path: 'Stendra',
+    name: 'stendra-blog',
+    component: () => import('../views/Drugs-In-This-Class-List/StendraBlogPost.vue'),
+    meta: {
+      title: 'Stendra Dosage, Side Effects-Stendra online-Levitrask.com',
+      description:
+        'Stendra,a long-lasting ED medication. Covers Stendra usage, Stendra dosage, Stendra side effects,  Stendr generic, Stendra vs Viagra and more.',
+      keywords:
+        'Stendra dosage, Stendra sidae effects, Stendra vs Viagra, Stendra vs Lavitra,Stendra,Stendra online',
+    },
+  },
+  {
+    path: 'Viagra',
+    name: 'viagra-blog',
+    component: () => import('../views/Drugs-In-This-Class-List/ViagraBlogPost.vue'),
+    meta: {
+      title: 'Viagra pill​,generic,side effects​,online buy|Levitrask.com',
+      description:
+        'Viagra (sildenafil), is a well-known ED medication. Covers how it works, dosage, side effects, Viagra vs Levitra,Viagra vs Cialis,Viagra vs Stendra and more.',
+      keywords:
+        'Viagra dosage, Viagra side effects,  Viagra vs Levitra, Viagra vs Cialis,Stendra,Viagra online',
+    },
+  },
+  {
+    path: 'blog',
+    name: 'blog',
+    component: () => import('../views/BlogView.vue'),
+    meta: {
+      title: 'Blog | Levitrask Demo',
+      description:
+        'Read articles and posts about erectile dysfunction, treatments, and related health topics.',
+      keywords: 'ED blog, erectile dysfunction articles, sexual health blog',
+    },
+  },
+  {
+    path: 'news',
+    name: 'news',
+    component: () => import('../views/NewsView.vue'),
+    meta: {
+      title: 'News | Levitrask Demo',
+      description: 'Latest news related to ED treatments and sexual health.',
+      keywords: 'ED news, sexual health news, medication news',
+    },
+  },
+  {
+    path: 'blog/:id', // 改回明确的路径
+    name: 'blog-details',
+    component: () => import('../views/BlogDetails.vue'),
+    props: true,
+    meta: {
+      title: 'Blog Post | Levitrask Demo',
+      description: 'Read this blog post about ED.',
+      keywords: 'blog post, ED information',
+    },
+  },
+  {
+    path: 'questions/:id',
+    name: 'question-details',
+    component: () => import('../views/QuestionDetails.vue'),
+    props: true,
+    meta: {
+      title: 'Question Detail | Levitrask Demo',
+      description: 'View details for a frequently asked question about ED.',
+      keywords: 'FAQ, ED question, answer',
+    },
+  },
+  {
+    path: 'news/:id',
+    name: 'news-details',
+    component: () => import('../views/NewsDetails.vue'),
+    props: true,
+    meta: {
+      title: 'News Detail | Levitrask Demo',
+      description: 'Read the full news article.',
+      keywords: 'news article, health news',
+    },
+  },
+  {
+    path: 'Buy-Levitra-Online',
+    name: 'buy-levitra-online',
+    component: () => import('../views/Buy-Online-List/LevitraOnline.vue'),
+    meta: {
+      title: 'Buy Levitra Online | Levitrask.com',
+      description:
+        'buy Levitra online,Why Choose to Buy Levitra Online,Steps to Buy Levitra Online,Where to Buy Levitra Online,Is It Safe and Legal to Buy Levitra Online?',
+      keywords:
+        'buy levitra online,online,vardenafil,online pharmacy ED,Where to Buy Levitra Online',
+    },
+  },
+  {
+    path: 'Buy-Viagra-Online',
+    name: 'buy-viagra-online',
+    component: () => import('../views/Buy-Online-List/ViagraOnline.vue'),
+    meta: {
+      title: 'Buy Viagra Online | Levitrask.com',
+      description:
+        'buy Viagra online,Why Choose to Buy Viagra Online,Steps to Buy Viagra Online,Where to Buy Viagra Online,Is It Safe and Legal to Buy Viagra Online?',
+      keywords:
+        'buy Viagra online,online,vardenafil,online pharmacy ED,Where to Buy Viagra Online',
+    },
+  },
+  {
+    path: 'Buy-Cialis-Online',
+    name: 'buy-cialis-online',
+    component: () => import('../views/Buy-Online-List/CialisOnline.vue'),
+    meta: {
+      title: 'Buy Cialis Online | Levitrask.com',
+      description:
+        'buy Cialis online,Why Choose to Buy Cialis Online,Steps to Buy Cialis Online,Where to Buy Cialis Online,Is It Safe and Legal to Buy Cialis Online?',
+      keywords:
+        'buy Cialis online,online,vardenafil,online pharmacy ED,Where to Buy Cialis Online',
+    },
+  },
+  {
+    path: 'Buy-Stendra-Online',
+    name: 'buy-stendra-online',
+    component: () => import('../views/Buy-Online-List/StendraOnline.vue'),
+    meta: {
+      title: 'Buy Stendra Online | Levitrask.com',
+      description:
+        'buy Stendra online,Why Choose to Buy Stendra Online,Steps to Buy Stendra Online,Where to Buy Stendra Online,Is It Safe and Legal to Buy Stendra Online?',
+      keywords:
+        'buy Stendra online,online,avanafil,online pharmacy ED,Where to Buy Stendra Online',
+    },
+  },
+  {
+    path: 'terms',
+    name: 'terms',
+    component: () => import('../views/TermsView.vue'),
+    meta: {
+      title: '服务条款 | Levitrask Demo',
+      description: '阅读 Levitrask Demo 的服务条款。',
+      keywords: '条款, 条件, 服务协议, 法律',
+    },
+  },
+  {
+    path: 'privacy',
+    name: 'privacy',
+    component: () => import('../views/PrivacyView.vue'),
+    meta: {
+      title: '隐私政策 | Levitrask Demo',
+      description: '了解 Levitrask Demo 如何处理您的隐私。',
+      keywords: '隐私, 政策, 数据保护, 用户隐私, 法律',
+    },
+  },
+];
+
+// --- Define Admin routes (NEW) ---
+const adminRoutes = [
+  {
+    path: '/admin/login',
+    name: 'admin-login',
+    component: AdminLogin,
+    meta: { title: 'Admin Login' }
+  },
+  {
+    path: '/admin/dashboard',
+    component: AdminDashboard,
+    beforeEnter: requireAdminAuth, // Protect dashboard and children
+    children: [
+      {
+        path: '', // Default route for /admin/dashboard
+        name: 'admin-dashboard-home',
+        redirect: { name: 'admin-homepage-editor' } // Redirect to homepage editor by default
+      },
+      {
+        path: 'homepage', // URL: /admin/dashboard/homepage
+        name: 'admin-homepage-editor',
+        component: HomeManagement,
+        meta: { title: '首页内容管理' }
+      },
+      {
+        path: 'news', 
+        name: 'admin-news',
+        component: NewsManagement,
+        meta: { title: '新闻管理' }
+      },
+      {
+         path: 'blogs', // Matches the path from the error message
+         name: 'admin-blogs',
+         component: BlogManagement, 
+         meta: { title: '博客管理' }
+       },
+      {
+         path: 'questions', // Example route for questions
+         name: 'admin-questions',
+         component: QuestionManagement,
+         meta: { title: '问题管理' }
+       },
+      // Add routes for other admin sections as needed
+    ]
+  }
+];
+
+// --- Combine routes and language prefix ---
+const langPrefixedRoutes = [
+  {
+    // Matches /:lang(en|zh-CN)/...
+    path: '/:lang(en|zh-CN)', // Updated regex to accept 'zh-CN'
+    component: RouterView, // Use imported RouterView directly
+    children: publicRoutes,
+  },
+];
+
+// --- All Routes ---
+const routes = [
+  ...langPrefixedRoutes,
+  // Root path redirect - Default to English unless valid locale is saved
+  {
+    path: '/',
+    redirect: () => {
+        const savedLocale = localStorage.getItem('user-locale');
+        // Only redirect to saved locale if it's one of the specifically supported codes
+        if (savedLocale && (savedLocale === 'en' || savedLocale === 'zh-CN')) {
+            return `/${savedLocale}`;
+        }
+        // Otherwise, always default to English
+        return '/en'; 
+    }
+  },
+  {
+    path: '/admin',
+    component: RouterView, // Use RouterView as the wrapper for admin routes
+    children: adminRoutes
+  },
+   // Add a catch-all 404 route if needed
+   // { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('../views/NotFound.vue') }
+];
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'levitra',
-      component: () => import('../views/IndexView.vue'), // Use lazy loading
-      meta: {
-        title: 'Levitra:Dosage, Side Effects-levitra online-Levitrask.com',
-        description:
-          'Levitra is an effective ED treatment. Find information on how to use Levitra, side effects, interactions, and comparisons with Viagra, Cialis, and Stendra.',
-        keywords:
-          'Levitra online,Levitra dosage, Levitra side effects, Levitra vs Viagra, Levitra vs Cialis,Stendra',
-      },
-    },
-    {
-      path: '/Levitra-vs-Cialis',
-      name: 'compare-levitra-cialis',
-      component: () => import('../views/Drug-Comparison-List/CialisComparison.vue'),
-      meta: {
-        title: 'Levitra vs Cialis Comparison | Levitrask.com',
-        description:
-          'Compare Levitra vs Cialis: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
-        keywords:
-          'Levitra vs Cialis,Levitra,Cialis,Side Effects,Onset Time and Duration,ED drug comparison',
-      },
-    },
-    {
-      path: '/Levitra-vs-Stendra',
-      name: 'compare-levitra-stendra',
-      component: () => import('../views/Drug-Comparison-List/StendraComparison.vue'),
-      meta: {
-        title: 'Levitra vs Stendra Comparison | Levitrask.com',
-        description:
-          'Compare Levitra vs Stendra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
-        keywords:
-          'Levitra vs Stendra,Levitra,Stendra,Side Effects,Onset Time and Duration,ED drug comparison',
-      },
-    },
-    {
-      path: '/Levitra-vs-Viagra',
-      name: 'compare-levitra-viagra',
-      component: () => import('../views/Drug-Comparison-List/ViagraComparison.vue'),
-      meta: {
-        title: 'Levitra vs Viagra Comparison | Levitrask.com',
-        description:
-          'Compare Levitra vs Viagra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
-        keywords:
-          'Levitra vs Viagra,Levitra,Viagra,Side Effects,Onset Time and Duration,ED drug comparison',
-      },
-    },
-    {
-      path: '/Cialis-vs-Stendra',
-      name: 'compare-cialis-stendra',
-      component: () => import('../views/Drug-Comparison-List/CialisStendraComparison.vue'),
-      meta: {
-        title: 'Cialis vs Stendra Comparison | Levitrask.com',
-        description:
-          'Compare Cialis vs Stendra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
-        keywords:
-          'Cialis vs Stendra,Cialis,Stendra,Side Effects,Onset Time and Duration,ED drug comparison',
-      },
-    },
-    {
-      path: '/Cialis-vs-Viagra',
-      name: 'compare-cialis-viagra',
-      component: () => import('../views/Drug-Comparison-List/CialisViagraComparison.vue'),
-      meta: {
-        title: 'Cialis vs Viagra Comparison | Levitrask.com',
-        description:
-          'Compare Cialis vs Viagra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
-        keywords:
-          'Cialis vs Viagra,Cialis,Viagra,Side Effects,Onset Time and Duration,ED drug comparison',
-      },
-    },
-    {
-      path: '/Stendra-vs-Viagra',
-      name: 'compare-stendra-viagra',
-      component: () => import('../views/Drug-Comparison-List/StendraViagraComparison.vue'),
-      meta: {
-        title: 'Stendra vs Viagra Comparison | Levitrask.com',
-        description:
-          'Compare Stendra vs Viagra: Which ED Medication is Right for You? Dosing Flexibility, Side Effects , Food and Alcohol Interactions, duration, and more.',
-        keywords:
-          'Stendra vs Viagra,Stendra,Viagra,Side Effects,Onset Time and Duration,ED drug comparison',
-      },
-    },
-    {
-      path: '/Cialis',
-      name: 'cialis-blog',
-      component: () => import('../views/Drugs-In-This-Class-List/CialisBlogPost.vue'),
-      // beforeEnter: requireNavigationFromApp,
-      meta: {
-        title: 'Cialis Dosage, Side Effects-Cialis online-Levitrask.com',
-        description:
-          'Cialis,a long-lasting ED medication. Covers Cialis usage, Cialis dosage, Cialis side effects, What is Cialis, Cialis generic, Cialis vs Viagra and more.',
-        keywords:
-          'Cialis dosage, Cialis side effects,  Cialis vs Viagra, Cialis vs Lavitra,Stendra,Cialis online',
-      },
-    },
-    {
-      path: '/Stendra',
-      name: 'stendra-blog',
-      component: () => import('../views/Drugs-In-This-Class-List/StendraBlogPost.vue'),
-      // beforeEnter: requireNavigationFromApp,
-      meta: {
-        title: 'Stendra Dosage, Side Effects-Stendra online-Levitrask.com',
-        description:
-          'Stendra,a long-lasting ED medication. Covers Stendra usage, Stendra dosage, Stendra side effects,  Stendr generic, Stendra vs Viagra and more.',
-        keywords:
-          'Stendra dosage, Stendra sidae effects, Stendra vs Viagra, Stendra vs Lavitra,Stendra,Stendra online',
-      },
-    },
-    {
-      path: '/Viagra',
-      name: 'viagra-blog',
-      component: () => import('../views/Drugs-In-This-Class-List/ViagraBlogPost.vue'),
-      // beforeEnter: requireNavigationFromApp,
-      meta: {
-        title: 'Viagra pill​,generic,side effects​,online buy|Levitrask.com',
-        description:
-          'Viagra (sildenafil), is a well-known ED medication. Covers how it works, dosage, side effects, Viagra vs Levitra,Viagra vs Cialis,Viagra vs Stendra and more.',
-        keywords:
-          'Viagra dosage, Viagra side effects,  Viagra vs Levitra, Viagra vs Cialis,Stendra,Viagra online',
-      },
-    },
-    {
-      path: '/blog',
-      name: 'blog',
-      component: () => import('../views/BlogView.vue'),
-      meta: {
-        title: 'Blog | Levitrask Demo',
-        description:
-          'Read articles and posts about erectile dysfunction, treatments, and related health topics.',
-        keywords: 'ED blog, erectile dysfunction articles, sexual health blog',
-      },
-    },
-    {
-      path: '/news',
-      name: 'news',
-      component: () => import('../views/NewsView.vue'),
-      meta: {
-        title: 'News | Levitrask Demo',
-        description: 'Latest news related to ED treatments and sexual health.',
-        keywords: 'ED news, sexual health news, medication news',
-      },
-    },
-    {
-      path: '/questions/:id',
-      name: 'question-details',
-      component: () => import('../views/QuestionDetails.vue'),
-      props: true,
-      meta: {
-        // Default meta, component should update based on fetched data
-        title: 'Question Detail | Levitrask Demo',
-        description: 'View details for a frequently asked question about ED.',
-        keywords: 'FAQ, ED question, answer',
-      },
-    },
-    {
-      path: '/news/:id',
-      name: 'news-details',
-      component: () => import('../views/NewsDetails.vue'),
-      props: true,
-      meta: {
-        // Default meta, component should update based on fetched data
-        title: 'News Detail | Levitrask Demo',
-        description: 'Read the full news article.',
-        keywords: 'news article, health news',
-      },
-    },
-    {
-      path: '/Buy-Levitra-Online',
-      name: 'buy-levitra-online',
-      component: () => import('../views/Buy-Online-List/LevitraOnline.vue'),
-      meta: {
-        title: 'Buy Levitra Online | Levitrask.com',
-        description:
-          'buy Levitra online,Why Choose to Buy Levitra Online,Steps to Buy Levitra Online,Where to Buy Levitra Online,Is It Safe and Legal to Buy Levitra Online?',
-        keywords:
-          'buy levitra online,online,vardenafil,online pharmacy ED,Where to Buy Levitra Online',
-      },
-    },
-    {
-      path: '/Buy-Viagra-Online',
-      name: 'buy-viagra-online',
-      component: () => import('../views/Buy-Online-List/ViagraOnline.vue'),
-      meta: {
-        title: 'Buy Viagra Online | Levitrask.com',
-        description:
-          'buy Viagra online,Why Choose to Buy Viagra Online,Steps to Buy Viagra Online,Where to Buy Viagra Online,Is It Safe and Legal to Buy Viagra Online?',
-        keywords:
-          'buy Viagra online,online,vardenafil,online pharmacy ED,Where to Buy Viagra Online',
-      },
-    },
-    {
-      path: '/Buy-Cialis-Online',
-      name: 'buy-cialis-online',
-      component: () => import('../views/Buy-Online-List/CialisOnline.vue'),
-      meta: {
-        title: 'Buy Cialis Online | Levitrask.com',
-        description:
-          'buy Cialis online,Why Choose to Buy Cialis Online,Steps to Buy Cialis Online,Where to Buy Cialis Online,Is It Safe and Legal to Buy Cialis Online?',
-        keywords:
-          'buy Cialis online,online,vardenafil,online pharmacy ED,Where to Buy Cialis Online',
-      },
-    },
-    {
-      path: '/Buy-Stendra-Online',
-      name: 'buy-stendra-online',
-      component: () => import('../views/Buy-Online-List/StendraOnline.vue'),
-      meta: {
-        title: 'Buy Stendra Online | Levitrask.com',
-        description:
-          'buy Stendra online,Why Choose to Buy Stendra Online,Steps to Buy Stendra Online,Where to Buy Stendra Online,Is It Safe and Legal to Buy Stendra Online?',
-        keywords:
-          'buy Stendra online,online,avanafil,online pharmacy ED,Where to Buy Stendra Online',
-      },
-    },
-    // --- Terms of Service Route ---
-    {
-      path: '/terms',
-      name: 'terms',
-      component: () => import('../views/TermsView.vue'), // Lazy load TermsView
-      meta: {
-        title: '服务条款 | Levitrask Demo',
-        description: '阅读 Levitrask Demo 的服务条款。',
-        keywords: '条款, 条件, 服务协议, 法律',
-      },
-    },
-    // --- Privacy Policy Route ---
-    {
-      path: '/privacy',
-      name: 'privacy',
-      component: () => import('../views/PrivacyView.vue'), // Lazy load PrivacyView
-      meta: {
-        title: '隐私政策 | Levitrask Demo',
-        description: '了解 Levitrask Demo 如何处理您的隐私。',
-        keywords: '隐私, 政策, 数据保护, 用户隐私, 法律',
-      },
-    },
-    // --- Admin Routes ---
-    {
-      path: '/admin/login',
-      name: 'admin-login',
-      component: AdminLogin,
-      meta: {
-        title: 'Admin Login | Levitrask Management',
-        // No authentication required for login page
-      },
-    },
-    {
-      path: '/admin/dashboard',
-      component: AdminDashboard,
-      beforeEnter: requireAdminAuth, // Guard applied to the whole dashboard layout
-      redirect: '/admin/dashboard/news', // Redirect base path to news
-      children: [
-        {
-          path: 'news', // Path relative to parent: /admin/dashboard/news
-          name: 'admin-news',
-          component: NewsManagement,
-          meta: {
-            title: '新闻管理 | Levitrask' // Set specific title 
-          }
-        },
-        {
-          path: 'questions', // Add questions route
-          name: 'admin-questions',
-          component: () => import('../views/admin/QuestionManagement.vue'), // Lazy load the component
-          meta: { 
-            title: '问题管理 | Levitrask' 
-          }
-        },
-        {
-          path: 'blogs', // Relative path: /admin/dashboard/blogs
-          name: 'admin-blogs',
-          component: () => import('../views/admin/BlogManagement.vue'), // Lazy load
-          meta: {
-            title: '博客管理 | Levitrask'
-          }
-        },
-      ],
-      meta: {
-        // Parent meta might not be needed if children always set title
-        // title: 'Admin Dashboard | Levitrask Management', 
-      },
-    },
-    // MOVED blog-details route here, just before the 404 route
-    {
-      path: '/:id', // CHANGED path from '/blog/:id'
-      name: 'blog-details',
-      component: () => import('../views/BlogDetails.vue'),
-      props: true,
-      meta: {
-        // Default meta, component should update based on fetched data
-        title: 'Blog Post | Levitrask Demo',
-        description: 'Read this blog post about ED.',
-        keywords: 'blog post, ED information',
-      },
-    },
-    // Catch-all route: Display NotFoundView for unmatched paths (Keep this last)
-    {
-      path: '/:pathMatch(.*)*',
-      name: 'NotFound',
-      component: () => import('../views/NotFoundView.vue'), // Lazy load NotFoundView
-      meta: {
-        title: 'Page Not Found | Levitrask Demo',
-        description: 'The page you requested could not be found.',
-      },
-    },
-  ],
+  routes,
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition
@@ -386,44 +399,81 @@ const router = createRouter({
   },
 })
 
-// --- Global Navigation Guard for Meta Tags, Canonical URL, and Open Graph ---
+// Navigation Guard for Language Handling and Meta Tags
+router.beforeEach((to, from, next) => {
+  // Skip ALL processing for admin routes
+  if (to.path.startsWith('/admin')) {
+    document.title = to.meta.title || 'Admin Panel'; // Set admin title
+    // Potentially clear frontend meta tags if they interfere
+    // Example: removeDescriptionTag(); removeKeywordsTag(); 
+    next();
+    return;
+  }
+
+  // --- Frontend Locale Logic --- 
+  const lang = to.params.lang;
+
+  // If accessing root or a path without a language prefix (and not admin), redirect.
+  if (!lang || typeof lang !== 'string' || !['en', 'zh-CN'].includes(lang)) {
+     const userLocale = localStorage.getItem('user-locale') || 'en';
+     // Preserve the intended path and hash, add the locale prefix
+     const intendedPath = to.fullPath === '/' ? '' : to.fullPath;
+     // Avoid infinite redirect loops if intendedPath already has locale (shouldn't happen with current routes)
+     if (!intendedPath.startsWith(`/${userLocale}`)) {
+       next(`/${userLocale}${intendedPath}`);
+     } else {
+        next(); // Already has correct locale or is a non-prefixed path we don't handle here
+     } 
+     return;
+  }
+
+  // Set the locale for i18n
+  if (i18n.global.locale.value !== lang) {
+    i18n.global.locale.value = lang;
+    localStorage.setItem('user-locale', lang);
+    // Optional: Update html lang attribute
+    // document.documentElement.lang = lang;
+  }
+
+  next(); 
+});
+
+// --- Meta Tag Update Guard (MODIFIED) ---
 router.afterEach((to, from) => {
+  // Skip meta tag updates for admin routes (handled in beforeEach or manually)
+  if (to.path.startsWith('/admin')) {
+    return;
+  }
+  
+  // --- Frontend Meta Tag Logic --- 
   nextTick(() => {
-    const pageTitle = to.meta.title || DEFAULT_TITLE
-    const pageDescription = to.meta.description || DEFAULT_DESCRIPTION
-    const pageKeywords = to.meta.keywords || DEFAULT_KEYWORDS
-    const canonicalUrl = window.location.origin + to.fullPath
-    // Use specific og:image from meta if available, otherwise use default
-    const ogImageUrl = window.location.origin + (to.meta.ogImage || DEFAULT_OG_IMAGE)
+    const nearestWithTitle = to.matched.slice().reverse().find(r => r.meta && r.meta.title);
+    const nearestWithMeta = to.matched.slice().reverse().find(r => r.meta && (r.meta.description || r.meta.keywords));
 
-    // Set Title
-    document.title = pageTitle
+    document.title = nearestWithTitle ? nearestWithTitle.meta.title : DEFAULT_TITLE;
 
-    // Set Meta Description
-    setMetaTag('name', 'description', pageDescription)
+    const description = nearestWithMeta?.meta?.description || DEFAULT_DESCRIPTION;
+    const keywords = nearestWithMeta?.meta?.keywords || DEFAULT_KEYWORDS;
+    const ogImage = nearestWithMeta?.meta?.ogImage || DEFAULT_OG_IMAGE;
+    const canonicalUrl = window.location.origin + to.fullPath;
 
-    // Set Meta Keywords
-    setMetaTag('name', 'keywords', pageKeywords)
+    setMetaTag('name', 'description', description);
+    setMetaTag('name', 'keywords', keywords);
+    // Open Graph Tags
+    setMetaTag('property', 'og:title', document.title); 
+    setMetaTag('property', 'og:description', description);
+    setMetaTag('property', 'og:image', window.location.origin + ogImage); 
+    setMetaTag('property', 'og:url', canonicalUrl);
+    setMetaTag('property', 'og:type', 'website'); 
+    // Twitter Card Tags
+    setMetaTag('name', 'twitter:card', 'summary_large_image');
+    setMetaTag('name', 'twitter:title', document.title);
+    setMetaTag('name', 'twitter:description', description);
+    setMetaTag('name', 'twitter:image', window.location.origin + ogImage);
 
     // Set Canonical URL
-    setCanonicalUrl(canonicalUrl)
-
-    // --- Set Open Graph Tags ---
-    setMetaTag('property', 'og:title', pageTitle) // Use page title for og:title
-    setMetaTag('property', 'og:description', pageDescription) // Use page description for og:description
-    setMetaTag('property', 'og:url', canonicalUrl) // Use canonical URL for og:url
-    setMetaTag('property', 'og:image', ogImageUrl) // Set og:image
-    setMetaTag('property', 'og:type', 'website') // Default type, can be 'article' for blog posts
-    // Optional: Add more tags like og:site_name
-    // setMetaTag('property', 'og:site_name', 'Levitrask Demo');
-
-    // --- Optional: Add Twitter Card Tags (Similar to Open Graph) ---
-    // setMetaTag('name', 'twitter:card', 'summary_large_image'); // or 'summary'
-    // setMetaTag('name', 'twitter:title', pageTitle);
-    // setMetaTag('name', 'twitter:description', pageDescription);
-    // setMetaTag('name', 'twitter:image', ogImageUrl);
-    // setMetaTag('name', 'twitter:url', canonicalUrl);
-  })
-})
+    setCanonicalUrl(canonicalUrl);
+  });
+});
 
 export default router

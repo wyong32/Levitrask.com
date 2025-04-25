@@ -1,0 +1,49 @@
+{
+  "navigation": {
+    "home": "首页",
+    "news": "新闻",
+    "blog": "博客",
+    "questions": "常见问题",
+    "terms": "服务条款",
+    "privacy": "隐私政策",
+    "dropdownDrugs": "此类药物",
+    "dropdownCompare": "药物对比",
+    "dropdownOnline": "在线购买",
+    "viagraBlog": "伟哥 (西地那非)",
+    "cialisBlog": "西力士 (他达拉非)",
+    "stendraBlog": "Stendra (阿伐那非)",
+    "compareLvC": "艾力达 vs 西力士",
+    "compareLvS": "艾力达 vs Stendra",
+    "compareLvV": "艾力达 vs 伟哥",
+    "compareCvS": "西力士 vs Stendra",
+    "compareCvV": "西力士 vs 伟哥",
+    "compareSvV": "Stendra vs 伟哥",
+    "buyLevitra": "艾力达 (伐地那非)",
+    "buyViagra": "伟哥 (西地那非)",
+    "buyCialis": "西力士 (他达拉非)",
+    "buyStendra": "Stendra (阿伐那非)"
+  },
+  "header": {
+    "title": "Levitrask 演示",
+    "subtitle": "关于 ED 治疗的信息"
+  },
+  "footer": {
+    "followUs": "关注我们：",
+    "disclaimerTitle": "免责声明：",
+    "disclaimerText": "本网站内容仅供参考，不构成医疗建议。如有任何健康问题或在做出与健康或治疗相关的任何决定之前，请务必咨询医疗保健专业人士。",
+    "copyright": "&copy; 2025 Levitrask. 版权所有。"
+  },
+  "newsList": {
+    "pageTitle": "最新新闻与更新",
+    "loading": "正在加载新闻...",
+    "errorPrefix": "新闻加载失败：",
+    "sourceLabel": "来源：",
+    "readMore": "阅读全文 »",
+    "noNews": "目前没有新闻。"
+  },
+  "newsDetail": {
+    "loading": "正在加载新闻文章...",
+    "errorPrefix": "文章加载失败：",
+    "notFound": "未找到文章。"
+  }
+} 

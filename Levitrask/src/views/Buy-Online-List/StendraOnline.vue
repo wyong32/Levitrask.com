@@ -15,12 +15,11 @@
           <h1>Buy Stendra Online: The Fast-Acting ED Solution for Modern Men</h1>
           <p>
             If you're struggling with
-            <router-link to="/blog/understanding-ed">erectile dysfunction (ED)</router-link> and
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">erectile dysfunction (ED)</router-link> and
             looking for a quick, effective, and discreet solution, it's time to Buy Stendra Online.
             As one of the fastest-acting ED medications on the market,
-            <router-link to="/Stendra">Stendra</router-link> (<router-link
-              to="/blog/avanafil-patient-guide"
-              >avanafil</router-link
+            <router-link :to="{ name: 'stendra-blog' }">Stendra</router-link> (<router-link
+              :to="{ name: 'blog-details', params: { lang: locale, id: 'avanafil-patient-guide' } }">avanafil</router-link
             >) offers convenience, speed, and fewer side effects than older alternatives.
           </p>
           <p>
@@ -46,7 +45,7 @@
             <li>✅ Fewer side effects and drug interactions</li>
             <li>
               ✅ Secure checkout and licensed
-              <router-link to="/blog/talking-to-doctor-ed">providers</router-link>
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">providers</router-link>
             </li>
           </ul>
           <p>
@@ -59,9 +58,9 @@
           <h2>What Makes Stendra Different?</h2>
           <p>
             Before you Buy Stendra Online, it's important to know what sets it apart. Unlike
-            <router-link to="/Viagra">Viagra</router-link> or
-            <router-link to="/Cialis">Cialis</router-link>,
-            <router-link to="/Stendra">Stendra</router-link> is known for its rapid onset and lower
+            <router-link :to="{ name: 'viagra-blog', params: { lang: locale } }">Viagra</router-link> or
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link>,
+            <router-link :to="{ name: 'stendra-blog' }">Stendra</router-link> is known for its rapid onset and lower
             risk of side effects.
           </p>
           <ul>
@@ -70,7 +69,7 @@
             <li><strong>Food Interactions:</strong> Minimal</li>
             <li>
               <strong>Side Effects:</strong> Generally mild (e.g., headache, flushing). See
-              <router-link to="/blog/managing-side-effects">managing side effects</router-link>.
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'managing-side-effects' } }">managing side effects</router-link>.
             </li>
           </ul>
           <p>
@@ -87,7 +86,7 @@
             <li>Complete a confidential medical assessment.</li>
             <li>
               Get a prescription from a licensed
-              <router-link to="/blog/talking-to-doctor-ed">doctor</router-link>.
+              <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctor</router-link>.
             </li>
             <li>Buy Stendra Online through a secure payment process.</li>
             <li>Receive your medication at home in discreet packaging.</li>
@@ -141,11 +140,11 @@
         <section id="brand-vs-generic-stendra">
           <h2>Generic Avanafil vs Brand-Name: What's Better When You Buy Stendra Online?</h2>
           <p>
-            While <router-link to="/Stendra">Stendra</router-link> is the brand name,
-            <router-link to="/blog/avanafil-patient-guide">avanafil</router-link> is the generic
+            While <router-link :to="{ name: 'stendra-blog' }">Stendra</router-link> is the brand name,
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'avanafil-patient-guide' } }">avanafil</router-link> is the generic
             equivalent. Both offer the same effectiveness, but generic versions are typically
             cheaper. See our
-            <router-link to="/blog/generic-vs-brand-deep-dive">comparison</router-link>.
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'generic-vs-brand-deep-dive' } }">comparison</router-link>.
           </p>
           <p>
             When you Buy Stendra Online, many providers will offer both options. If you're looking
@@ -170,11 +169,11 @@
           <h2>Final Thoughts: Should You Buy Stendra Online?</h2>
           <p>
             If you're seeking fast results, less planning, and more spontaneity,
-            <router-link to="/Stendra">Stendra</router-link> is an ideal ED medication — and
+            <router-link :to="{ name: 'stendra-blog' }">Stendra</router-link> is an ideal ED medication — and
             choosing to Buy Stendra Online is the most efficient way to access it.
           </p>
           <p>
-            Don't let <router-link to="/blog/understanding-ed">ED</router-link> limit your
+            Don't let <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">ED</router-link> limit your
             confidence. With just a few clicks, you can Buy Stendra Online, have it delivered
             discreetly, and enjoy a more satisfying intimate life.
           </p>
@@ -190,10 +189,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../../components/PageHeader.vue'
 import PageFooter from '../../components/PageFooter.vue'
 import SideNav from '../../components/SideNav.vue'
 import DrugSidebar from '../../components/DrugSidebar.vue'
+
+const { locale } = useI18n()
 
 // Updated nav sections to match new content
 const navSections = ref([
@@ -209,13 +211,13 @@ const navSections = ref([
 // Updated sidebar data - removed FAQs based on CialisOnline changes
 const sidebarData = ref({
   relatedResources: [
-    { text: 'Stendra Overview', to: '/Stendra' },
-    { text: 'Avanafil Patient Guide', to: '/blog/avanafil-patient-guide' },
-    { text: 'FDA Info: Avanafil', to: '/blog/fda-avanafil-info' },
-    { text: 'Generic vs. Brand Name ED Drugs', to: '/blog/generic-vs-brand-deep-dive' },
-    { text: 'Comparing ED Drugs', to: '/blog/comparing-factors' },
-    { text: 'Managing Side Effects', to: '/blog/managing-side-effects' },
-    { text: 'Talking to Your Doctor About ED', to: '/blog/talking-to-doctor-ed' }, // Added this link previously
+    { text: 'Stendra Overview', to: { name: 'stendra-blog' } },
+    { text: 'Avanafil Patient Guide', to: { name: 'blog-details', params: { id: 'avanafil-patient-guide' } } },
+    { text: 'FDA Info: Avanafil', to: { name: 'blog-details', params: { id: 'fda-avanafil-info' } } },
+    { text: 'Generic vs. Brand Name ED Drugs', to: { name: 'blog-details', params: { id: 'generic-vs-brand-deep-dive' } } },
+    { text: 'Comparing ED Drugs', to: { name: 'blog-details', params: { id: 'comparing-factors' } } },
+    { text: 'Managing Side Effects', to: { name: 'blog-details', params: { id: 'managing-side-effects' } } },
+    { text: 'Talking to Your Doctor About ED', to: { name: 'blog-details', params: { id: 'talking-to-doctor-ed' } } },
   ],
   // Removed frequentlyAskedQuestions array
 })

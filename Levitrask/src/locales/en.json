@@ -1,0 +1,49 @@
+{
+  "navigation": {
+    "home": "Home",
+    "news": "News",
+    "blog": "Blog",
+    "questions": "Questions",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "dropdownDrugs": "Such drugs",
+    "dropdownCompare": "Drug Comparison",
+    "dropdownOnline": "Buy Online",
+    "viagraBlog": "Viagra (sildenafil)",
+    "cialisBlog": "Cialis (tadalafil)",
+    "stendraBlog": "Stendra (avanafil)",
+    "compareLvC": "Levitra vs Cialis",
+    "compareLvS": "Levitra vs Stendra",
+    "compareLvV": "Levitra vs Viagra",
+    "compareCvS": "Cialis vs Stendra",
+    "compareCvV": "Cialis vs Viagra",
+    "compareSvV": "Stendra vs Viagra",
+    "buyLevitra": "Levitra (vardenafil)",
+    "buyViagra": "Viagra (sildenafil)",
+    "buyCialis": "Cialis (tadalafil)",
+    "buyStendra": "Stendra (avanafil)"
+  },
+  "header": {
+    "title": "Levitrask Demo",
+    "subtitle": "Information about ED Treatment"
+  },
+  "footer": {
+    "followUs": "Follow us:",
+    "disclaimerTitle": "Disclaimer:",
+    "disclaimerText": "The content on this site is for informational purposes only and does not constitute medical advice. Always consult a healthcare professional for any health concerns or before making any decisions related to your health or treatment.",
+    "copyright": "&copy; 2025 Levitrask. All rights reserved."
+  },
+  "newsList": {
+    "pageTitle": "Latest News & Updates",
+    "loading": "Loading news articles...",
+    "errorPrefix": "Failed to load news:",
+    "sourceLabel": "Source:",
+    "readMore": "Read Full Story »",
+    "noNews": "No news articles available at the moment."
+  },
+  "newsDetail": {
+    "loading": "Loading news article...",
+    "errorPrefix": "Failed to load article:",
+    "notFound": "Article not found."
+  }
+} 

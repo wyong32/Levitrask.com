@@ -15,12 +15,12 @@
           <h1>Levitra vs Stendra: Optimized Comparison for SEO and Patient Clarity</h1>
           <p>
             When it comes to treating
-            <router-link to="/blog/understanding-ed">erectile dysfunction (ED)</router-link>,
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">erectile dysfunction (ED)</router-link>,
             patients often compare different medications to find the best fit. Among the most
-            commonly discussed options are <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link>. In this article, we'll explore
-            <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> in terms of how they work, how quickly
+            commonly discussed options are <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>. In this article, we'll explore
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> in terms of how they work, how quickly
             they act, side effects, cost, and more — all while keeping the information clear and
             patient-friendly.
           </p>
@@ -30,16 +30,15 @@
           <h2>1. Overview of Levitra vs Stendra</h2>
           <p>
             Before diving into a head-to-head comparison of
-            <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link>, it's essential to understand what each
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>, it's essential to understand what each
             medication is:
           </p>
           <ul>
             <li>
               <strong
-                ><router-link to="/">Levitra</router-link> (<router-link
-                  to="/blog/vardenafil-generic-info"
-                  >vardenafil</router-link
+                ><router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> (<router-link
+                  :to="{ name: 'blog-details', params: { lang: locale, id: 'vardenafil-generic-info' } }">vardenafil</router-link
                 >)</strong
               >
               is a PDE5 inhibitor that helps increase blood flow to the penis during sexual
@@ -47,9 +46,8 @@
             </li>
             <li>
               <strong
-                ><router-link to="/Stendra">Stendra</router-link> (<router-link
-                  to="/blog/avanafil-patient-guide"
-                  >avanafil</router-link
+                ><router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> (<router-link
+                  :to="{ name: 'blog-details', params: { lang: locale, id: 'avanafil-patient-guide' } }">avanafil</router-link
                 >)</strong
               >
               is a newer PDE5 inhibitor, approved by the FDA in 2012. It's designed to act more
@@ -57,8 +55,8 @@
             </li>
           </ul>
           <p>
-            When comparing <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link>, one of the first things to note is
+            When comparing <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>, one of the first things to note is
             their difference in onset of action.
           </p>
         </section>
@@ -66,66 +64,66 @@
         <section id="onset-duration" class="tab-content">
           <h2>2. Levitra vs Stendra: Onset and Duration of Action</h2>
           <p>
-            <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> shows a clear contrast in timing:
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> shows a clear contrast in timing:
           </p>
           <ul>
             <li>
-              <router-link to="/">Levitra</router-link> typically takes 30 to 60 minutes to start
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> typically takes 30 to 60 minutes to start
               working and can last for about 4 to 5 hours.
             </li>
             <li>
-              <router-link to="/Stendra">Stendra</router-link> can start working in as little as 15
+              <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> can start working in as little as 15
               minutes and may last up to 6 hours, depending on the dose.
             </li>
           </ul>
           <p>
-            So, in the context of spontaneity, <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> may favor
-            <router-link to="/Stendra">Stendra</router-link> for faster action.
+            So, in the context of spontaneity, <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> may favor
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> for faster action.
           </p>
         </section>
 
         <section id="food-interactions" class="tab-content">
           <h2>3. Levitra vs Stendra: Food Interactions</h2>
           <p>
-            When considering <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link>, food interactions are a practical
+            When considering <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>, food interactions are a practical
             concern:
           </p>
           <ul>
             <li>
-              <router-link to="/">Levitra</router-link> is affected by high-fat meals, which can
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> is affected by high-fat meals, which can
               delay its onset.
             </li>
             <li>
-              <router-link to="/Stendra">Stendra</router-link>, on the other hand, is less affected
+              <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>, on the other hand, is less affected
               by food, making it more convenient in real-life situations.
             </li>
           </ul>
           <p>
             This difference may cause patients to prefer
-            <router-link to="/Stendra">Stendra</router-link> when choosing
-            <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link>.
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> when choosing
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>.
           </p>
         </section>
 
         <section id="side-effects-comparison" class="tab-content">
           <h2>4. Levitra vs Stendra: Side Effects</h2>
           <p>
-            In any <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> discussion, side effects are a critical
+            In any <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> discussion, side effects are a critical
             topic:
           </p>
           <ul>
             <li>
-              <strong><router-link to="/">Levitra</router-link> common side effects:</strong>
+              <strong><router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> common side effects:</strong>
               include headache, flushing, nasal congestion, and dizziness.
             </li>
             <li>
               <strong
-                ><router-link to="/Stendra">Stendra</router-link> may cause similar side
+                ><router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> may cause similar side
                 effects:</strong
               >
               but some studies suggest it has fewer visual disturbances and less impact on blood
@@ -134,61 +132,61 @@
           </ul>
           <p>
             Patients sensitive to side effects might lean toward
-            <router-link to="/Stendra">Stendra</router-link> in the
-            <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> decision.
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> in the
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> decision.
           </p>
         </section>
 
         <section id="cost-availability" class="tab-content">
           <h2>5. Levitra vs Stendra:Cost and Availability</h2>
           <p>
-            The <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> price battle can be significant,
+            The <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> price battle can be significant,
             especially without insurance:
           </p>
           <ul>
             <li>
               <strong
-                ><router-link to="/">Levitra</router-link> (especially its generic version,
-                <router-link to="/blog/vardenafil-generic-info">vardenafil</router-link>):</strong
+                ><router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> (especially its generic version,
+                <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'vardenafil-generic-info' } }">vardenafil</router-link>):</strong
               >
               is widely available and often cheaper.
             </li>
             <li>
               <strong
-                ><router-link to="/Stendra">Stendra</router-link>, as a newer medication:</strong
+                ><router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>, as a newer medication:</strong
               >
               may be pricier and less likely to have generic alternatives in certain regions.
             </li>
           </ul>
           <p>
-            When cost is a major concern, <router-link to="/">Levitra</router-link> might win in the
-            <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> comparison.
+            When cost is a major concern, <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> might win in the
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> comparison.
           </p>
         </section>
 
         <section id="patient-suitability" class="tab-content">
           <h2>6. Levitra vs Stendra: Suitability for Different Patient Types</h2>
           <p>
-            Another angle of <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> is patient suitability:
+            Another angle of <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> is patient suitability:
           </p>
           <ul>
             <li>
-              <router-link to="/">Levitra</router-link> may be more appropriate for men who don't
+              <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> may be more appropriate for men who don't
               need instant results and are less concerned with meal timing.
             </li>
             <li>
-              <router-link to="/Stendra">Stendra</router-link> may suit younger patients or those
+              <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> may suit younger patients or those
               who want rapid, on-demand action with minimal planning.
             </li>
           </ul>
           <p>
-            Your <router-link to="/blog/talking-to-doctor-ed">doctor</router-link> can help you
-            decide between <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> based on your health profile and
+            Your <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctor</router-link> can help you
+            decide between <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> based on your health profile and
             lifestyle.
           </p>
         </section>
@@ -196,8 +194,8 @@
         <section id="final-verdict" class="tab-content">
           <h2>7. Final Verdict: Levitra vs Stendra</h2>
           <p>
-            So, which is better: <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link>? The answer depends on your priorities:
+            So, which is better: <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>? The answer depends on your priorities:
           </p>
           <!-- Simplified Table -->
           <div class="comparison-table-container">
@@ -205,8 +203,8 @@
               <thead>
                 <tr>
                   <th>Criteria</th>
-                  <th><router-link to="/">Levitra</router-link></th>
-                  <th><router-link to="/Stendra">Stendra</router-link></th>
+                  <th><router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link></th>
+                  <th><router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link></th>
                 </tr>
               </thead>
               <tbody>
@@ -240,24 +238,24 @@
           </div>
           <p>
             For patients who want flexibility, quick onset, and fewer side effects,
-            <router-link to="/Stendra">Stendra</router-link> might be ideal. For those looking for a
-            more affordable and proven option, <router-link to="/">Levitra</router-link> could be
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> might be ideal. For those looking for a
+            more affordable and proven option, <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> could be
             the better choice. Ultimately, the best way to settle the
-            <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> question is to consult your
-            <router-link to="/blog/talking-to-doctor-ed">healthcare provider</router-link>.
+            <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> question is to consult your
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">healthcare provider</router-link>.
           </p>
         </section>
 
         <section id="conclusion" class="tab-content">
           <h2>Conclusion</h2>
           <p>
-            Choosing between <router-link to="/">Levitra</router-link> vs
-            <router-link to="/Stendra">Stendra</router-link> involves evaluating your lifestyle,
+            Choosing between <router-link :to="{ name: 'home', params: { lang: locale } }">Levitra</router-link> vs
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> involves evaluating your lifestyle,
             budget, health conditions, and personal preferences. Both medications offer effective
             treatment for erectile dysfunction, but one may be more aligned with your needs than the
             other. Always talk to a
-            <router-link to="/blog/talking-to-doctor-ed">doctor</router-link> before making changes
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctor</router-link> before making changes
             to your ED treatment plan.
           </p>
         </section>
@@ -276,10 +274,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../../components/PageHeader.vue'
 import PageFooter from '../../components/PageFooter.vue'
 import SideNav from '../../components/SideNav.vue'
 import DrugSidebar from '../../components/DrugSidebar.vue'
+
+// Get locale for links
+const { locale } = useI18n()
 
 // 定义比较页面的导航项数据 (Updated to match new content)
 const comparisonSections = ref([
@@ -310,10 +312,10 @@ const stendraComparisonSidebarData = ref({
     ],
   },
   relatedResources: [
-    { text: 'Levitra vs Viagra', to: '/Levitra-vs-Viagra' },
-    { text: 'Levitra vs Cialis', to: '/Levitra-vs-Cialis' },
-    { text: 'Stendra vs Viagra', to: '/Stendra-vs-Viagra' },
-    { text: 'Cialis vs Stendra', to: '/Cialis-vs-Stendra' }, // Added missing comparison
+    { text: 'Levitra vs Viagra', to: { name: 'compare-levitra-viagra' } },
+    { text: 'Levitra vs Cialis', to: { name: 'compare-levitra-cialis' } },
+    { text: 'Stendra vs Viagra', to: { name: 'compare-stendra-viagra' } },
+    { text: 'Cialis vs Stendra', to: { name: 'compare-cialis-stendra' } }, // Added missing comparison
   ],
 })
 

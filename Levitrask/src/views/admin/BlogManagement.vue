@@ -12,9 +12,9 @@
        <el-table-column label="列表图片" width="100">
          <template #default="scope">
             <img 
-                v-if="scope.row.listImage?.src" 
-                :src="scope.row.listImage.src" 
-                alt="列表图片"
+                v-if="scope.row.listImageSrc" 
+                :src="scope.row.listImageSrc" 
+                :alt="scope.row.listImageAlt || '列表图片'" 
                 style="width: 60px; height: auto; object-fit: contain;" 
             />
             <span v-else>-</span>
@@ -134,55 +134,71 @@
               </el-col>
            </el-row>
         </div>
-        <el-button @click="addNavSection" type="success" plain :icon="Plus">添加导航项</el-button>
+        <el-button 
+          @click="addNavSection" 
+          type="success" 
+          plain 
+          :icon="Plus"
+          style="margin-bottom: 10px;"
+        >
+          添加导航项
+        </el-button>
         <p class="form-hint">提示: 此处的 ID 必须与下方内容中使用的 section 标签的 ID 完全一致。</p>
 
-        <el-divider>右侧边栏内容 (Sidebar Data)</el-divider>
-        <el-checkbox v-model="blogForm.includeRelatedPosts" label="包含相关博客链接" size="large" />
-        <div v-if="blogForm.includeRelatedPosts" class="sidebar-section-editor">
-            <h4>相关博客链接:</h4>
-            <div v-for="(link, index) in blogForm.relatedPosts" :key="index" class="dynamic-list-item">
-                <el-row :gutter="10">
-                    <el-col :span="10">
-                        <el-form-item :label="`链接 ${index + 1} 文本`" :prop="`relatedPosts.${index}.text`" :rules="formRules.sidebarLinkText">
-                            <el-input v-model="link.text" placeholder="显示的链接文字" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="10">
-                       <el-form-item :label="`链接 ${index + 1} 路径 (To)`" :prop="`relatedPosts.${index}.to`" :rules="formRules.sidebarLinkTo">
-                            <el-input v-model="link.to" placeholder="例如: /blog/another-post" />
-                       </el-form-item>
-                    </el-col>
-                    <el-col :span="4" class="dynamic-list-actions">
-                        <el-button type="danger" @click="removeRelatedPost(index)" :icon="Delete" circle />
-                    </el-col>
-                </el-row>
-            </div>
-             <el-button @click="addRelatedPost" type="success" plain :icon="Plus">添加相关博客</el-button>
+        <el-divider>右侧边栏区块 (Sidebar Blocks)</el-divider>
+        <div v-for="(block, index) in blogForm.sidebarData" :key="`sidebar-${index}`" class="dynamic-list-item sidebar-block-item">
+           <el-row :gutter="10">
+              <el-col :span="20"> <!-- Span adjusted for title/content -->
+                 <el-form-item 
+                    :label="`区块 ${index + 1} 标题 (可选)`" 
+                    :prop="`sidebarData.${index}.title`" 
+                    :rules="formRules.sidebarBlockTitle"  Optional rule 
+                  >
+                    <el-input v-model="block.title" placeholder="侧边栏区块的标题" />
+                 </el-form-item>
+                 <el-form-item 
+                    :label="`区块 ${index + 1} 内容 (HTML)`" 
+                    :prop="`sidebarData.${index}.html_content`" 
+                    :rules="formRules.sidebarBlockContent"  Required rule 
+                  >
+                    <el-input 
+                      type="textarea" 
+                      v-model="block.html_content" 
+                      :rows="5" 
+                      placeholder="输入侧边栏区块的 HTML 内容"
+                    />
+                 </el-form-item>
+                 <!-- Optional: Input for display_order if implemented -->
+                 <!-- 
+                 <el-form-item 
+                    label="显示顺序" 
+                    :prop="`sidebarData.${index}.display_order`"
+                 >
+                    <el-input-number v-model="block.display_order" :min="1" />
+                 </el-form-item> 
+                 -->
+              </el-col>
+              <el-col :span="4" class="dynamic-list-actions sidebar-block-actions">
+                 <el-button type="danger" @click="removeSidebarBlock(index)" :icon="Delete" circle />
+                 <!-- Optional: Add Up/Down buttons for ordering -->
+                 <!-- 
+                 <el-button @click="moveSidebarBlock(index, -1)" :disabled="index === 0" :icon="ArrowUpBold" circle plain/>
+                 <el-button @click="moveSidebarBlock(index, 1)" :disabled="index === blogForm.sidebarData.length - 1" :icon="ArrowDownBold" circle plain/>
+                  -->
+              </el-col>
+           </el-row>
+           <el-divider v-if="index < blogForm.sidebarData.length - 1" style="margin-top: 0; margin-bottom: 15px;" />
         </div>
-
-        <el-checkbox v-model="blogForm.includeFaqs" label="包含常见问题链接" size="large" style="margin-top: 15px;"/>
-         <div v-if="blogForm.includeFaqs" class="sidebar-section-editor">
-            <h4>常见问题链接:</h4>
-             <div v-for="(link, index) in blogForm.faqs" :key="index" class="dynamic-list-item">
-                <el-row :gutter="10">
-                     <el-col :span="10">
-                        <el-form-item :label="`链接 ${index + 1} 文本`" :prop="`faqs.${index}.text`" :rules="formRules.sidebarLinkText">
-                            <el-input v-model="link.text" placeholder="显示的链接文字" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="10">
-                       <el-form-item :label="`链接 ${index + 1} 路径 (To)`" :prop="`faqs.${index}.to`" :rules="formRules.sidebarLinkTo">
-                            <el-input v-model="link.to" placeholder="例如: /questions/some-faq" />
-                       </el-form-item>
-                    </el-col>
-                    <el-col :span="4" class="dynamic-list-actions">
-                        <el-button type="danger" @click="removeFaq(index)" :icon="Delete" circle />
-                    </el-col>
-                </el-row>
-            </div>
-             <el-button @click="addFaq" type="success" plain :icon="Plus">添加常见问题</el-button>
-        </div>
+        <el-button 
+          @click="addSidebarBlock" 
+          type="primary"
+          plain 
+          :icon="Plus" 
+          style="margin-bottom: 10px;"
+        >
+          添加侧边栏区块
+        </el-button>
+        <p class="form-hint">提示: 内容区域支持输入 HTML 代码来自定义侧边栏区块的显示。</p>
 
         <el-divider>主要内容 (HTML)</el-divider>
         <el-form-item label="内容 (Content - HTML Source)" prop="content">
@@ -215,7 +231,8 @@
 import { ref, reactive, onMounted, computed } from 'vue';
 import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { Plus, Delete } from '@element-plus/icons-vue'; // Removed UploadFilled
+import { Plus, Delete } from '@element-plus/icons-vue'; // Removed UploadFilled, added ArrowUpBold, ArrowDownBold if using move buttons
+// import { ArrowUpBold, ArrowDownBold } from '@element-plus/icons-vue';
 
 // --- State --- 
 const tableData = ref([]);
@@ -227,53 +244,46 @@ const isEditMode = ref(false);
 const currentEditId = ref(null); 
 const isLoadingDetails = ref(false); 
 
-// --- Form Initial State --- 
+// --- Form Initial State (MODIFIED) --- 
 const getInitialFormState = () => ({
   slug: '',
   listTitle: '',
-  listDate: null, // Use null for date picker initial value
+  listDate: null, 
   listSource: '',
-  listImageSrc: '', // Changed: Now just the URL string
-  listImageAlt: '', // Re-added Alt text
+  listImageSrc: '', 
+  listImageAlt: '', 
   listDescription: '',
   metaTitle: '',
   metaDescription: '',
   metaKeywords: '',
   content: '',
   navSections: [],
-  includeRelatedPosts: false,
-  relatedPosts: [],
-  includeFaqs: false,
-  faqs: []
+  sidebarData: [] // Initialize sidebarData as empty array
+  // REMOVED: includeRelatedPosts, relatedPosts, includeFaqs, faqs
 });
 
-// --- Form Data --- 
+// --- Form Data (MODIFIED) --- 
 const blogForm = reactive(getInitialFormState());
 const formRef = ref(null); 
 
-// --- Form Validation Rules --- 
+// --- Form Rules (MODIFIED) --- 
 const formRules = reactive({
   slug: [
-      { required: true, message: '请输入 URL Slug', trigger: 'blur' },
-      { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Slug 只能包含小写字母、数字和连字符 (-)', trigger: 'blur' }
+      { required: true, message: 'URL Slug (路径) 不能为空', trigger: 'blur' },
+      { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Slug 只能包含小写字母、数字和连字符', trigger: 'blur' }
   ],
-  listTitle: [{ required: true, message: '请输入列表标题', trigger: 'blur' }],
-  listImageSrc: [
-      { required: true, message: '请输入列表图片 URL', trigger: 'blur' }, 
-  ],
-  listImageAlt: [{ required: true, message: '请输入列表图片 Alt 文本', trigger: 'blur' }],
-  listDescription: [{ required: true, message: '请输入列表描述', trigger: 'blur' }],
-  metaTitle: [{ required: true, message: '请输入 Meta 标题', trigger: 'blur' }],
-  metaDescription: [{ required: true, message: '请输入 Meta 描述', trigger: 'blur' }],
-  metaKeywords: [{ required: true, message: '请输入 Meta 关键词', trigger: 'blur' }],
-  content: [{ required: true, message: '请输入内容', trigger: 'blur' }],
-  navSectionId: [
-      { required: true, message: '请输入导航项 ID', trigger: 'blur' },
-      { pattern: /^[a-zA-Z0-9_-]+$/, message: 'ID 只能包含字母、数字、下划线或连字符', trigger: 'blur' }
-  ],
-  navSectionTitle: [{ required: true, message: '请输入导航项标题', trigger: 'blur' }],
-  sidebarLinkText: [{ required: true, message: '请输入链接文本', trigger: 'blur' }],
-  sidebarLinkTo: [{ required: true, message: '请输入链接路径', trigger: 'blur' }], 
+  listTitle: [{ required: true, message: '列表标题不能为空', trigger: 'blur' }],
+  listImageSrc: [{ required: true, message: '列表图片 URL 不能为空', trigger: 'blur' }],
+  listImageAlt: [{ required: true, message: '图片 Alt 文本不能为空', trigger: 'blur' }],
+  metaTitle: [{ required: true, message: 'Meta 标题不能为空', trigger: 'blur' }],
+  metaDescription: [{ required: true, message: 'Meta 描述不能为空', trigger: 'blur' }],
+  content: [{ required: true, message: '主要内容不能为空', trigger: 'blur' }],
+  navSectionId: [{ required: true, message: '导航项 ID 不能为空', trigger: 'blur' }],
+  navSectionTitle: [{ required: true, message: '导航项标题不能为空', trigger: 'blur' }],
+  // REMOVED: sidebarLinkText, sidebarLinkTo
+  // ADDED: Rules for new sidebar blocks
+  sidebarBlockTitle: [], // Title is optional, so no required rule by default
+  sidebarBlockContent: [{ required: true, message: '侧边栏区块内容不能为空', trigger: 'blur' }] // Content is required
 });
 
 // --- Computed --- 
@@ -288,21 +298,24 @@ const fetchData = async () => {
   errorMessage.value = '';
   try {
     const response = await axios.get(`${apiBaseUrl}/api/blogs`);
-     if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-      tableData.value = Object.entries(response.data).map(([id, blog]) => ({
+    const responseData = response.data; 
+    
+    if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
+      tableData.value = Object.entries(responseData).map(([id, blog]) => ({
          ...blog, 
-         id, 
-         listImageSrc: blog.listImage?.src || blog.listImageSrc || '' // Ensure preview works
+         id: id, 
         })); 
-    } else if (Array.isArray(response.data)) {
-      tableData.value = response.data.map(blog => ({ 
-         ...blog, 
-         listImageSrc: blog.listImage?.src || blog.listImageSrc || ''
-       }));
     } else {
-      console.warn('API response data for blogs is not in the expected format:', response.data);
-      tableData.value = [];
-      errorMessage.value = '收到的博客数据格式无法处理。'
+      console.warn('API response data for blogs is not the expected object format:', responseData);
+      if(Array.isArray(responseData)){
+         tableData.value = responseData.map(blog => ({ 
+           ...blog, 
+           id: blog.blog_id || blog.id 
+         }));
+      } else {
+          tableData.value = [];
+          errorMessage.value = '收到的博客数据格式无法处理。'
+      } 
     }
   } catch (error) {
     console.error('获取博客列表失败:', error);
@@ -340,20 +353,14 @@ const removeNavSection = (index) => {
   blogForm.navSections.splice(index, 1);
 };
 
-const addRelatedPost = () => {
-  blogForm.relatedPosts.push({ text: '', to: '' });
+const addSidebarBlock = () => {
+  // Add a new empty block object
+  blogForm.sidebarData.push({ title: '', html_content: '' /*, display_order: blogForm.sidebarData.length + 1 */ });
 };
 
-const removeRelatedPost = (index) => {
-  blogForm.relatedPosts.splice(index, 1);
-};
-
-const addFaq = () => {
-  blogForm.faqs.push({ text: '', to: '' });
-};
-
-const removeFaq = (index) => {
-  blogForm.faqs.splice(index, 1);
+const removeSidebarBlock = (index) => {
+  // Remove the block at the specified index
+  blogForm.sidebarData.splice(index, 1);
 };
 
 const handleSubmit = async () => {
@@ -376,10 +383,7 @@ const handleSubmit = async () => {
             metaKeywords: blogForm.metaKeywords,
             content: blogForm.content,
             navSections: blogForm.navSections,
-            includeRelatedPosts: blogForm.includeRelatedPosts,
-            relatedPosts: blogForm.relatedPosts,
-            includeFaqs: blogForm.includeFaqs,
-            faqs: blogForm.faqs
+            sidebarData: blogForm.sidebarData
         };
         
         const token = localStorage.getItem('admin-auth-token');
@@ -475,10 +479,7 @@ const handleEdit = async (row) => {
     
     // Populate sidebar fields from sidebarData object
     const sidebarData = fetchedData.sidebarData || {};
-    blogForm.includeRelatedPosts = sidebarData.includeRelatedPosts || false;
-    blogForm.relatedPosts = Array.isArray(sidebarData.relatedPosts) ? sidebarData.relatedPosts : [];
-    blogForm.includeFaqs = sidebarData.includeFaqs || false;
-    blogForm.faqs = Array.isArray(sidebarData.faqs) ? sidebarData.faqs : [];
+    blogForm.sidebarData = Array.isArray(sidebarData) ? sidebarData : [];
 
     console.log("Form populated for edit:", JSON.parse(JSON.stringify(blogForm)));
 
@@ -565,76 +566,44 @@ const handleDelete = async (row) => {
 }
 
 .dynamic-list-item {
-  margin-bottom: 10px;
-  padding: 10px;
-  border: 1px solid #eee;
+  margin-bottom: 15px;
+  padding: 15px;
+  border: 1px solid #e4e7ed;
   border-radius: 4px;
-  background-color: #f9f9f9;
+  background-color: #f9fafc;
+}
+
+.dynamic-list-item:last-child {
+   /* margin-bottom: 0; */ /* Keep margin for button spacing */
 }
 
 .dynamic-list-actions {
-    display: flex;
-    align-items: center; /* Vertically center button */
-    justify-content: flex-end; /* Align button to the right */
-    height: 32px; /* Match input height for alignment */
-    padding-top: 20px; /* Adjust based on label position (top) */
+  display: flex;
+  align-items: center; /* Vertically center buttons */
+  justify-content: flex-end; /* Align buttons to the right */
+  /* Add height or padding if needed to ensure vertical alignment */
+   padding-top: 30px; /* Adjust based on label height */
 }
 
-.sidebar-section-editor {
-    margin-top: 10px;
-    padding: 15px;
-    border: 1px dashed #dcdfe6;
-    border-radius: 4px;
-}
 .form-hint {
-    font-size: 12px;
-    color: #909399;
-    margin-top: 5px;
+  font-size: 12px;
+  color: #909399;
+  margin-top: -10px; /* Adjust spacing */
+  margin-bottom: 10px;
 }
 
-/* Styles for image upload */
-/* Commented out image upload specific styles */
-/*
-.blog-image-uploader .el-upload {
-  border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: var(--el-transition-duration-fast);
+/* Style for the new sidebar block section */
+.sidebar-block-item .el-col:first-child { 
+    /* Give more space to title/content inputs */
 }
 
-.blog-image-uploader .el-upload:hover {
-  border-color: var(--el-color-primary);
+.sidebar-block-item .dynamic-list-actions {
+   /* Adjust alignment if needed, inherited styles might be ok */
 }
 
-.el-icon.el-icon--upload {
-  font-size: 28px;
-  color: #8c939d;
-  width: 178px;
-  height: 178px;
-  text-align: center;
-}
-
-.blog-image-preview {
-  width: 178px;
-  height: 178px;
-  display: block;
-  object-fit: contain; 
-}
-*/
-
-/* Add style for loading details inside dialog if needed */
-.dialog-loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(255, 255, 255, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000; /* Ensure it's above dialog content */
+/* Ensure dialog content doesn't overflow vertically */
+.el-dialog__body {
+    max-height: 70vh; /* Adjust as needed */
+    overflow-y: auto;
 }
 </style> 

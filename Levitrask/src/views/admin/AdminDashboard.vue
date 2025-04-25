@@ -16,8 +16,8 @@
           class="el-menu-vertical-demo"
           router
         >
-          <!-- 1. 首页 (禁用) -->
-          <el-menu-item index="/admin/dashboard/home" disabled>
+          <!-- 1. 首页 -->
+          <el-menu-item index="/admin/dashboard/homepage">
             <el-icon><HomeFilled /></el-icon>
             <span>首页管理</span>
           </el-menu-item>

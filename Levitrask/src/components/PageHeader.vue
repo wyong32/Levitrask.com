@@ -16,160 +16,115 @@
       <!-- 常规导航 (桌面端显示) -->
       <nav class="main-nav desktop-nav">
         <!-- Levitra 链接 -->
-        <router-link to="/">Levitra</router-link>
+        <router-link :to="{ name: 'home', params: { lang: locale.value } }">{{ $t('navigation.home') }}</router-link>
 
         <!-- 第一个下拉菜单：Drugs in this Class -->
-        <div
-          class="nav-item dropdown-container"
-          @mouseenter="isBlogDropdownOpen = true"
-          @mouseleave="isBlogDropdownOpen = false"
-        >
-          <a class="dropdown-trigger" :class="{ 'active-dropdown': isBlogActive }"
-            >Such drugs <span class="arrow" :class="{ rotated: isBlogDropdownOpen }">▼</span></a
-          >
+        <div class="nav-item dropdown-container" @mouseenter="isBlogDropdownOpen = true" @mouseleave="isBlogDropdownOpen = false">
+          <a class="dropdown-trigger" :class="{ 'active-dropdown': isBlogActive }">{{ $t('navigation.dropdownDrugs') }} <span class="arrow" :class="{ rotated: isBlogDropdownOpen }">▼</span></a>
           <transition name="fade">
             <div class="dropdown-menu" v-show="isBlogDropdownOpen">
-              <router-link to="/Viagra" class="dropdown-item">Viagra (sildenafil) </router-link>
-              <router-link to="/Cialis" class="dropdown-item">Cialis (tadalafil)</router-link>
-              <router-link to="/Stendra" class="dropdown-item">Stendra (avanafil)</router-link>
+              <router-link :to="{ name: 'viagra-blog', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.viagraBlog') }}</router-link>
+              <router-link :to="{ name: 'cialis-blog', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.cialisBlog') }}</router-link>
+              <router-link :to="{ name: 'stendra-blog', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.stendraBlog') }}</router-link>
             </div>
           </transition>
         </div>
 
         <!-- 第二个下拉菜单：药物比较 -->
-        <div
-          class="nav-item dropdown-container"
-          @mouseenter="isComparisonDropdownOpen = true"
-          @mouseleave="isComparisonDropdownOpen = false"
-        >
-          <a class="dropdown-trigger" :class="{ 'active-dropdown': isComparisonActive }"
-            >Drug Comparison
-            <span class="arrow" :class="{ rotated: isComparisonDropdownOpen }">▼</span></a
-          >
+        <div class="nav-item dropdown-container" @mouseenter="isComparisonDropdownOpen = true" @mouseleave="isComparisonDropdownOpen = false">
+          <a class="dropdown-trigger" :class="{ 'active-dropdown': isComparisonActive }">{{ $t('navigation.dropdownCompare') }} <span class="arrow" :class="{ rotated: isComparisonDropdownOpen }">▼</span></a>
           <transition name="fade">
             <div class="dropdown-menu" v-show="isComparisonDropdownOpen">
-              <router-link to="/Levitra-vs-Viagra" class="dropdown-item"
-                >Levitra vs Viagra</router-link
-              >
-              <router-link to="/Levitra-vs-Cialis" class="dropdown-item"
-                >Levitra vs Cialis</router-link
-              >
-              <router-link to="/Levitra-vs-Stendra" class="dropdown-item"
-                >Levitra vs Stendra</router-link
-              >
-              <router-link to="/Cialis-vs-Viagra" class="dropdown-item"
-                >Cialis vs Viagra</router-link
-              >
-              <router-link to="/Cialis-vs-Stendra" class="dropdown-item"
-                >Cialis vs Stendra</router-link
-              >
-              <router-link to="/Stendra-vs-Viagra" class="dropdown-item"
-                >Stendra vs Viagra</router-link
-              >
+              <router-link :to="{ name: 'compare-levitra-viagra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareLvV') }}</router-link>
+              <router-link :to="{ name: 'compare-levitra-cialis', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareLvC') }}</router-link>
+              <router-link :to="{ name: 'compare-levitra-stendra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareLvS') }}</router-link>
+              <router-link :to="{ name: 'compare-cialis-viagra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareCvV') }}</router-link>
+              <router-link :to="{ name: 'compare-cialis-stendra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareCvS') }}</router-link>
+              <router-link :to="{ name: 'compare-stendra-viagra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareSvV') }}</router-link>
             </div>
           </transition>
         </div>
 
-        <!-- 其他常规链接 -->
-        <router-link to="/news">News</router-link>
-        <router-link to="/blog">Blog</router-link>
+        <!-- 其他常规链接 (使用翻译) -->
+        <router-link :to="{ name: 'news', params: { lang: locale.value } }">{{ $t('navigation.news') }}</router-link>
+        <router-link :to="{ name: 'blog', params: { lang: locale.value } }">{{ $t('navigation.blog') }}</router-link>
 
         <!-- NEW Online Dropdown -->
-        <div
-          class="nav-item dropdown-container"
-          @mouseenter="isOnlineDropdownOpen = true"
-          @mouseleave="isOnlineDropdownOpen = false"
-        >
-          <a class="dropdown-trigger" :class="{ 'active-dropdown': isOnlineActive }"
-            >Buy Online <span class="arrow" :class="{ rotated: isOnlineDropdownOpen }">▼</span></a
-          >
+        <div class="nav-item dropdown-container" @mouseenter="isOnlineDropdownOpen = true" @mouseleave="isOnlineDropdownOpen = false">
+          <a class="dropdown-trigger" :class="{ 'active-dropdown': isOnlineActive }">{{ $t('navigation.dropdownOnline') }} <span class="arrow" :class="{ rotated: isOnlineDropdownOpen }">▼</span></a>
           <transition name="fade">
             <div class="dropdown-menu" v-show="isOnlineDropdownOpen">
-              <router-link to="/Buy-Levitra-Online" class="dropdown-item"
-                >Levitra (vardenafil)</router-link
-              >
-              <router-link to="/Buy-Viagra-Online" class="dropdown-item"
-                >Viagra (sildenafil)</router-link
-              >
-              <router-link to="/Buy-Cialis-Online" class="dropdown-item"
-                >Cialis (tadalafil)</router-link
-              >
-              <router-link to="/Buy-Stendra-Online" class="dropdown-item"
-                >Stendra (avanafil)</router-link
-              >
+              <router-link :to="{ name: 'buy-levitra-online', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.buyLevitra') }}</router-link>
+              <router-link :to="{ name: 'buy-viagra-online', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.buyViagra') }}</router-link>
+              <router-link :to="{ name: 'buy-cialis-online', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.buyCialis') }}</router-link>
+              <router-link :to="{ name: 'buy-stendra-online', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.buyStendra') }}</router-link>
             </div>
           </transition>
         </div>
+
+        <!-- 语言切换下拉菜单 -->
+        <el-dropdown trigger="click" @command="changeLanguage" class="language-dropdown">
+           <span class="el-dropdown-link">
+              {{ currentLanguageName }} <el-icon class="el-icon--right"><arrow-down /></el-icon>
+           </span>
+           <template #dropdown>
+             <el-dropdown-menu>
+               <el-dropdown-item v-for="lang in availableLanguages" :key="lang.code" :command="lang.code" :disabled="locale === lang.code">
+                  {{ lang.name }}
+               </el-dropdown-item>
+             </el-dropdown-menu>
+           </template>
+         </el-dropdown>
       </nav>
 
       <!-- 移动端导航菜单 (点击汉堡按钮展开) -->
       <transition name="slide-fade">
         <nav v-if="isMobileMenuOpen" class="mobile-nav">
-          <router-link to="/" @click="closeMobileMenu">Levitra</router-link>
+          <router-link :to="{ name: 'home', params: { lang: locale.value } }" @click="closeMobileMenu">Levitra</router-link>
 
-          <!-- 移动端下拉菜单：Drugs in this Class (简化版) -->
+          <!-- 移动端下拉菜单：Drugs in this Class -->
           <div class="mobile-nav-section">
             <button @click="toggleMobileSubmenu('drugs')" class="mobile-submenu-trigger">
-              Drugs in this Class
+               {{ $t('navigation.dropdownDrugs') }}
               <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'drugs' }">▼</span>
             </button>
             <div v-if="mobileSubmenuOpen === 'drugs'" class="mobile-submenu">
-              <router-link to="/Cialis" @click="closeMobileMenu">Cialis Details</router-link>
-              <router-link to="/Stendra" @click="closeMobileMenu">Stendra Details</router-link>
-              <router-link to="/Viagra" @click="closeMobileMenu">Viagra Details</router-link>
+              <router-link :to="{ name: 'cialis-blog', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.cialisBlog') }}</router-link>
+              <router-link :to="{ name: 'stendra-blog', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.stendraBlog') }}</router-link>
+              <router-link :to="{ name: 'viagra-blog', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.viagraBlog') }}</router-link>
             </div>
           </div>
 
-          <!-- 移动端下拉菜单：Drug Comparison (简化版) -->
+          <!-- 移动端下拉菜单：Drug Comparison -->
           <div class="mobile-nav-section">
             <button @click="toggleMobileSubmenu('compare')" class="mobile-submenu-trigger">
-              Drug Comparison
+              {{ $t('navigation.dropdownCompare') }}
               <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'compare' }">▼</span>
             </button>
             <div v-if="mobileSubmenuOpen === 'compare'" class="mobile-submenu">
-              <router-link to="/Levitra-vs-Viagra" @click="closeMobileMenu"
-                >Levitra vs Viagra</router-link
-              >
-              <router-link to="/Levitra-vs-Cialis" @click="closeMobileMenu"
-                >Levitra vs Cialis</router-link
-              >
-              <router-link to="/Levitra-vs-Stendra" @click="closeMobileMenu"
-                >Levitra vs Stendra</router-link
-              >
-              <router-link to="/Cialis-vs-Viagra" @click="closeMobileMenu"
-                >Cialis vs Viagra</router-link
-              >
-              <router-link to="/Cialis-vs-Stendra" @click="closeMobileMenu"
-                >Cialis vs Stendra</router-link
-              >
-              <router-link to="/Stendra-vs-Viagra" @click="closeMobileMenu"
-                >Stendra vs Viagra</router-link
-              >
+              <router-link :to="{ name: 'compare-levitra-viagra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareLvV') }}</router-link>
+              <router-link :to="{ name: 'compare-levitra-cialis', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareLvC') }}</router-link>
+              <router-link :to="{ name: 'compare-levitra-stendra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareLvS') }}</router-link>
+              <router-link :to="{ name: 'compare-cialis-viagra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareCvV') }}</router-link>
+              <router-link :to="{ name: 'compare-cialis-stendra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareCvS') }}</router-link>
+              <router-link :to="{ name: 'compare-stendra-viagra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareSvV') }}</router-link>
             </div>
           </div>
 
-          <router-link to="/news" @click="closeMobileMenu">News</router-link>
-          <router-link to="/blog" @click="closeMobileMenu">Blog</router-link>
+          <router-link :to="{ name: 'news', params: { lang: locale.value } }" @click="closeMobileMenu">News</router-link>
+          <router-link :to="{ name: 'blog', params: { lang: locale.value } }" @click="closeMobileMenu">Blog</router-link>
 
           <!-- NEW Mobile Online Submenu -->
           <div class="mobile-nav-section">
             <button @click="toggleMobileSubmenu('online')" class="mobile-submenu-trigger">
-              Buy Online
+              {{ $t('navigation.dropdownOnline') }}
               <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'online' }">▼</span>
             </button>
             <div v-if="mobileSubmenuOpen === 'online'" class="mobile-submenu">
-              <router-link to="/Buy-Levitra-Online" @click="closeMobileMenu"
-                >Levitra (vardenafil)</router-link
-              >
-              <router-link to="/Buy-Viagra-Online" @click="closeMobileMenu"
-                >Viagra (sildenafil)</router-link
-              >
-              <router-link to="/Buy-Cialis-Online" @click="closeMobileMenu"
-                >Cialis (tadalafil)</router-link
-              >
-              <router-link to="/Buy-Stendra-Online" @click="closeMobileMenu"
-                >Stendra (avanafil)</router-link
-              >
+              <router-link :to="{ name: 'buy-levitra-online', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.buyLevitra') }}</router-link>
+              <router-link :to="{ name: 'buy-viagra-online', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.buyViagra') }}</router-link>
+              <router-link :to="{ name: 'buy-cialis-online', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.buyCialis') }}</router-link>
+              <router-link :to="{ name: 'buy-stendra-online', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.buyStendra') }}</router-link>
             </div>
           </div>
         </nav>
@@ -180,7 +135,47 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { ArrowDown } from '@element-plus/icons-vue'
+
+// --- i18n --- 
+const { locale, t } = useI18n();
+
+const availableLanguages = [
+  { code: 'en', name: 'English' },
+  { code: 'zh-CN', name: '中文 (简体)' }
+];
+
+// 计算属性，显示当前语言的名称
+const currentLanguageName = computed(() => {
+  const current = availableLanguages.find(lang => lang.code === locale.value);
+  return current ? current.name : locale.value;
+});
+
+// 切换语言的方法
+const changeLanguage = (langCode) => {
+  console.log(`Attempting to change language to: ${langCode}`);
+  const currentRoute = route; // Get current route information
+  const currentLang = locale.value;
+
+  if (langCode !== currentLang) {
+    console.log(`Navigating from ${currentLang} to ${langCode} for route: ${currentRoute.name}`);
+    // 使用 router.push 进行导航，替换 lang 参数
+    router.push({
+      name: currentRoute.name, 
+      params: { ...currentRoute.params, lang: langCode }, // 保留现有参数，更新 lang
+      query: currentRoute.query, // 保留查询参数
+      hash: currentRoute.hash // 保留哈希
+    }).catch(err => {
+        // 捕获潜在的导航错误 (例如，如果路由不存在或守卫阻止)
+        console.error('Navigation error during language change:', err);
+    });
+    // 注意：不再需要手动设置 locale 或 localStorage，导航守卫会处理
+    // locale.value = langCode;
+    // localStorage.setItem('user-locale', langCode); 
+  }
+};
 
 // 控制桌面下拉菜单显示状态
 const isComparisonDropdownOpen = ref(false)
@@ -193,6 +188,9 @@ const mobileSubmenuOpen = ref(null) // 'drugs', 'compare', 'online' or null
 
 // 获取当前路由信息
 const route = useRoute()
+
+// 获取 router 实例
+const router = useRouter();
 
 // 计算属性：判断药物比较下拉菜单是否应处于活动状态
 const isComparisonActive = computed(() => {
@@ -519,5 +517,17 @@ const toggleMobileSubmenu = (menuName) => {
   .mobile-nav {
     display: none; /* 桌面隐藏移动菜单 */
   }
+}
+
+/* 语言切换下拉菜单样式 */
+.language-dropdown {
+  margin-left: 1rem; /* 与其他导航项保持一些距离 */
+  cursor: pointer;
+}
+
+.el-dropdown-link {
+  color: #333; /* 调整颜色以匹配页眉背景 */
+  display: flex;
+  align-items: center;
 }
 </style> 

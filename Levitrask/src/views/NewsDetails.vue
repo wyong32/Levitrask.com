@@ -4,11 +4,11 @@
     <main class="content-area-single-column">
       <!-- Loading State -->
       <div v-if="loading" class="loading-message main-content-middle">
-        Loading news article...
+        {{ $t('newsDetail.loading') }}
       </div>
       <!-- Error State -->
       <div v-else-if="error" class="error-message main-content-middle">
-        Failed to load article: {{ error }}
+         {{ $t('newsDetail.errorPrefix') }} {{ error }}
       </div>
       <!-- Main content area -->
       <article v-else-if="newsDetail" class="main-content-middle">
@@ -17,9 +17,9 @@
           <div v-html="newsDetail.content"></div>
         </div>
       </article>
-      <!-- Article Not Found State (handled by error now, but could be separate) -->
+      <!-- Article Not Found State -->
       <div v-else class="main-content-middle not-found-message">
-        <p>Article not found.</p>
+        <p>{{ $t('newsDetail.notFound') }}</p>
       </div>
     </main>
     <PageFooter />
@@ -27,11 +27,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
+import { useI18n } from 'vue-i18n'
+
+// i18n
+const { locale, t } = useI18n();
 
 const route = useRoute()
 const newsDetail = ref(null)
@@ -68,52 +72,60 @@ const updateMetaTags = (articleData) => {
   }
 }
 
-// Function to fetch news details
-const fetchNewsDetail = async () => {
+// Function to fetch news details based on ID and language
+const fetchNewsDetail = async (newsId, lang) => {
   loading.value = true
   error.value = null
-  const newsId = route.params.id
+  newsDetail.value = null // Clear previous detail
+  
+  console.log(`Fetching news detail for ID: ${newsId}, Lang: ${lang}`);
+  
   try {
-    // const apiUrl = '/api/news'; // Original hardcoded URL
-    const apiUrl = `${baseUrl}/api/news`; // Use environment variable
-    const response = await fetch(`${apiUrl}/${newsId}`) // Use the modified apiUrl
-    if (!response.ok) {
-      // If response is not OK (e.g., 404), throw error to be caught below
-      // We can try to parse the error message from backend if available
-      let errorMsg = `HTTP error! status: ${response.status}`;
-      try {
-          const errData = await response.json();
-          errorMsg = errData.message || errorMsg; 
-      } catch (parseErr) { /* Ignore if body isn't JSON */ }
-      throw new Error(errorMsg);
-    }
-    // If response IS ok (e.g., 200), parse the data
-    const data = await response.json()
+    const apiUrl = `${baseUrl}/api/news/${newsId}`;
+    console.log(`Requesting URL: ${apiUrl} with lang=${lang}`);
+    
+    // Pass language as a query parameter
+    const config = {
+      params: { lang }
+    };
+    
+    const response = await axios.get(apiUrl, config)
+    const data = response.data;
 
-    // Check if the returned data is a valid object with an ID
     if (data && data.id) { 
-      newsDetail.value = data; // Assign the received object directly
+      newsDetail.value = data;
       updateMetaTags(newsDetail.value);
     } else {
-      // This case handles if API returns 200 OK but invalid/empty data
-      console.warn('API returned OK but data is missing or invalid:', data);
-      error.value = `Received invalid data for article ID '${newsId}'.`;
+      // Handle case where API returns 200 but data is invalid or translation missing
+      console.warn('API returned OK but data is missing or invalid (or translation missing):', data);
+      error.value = t('newsDetail.notFound'); 
       updateMetaTags(null);
     }
   } catch (err) {
-    // Catch network errors or errors thrown from !response.ok check
     console.error('Error fetching article details:', err);
-    // Use the error message thrown (which might include backend message)
-    error.value = err.message || 'Failed to load article details.';
+    // Handle 404 specifically if backend returns it for missing item/translation
+    if (err.response && err.response.status === 404) {
+        error.value = t('newsDetail.notFound'); 
+    } else {
+        error.value = err.response?.data?.message || err.message || t('newsDetail.errorPrefix'); 
+    }
     updateMetaTags(null);
   } finally {
     loading.value = false
   }
 }
 
-// Fetch data when component mounts
-onMounted(async () => {
-  await fetchNewsDetail()
+// Fetch initial data when component mounts or route changes
+onMounted(() => {
+  fetchNewsDetail(route.params.id, locale.value)
+})
+
+// Watch for changes in route ID or locale to refetch
+watch([() => route.params.id, locale], ([newId, newLocale], [oldId, oldLocale]) => {
+  // Refetch only if ID or locale actually changed
+  if (newId !== oldId || newLocale !== oldLocale) {
+      fetchNewsDetail(newId, newLocale)
+  }
 })
 </script>
 

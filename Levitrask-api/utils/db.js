@@ -7,7 +7,10 @@ const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: {
     rejectUnauthorized: false // Necessary for Vercel Postgres
-  }
+  },
+  // Add explicit timeouts (adjust values as needed)
+  idleTimeoutMillis: 30000, // 30 seconds idle timeout
+  connectionTimeoutMillis: 5000 // 5 seconds connection timeout (0 means disabled)
 });
 
 export default pool; // Use ES Module default export 

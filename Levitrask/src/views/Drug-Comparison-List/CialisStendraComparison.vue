@@ -15,17 +15,17 @@
           <h1>Cialis VS Stendra: Which ED Medication Suits You Best?</h1>
           <p>
             When it comes to
-            <router-link to="/blog/understanding-ed">erectile dysfunction (ED)</router-link>
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'understanding-ed' } }">erectile dysfunction (ED)</router-link>
             treatments, patients are often faced with multiple choices. One of the most common
-            comparisons is <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link>. While both medications are
+            comparisons is <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>. While both medications are
             FDA-approved and effective, they differ in onset, duration, dosing, and lifestyle
             compatibility.
           </p>
           <p>
             In this blog post, we'll break down the key differences between
-            <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link>, helping you make a confident and
+            <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>, helping you make a confident and
             informed decision.
           </p>
         </header>
@@ -34,15 +34,15 @@
         <section id="what-are-drugs" class="tab-content">
           <h2>1. What Are Cialis and Stendra?</h2>
           <p>
-            Let's start the <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> discussion by understanding what each
+            Let's start the <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> discussion by understanding what each
             drug is:
           </p>
           <ul>
             <li>
               <strong
-                ><router-link to="/Cialis">Cialis</router-link> (<router-link
-                  to="/blog/tadalafil-generic-faq"
+                ><router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> (<router-link
+                  :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }"
                   >tadalafil</router-link
                 >)</strong
               >
@@ -51,8 +51,8 @@
             </li>
             <li>
               <strong
-                ><router-link to="/Stendra">Stendra</router-link> (<router-link
-                  to="/blog/avanafil-patient-guide"
+                ><router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> (<router-link
+                  :to="{ name: 'blog-details', params: { lang: locale, id: 'avanafil-patient-guide' } }"
                   >avanafil</router-link
                 >)</strong
               >
@@ -61,8 +61,8 @@
             </li>
           </ul>
           <p>
-            The <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> comparison highlights two different
+            The <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> comparison highlights two different
             approaches to treating ED — one focused on lasting power, and the other on fast action.
           </p>
         </section>
@@ -70,50 +70,50 @@
         <section id="onset-duration" class="tab-content">
           <h2>2. Cialis VS Stendra: Onset of Action and Duration</h2>
           <p>
-            In any <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> debate, timing matters:
+            In any <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> debate, timing matters:
           </p>
           <ul>
             <li>
-              <router-link to="/Cialis">Cialis</router-link> usually takes effect in 30–60 minutes
+              <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> usually takes effect in 30–60 minutes
               and can last up to 36 hours.
             </li>
             <li>
-              <router-link to="/Stendra">Stendra</router-link> works faster, with an onset as quick
+              <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> works faster, with an onset as quick
               as 15–30 minutes, but typically lasts around 6 hours.
             </li>
           </ul>
           <p>
-            So, in the case of <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link>, if you value spontaneity over time,
-            <router-link to="/Stendra">Stendra</router-link> may be more convenient. However, for
-            extended effectiveness, <router-link to="/Cialis">Cialis</router-link> has the edge.
+            So, in the case of <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>, if you value spontaneity over time,
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> may be more convenient. However, for
+            extended effectiveness, <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> has the edge.
           </p>
         </section>
 
         <section id="dosing-options" class="tab-content">
           <h2>3. Cialis VS Stendra: Dosing Options: Flexibility and Routine</h2>
           <p>
-            Another key factor in the <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> conversation is how the medications are
+            Another key factor in the <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> conversation is how the medications are
             taken:
           </p>
           <ul>
             <li>
-              <router-link to="/Cialis">Cialis</router-link> can be taken daily at a low dose or as
+              <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> can be taken daily at a low dose or as
               needed at a higher dose. This flexibility supports ongoing intimacy without the need
               for strict timing.
             </li>
             <li>
-              <router-link to="/Stendra">Stendra</router-link> is only used as needed, and is best
+              <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> is only used as needed, and is best
               taken shortly before sexual activity.
             </li>
           </ul>
           <p>
-            When choosing between <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link>, daily users might lean toward
-            <router-link to="/Cialis">Cialis</router-link>, while occasional users may prefer
-            <router-link to="/Stendra">Stendra</router-link>'s on-demand simplicity.
+            When choosing between <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>, daily users might lean toward
+            <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link>, while occasional users may prefer
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>'s on-demand simplicity.
           </p>
         </section>
 
@@ -121,23 +121,23 @@
           <h2>4. Cialis VS Stendra: Food and Alcohol Interaction</h2>
           <p>
             Dietary flexibility is also part of the
-            <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> decision:
+            <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> decision:
           </p>
           <ul>
             <li>
-              <router-link to="/Cialis">Cialis</router-link> is not significantly affected by food,
+              <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> is not significantly affected by food,
               making it easier to take with meals.
             </li>
             <li>
-              <router-link to="/Stendra">Stendra</router-link> is also food-friendly, and its
+              <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> is also food-friendly, and its
               absorption is rarely delayed by eating.
             </li>
           </ul>
           <p>
-            In the <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> comparison, both medications are
-            convenient regarding food, but <router-link to="/Stendra">Stendra</router-link> also
+            In the <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> comparison, both medications are
+            convenient regarding food, but <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> also
             allows for faster post-meal effectiveness.
           </p>
         </section>
@@ -145,52 +145,52 @@
         <section id="side-effects-safety" class="tab-content">
           <h2>5. Cialis VS Stendra: Side Effects and Safety Profile</h2>
           <p>
-            The <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> comparison wouldn't be complete without
+            The <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> comparison wouldn't be complete without
             looking at side effects:
           </p>
           <ul>
             <li>
-              <strong><router-link to="/Cialis">Cialis</router-link> common side effects:</strong>
+              <strong><router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> common side effects:</strong>
               include headache, muscle aches, back pain, and nasal congestion.
             </li>
             <li>
-              <strong><router-link to="/Stendra">Stendra</router-link> may cause:</strong>
+              <strong><router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> may cause:</strong>
               flushing, headache, nasal stuffiness, and in some cases, dizziness. It's considered to
               have a slightly lower risk of visual disturbances compared to older ED drugs.
             </li>
           </ul>
           <p>
             Patients sensitive to muscle or back pain may find
-            <router-link to="/Stendra">Stendra</router-link> more tolerable in the
-            <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> comparison.
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> more tolerable in the
+            <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> comparison.
           </p>
         </section>
 
         <section id="cost-availability" class="tab-content">
           <h2>6. Cialis VS Stendra: Cost and Availability</h2>
           <p>
-            When it comes to price, the <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> decision can also be influenced by your
+            When it comes to price, the <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> decision can also be influenced by your
             budget:
           </p>
           <ul>
             <li>
-              Generic <router-link to="/Cialis">Cialis</router-link> (<router-link
-                to="/blog/tadalafil-generic-faq"
+              Generic <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> (<router-link
+                :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }"
                 >tadalafil</router-link
               >) is widely available and typically affordable.
             </li>
             <li>
-              <router-link to="/Stendra">Stendra</router-link> is newer and less likely to be
+              <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> is newer and less likely to be
               available in a generic form, making it more expensive.
             </li>
           </ul>
           <p>
-            If cost is a major factor, <router-link to="/Cialis">Cialis</router-link> may be the
-            winner in the <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> discussion.
+            If cost is a major factor, <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> may be the
+            winner in the <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> discussion.
           </p>
         </section>
 
@@ -202,14 +202,14 @@
                 <tr>
                   <th>Feature</th>
                   <th>
-                    <router-link to="/Cialis">Cialis</router-link> (<router-link
-                      to="/blog/tadalafil-generic-faq"
+                    <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> (<router-link
+                      :to="{ name: 'blog-details', params: { lang: locale, id: 'tadalafil-generic-faq' } }"
                       >Tadalafil</router-link
                     >)
                   </th>
                   <th>
-                    <router-link to="/Stendra">Stendra</router-link> (<router-link
-                      to="/blog/avanafil-patient-guide"
+                    <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> (<router-link
+                      :to="{ name: 'blog-details', params: { lang: locale, id: 'avanafil-patient-guide' } }"
                       >Avanafil</router-link
                     >)
                   </th>
@@ -254,24 +254,24 @@
         <section id="final-thoughts" class="tab-content">
           <h2>8. Final Thoughts: Cialis VS Stendra</h2>
           <p>
-            So, who wins in the <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> debate? The answer depends on your
+            So, who wins in the <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> debate? The answer depends on your
             preferences and lifestyle:
           </p>
           <ul>
             <li>
-              Choose <router-link to="/Cialis">Cialis</router-link> if you want long-lasting
+              Choose <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> if you want long-lasting
               effects, daily dosing, and flexible timing.
             </li>
             <li>
-              Choose <router-link to="/Stendra">Stendra</router-link> if you prefer fast action,
+              Choose <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> if you prefer fast action,
               fewer muscle-related side effects, and occasional use.
             </li>
           </ul>
           <p>
-            When evaluating <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link>, always consult your
-            <router-link to="/blog/talking-to-doctor-ed">healthcare provider</router-link> to make
+            When evaluating <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link>, always consult your
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">healthcare provider</router-link> to make
             the safest and most effective choice.
           </p>
         </section>
@@ -279,11 +279,11 @@
         <section id="conclusion" class="tab-content">
           <h2>Cialis VS Stendra: Conclusion</h2>
           <p>
-            The <router-link to="/Cialis">Cialis</router-link> VS
-            <router-link to="/Stendra">Stendra</router-link> comparison shows that both medications
+            The <router-link :to="{ name: 'cialis-blog', params: { lang: locale } }">Cialis</router-link> VS
+            <router-link :to="{ name: 'stendra-blog', params: { lang: locale } }">Stendra</router-link> comparison shows that both medications
             are highly effective but cater to different lifestyles. Whether you value endurance or
             speed, you now have the facts to discuss with your
-            <router-link to="/blog/talking-to-doctor-ed">doctor</router-link>. Always choose what
+            <router-link :to="{ name: 'blog-details', params: { lang: locale, id: 'talking-to-doctor-ed' } }">doctor</router-link>. Always choose what
             aligns best with your health and relationship needs.
           </p>
         </section>
@@ -292,7 +292,7 @@
       <!-- Right Sidebar -->
       <DrugSidebar
         class="drug-sidebar-component"
-        :sidebarData="cialisStendraComparisonSidebarData"
+        :sidebarData="cialisStendraSidebarData"
         :customTitles="customSidebarTitles"
       />
     </main>
@@ -302,10 +302,13 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../../components/PageHeader.vue'
 import PageFooter from '../../components/PageFooter.vue'
 import SideNav from '../../components/SideNav.vue'
 import DrugSidebar from '../../components/DrugSidebar.vue'
+
+const { locale } = useI18n()
 
 // Navigation sections for SideNav (Updated)
 const comparisonSections = ref([
@@ -321,7 +324,7 @@ const comparisonSections = ref([
 ])
 
 // Sidebar data specific to Cialis vs Stendra (Keep existing or update as needed)
-const cialisStendraComparisonSidebarData = ref({
+const cialisStendraSidebarData = ref({
   drugStatus: {
     availability: { text: 'Both Prescription', statusClass: '' },
     approvalHistory: 'Cialis (2003), Stendra (2012)',
@@ -336,10 +339,25 @@ const cialisStendraComparisonSidebarData = ref({
     ],
   },
   relatedResources: [
-    { text: 'Levitra vs Cialis', to: '/Levitra-vs-Cialis' },
-    { text: 'Levitra vs Stendra', to: '/Levitra-vs-Stendra' },
-    { text: 'Cialis vs Viagra', to: '/Cialis-vs-Viagra' },
+    { text: "Cialis vs Levitra", to: { name: 'compare-levitra-cialis' } },
+    { text: "Cialis vs Viagra", to: { name: 'compare-cialis-viagra' } },
+    { text: "Stendra vs Levitra", to: { name: 'compare-levitra-stendra' } }, 
+    { text: "Stendra vs Viagra", to: { name: 'compare-stendra-viagra' } }, 
   ],
+  similarDrugs: [
+    { text: "Viagra (Sildenafil)", to: { name: 'viagra-blog' } },
+    { text: "Levitra (Vardenafil)", to: { name: 'home' } },
+  ],
+  drugComparison: [
+      { text: "Cialis vs Levitra", to: { name: 'compare-levitra-cialis' } },
+      { text: "Cialis vs Viagra", to: { name: 'compare-cialis-viagra' } },
+      { text: "Stendra vs Levitra", to: { name: 'compare-levitra-stendra' } }, 
+      { text: "Stendra vs Viagra", to: { name: 'compare-stendra-viagra' } }, 
+  ],
+  frequentlyAskedQuestions: [
+    { text: "Which lasts longer, Cialis or Stendra?", to: { name: 'question-details', params: { id: 'duration-cialis-stendra' } } }, // Example ID
+    { text: "Which is better for daily use?", to: { name: 'question-details', params: { id: 'daily-use-cialis-stendra' } } }, // Example ID
+  ]
 })
 
 // Define custom titles for the sidebar in this specific context
