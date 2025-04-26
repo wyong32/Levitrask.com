@@ -6,7 +6,7 @@
       <SideNav
         class="side-nav-component"
         :sections="comparisonSections"
-        content-selector=".comparison-main-content > .tab-content"
+        content-selector=".comparison-main-content"
       />
 
       <!-- 主要比较内容 -->

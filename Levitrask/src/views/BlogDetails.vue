@@ -15,12 +15,12 @@
       <template v-else-if="blogPost">
         <!-- Left Sidebar for Navigation -->
         <SideNav
-          v-if="blogPost.navSections && blogPost.navSections.length > 0"
-          :sections="blogPost.navSections"
-          content-selector=".post-body > section"
+          v-if="blogPost.nav_sections && blogPost.nav_sections.length > 0"
+          :sections="blogPost.nav_sections"
+          content-selector=".post-body"
           class="sidebar-left side-nav-component"
         />
-        <!-- Add a placeholder or adjust grid if navSections are empty -->
+        <!-- Add a placeholder or adjust grid if nav_sections are empty -->
         <div v-else class="sidebar-left-placeholder"></div>
 
         <div class="container post-container">
@@ -32,8 +32,8 @@
           <aside class="post-sidebar drug-sidebar-component">
             <!-- DrugSidebar Component -->
             <DrugSidebar
-              v-if="blogPost.sidebarData && blogPost.sidebarData.length > 0"
-              :blocks="blogPost.sidebarData"
+              v-if="blogPost.sidebar_data && blogPost.sidebar_data.length > 0"
+              :blocks="blogPost.sidebar_data"
             />
             <div v-else>
               <!-- No sidebar content for this post -->
@@ -60,8 +60,10 @@ import PageFooter from '../components/PageFooter.vue'
 import SideNav from '../components/SideNav.vue'
 import DrugSidebar from '../components/DrugSidebar.vue'
 
+// Define props to receive lang and slug from router
 const props = defineProps({
-  id: String, // Received from router props: true
+  lang: String,
+  slug: String, 
 })
 
 const route = useRoute()
@@ -73,87 +75,102 @@ const isLoading = ref(true)
 const error = ref(null)
 const postBodyRef = ref(null) // Ref for the content container
 
-// Base URL from environment variable
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+// Base URL logic (similar to BlogManagement)
+const apiBaseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : '';
+const buildApiUrl = (path) => {
+    const ensuredPath = path.startsWith('/') ? path : `/${path}`;
+    return apiBaseUrl ? `${apiBaseUrl}${ensuredPath}` : ensuredPath;
+}
 
-// --- Fetch Blog Post Data --- 
-async function fetchBlogPost(postId) {
-  if (!postId) {
-    error.value = 'No blog post ID provided.';
+// --- Fetch Blog Post Data (REVISED URL Construction) --- 
+async function fetchBlogPost(lang, slug) {
+  if (!lang || !slug) {
+    error.value = 'Language or slug parameter is missing.';
     isLoading.value = false;
     blogPost.value = null;
     updateMetaTags();
+    console.error('fetchBlogPost called with missing lang or slug:', { lang, slug });
     return;
   }
 
   isLoading.value = true
   error.value = null
-  blogPost.value = null // Reset on new fetch
+  blogPost.value = null
 
-  console.log(`Fetching blog post details for ID: ${postId}`)
+  console.log(`Fetching blog post details for lang: ${lang}, slug: ${slug}`)
 
   try {
-    // UPDATED: Use the detail endpoint
-    const detailApiUrl = `${baseUrl}/api/blogs/${postId}`; 
+    // Use the public detail API endpoint: /api/blogs/:lang/blog/:slug
+    const detailApiUrl = buildApiUrl(`/api/blogs/${lang}/blog/${slug}`); 
     console.log(`Fetching blog detail from: ${detailApiUrl}`);
-    // Assuming the detail endpoint doesn't require auth, add config if it does
+    
     const response = await axios.get(detailApiUrl); 
-    const fetchedData = response.data; // Response should be the single blog object
+    const fetchedData = response.data;
 
-    // Check if data is valid
-    if (fetchedData && fetchedData.id) { // Check for ID (or blog_id)
+    // Check if data is valid (API should return 404 if not found, but double-check)
+    if (fetchedData && fetchedData.slug) { 
       blogPost.value = fetchedData;
-      updateMetaTags(); // Update meta tags after fetching
+      console.log('+++ BlogDetails: Received blogPost data:');
+      console.log(JSON.stringify(blogPost.value, null, 2));
+      
+      updateMetaTags(blogPost.value);
       console.log('Blog post data loaded:', blogPost.value);
-
-      await nextTick(); // Wait for DOM update cycle
+      await nextTick(); 
       setupContentClickListener();
-
     } else {
-      // Handle cases where API returns 200 OK but invalid data
-      console.warn(`API returned OK but data is missing or invalid for blog ID '${postId}':`, fetchedData);
-      error.value = `Received invalid data for blog post with ID '${postId}'.`;
-      updateMetaTags(); // Update meta for not found case
+      console.warn(`API returned OK but data is missing or invalid for blog slug '${slug}' in lang '${lang}':`, fetchedData);
+      error.value = `Received invalid data for blog post.`;
+      updateMetaTags();
     }
-  // UPDATED: Catch block remains similar, but error might come from detail endpoint directly
   } catch (err) {
     console.error('Error fetching blog post details:', err);
-    // Check for 404 specifically
     if (err.response && err.response.status === 404) {
-        error.value = `Blog post with ID '${postId}' not found.`;
+        if (err.response.data?.message?.includes('Content not available')) {
+            error.value = `Content for this blog post is not available in the requested language (${lang}).`;
+        } else {
+            error.value = `Blog post with slug '${slug}' not found.`;
+        }
     } else {
         error.value = err.response?.data?.message || err.message || 'Failed to load blog post details.';
     }
-    updateMetaTags(); // Update meta for error case
+    updateMetaTags(); 
   } finally {
     isLoading.value = false
   }
 }
 
-// --- Meta Tag Management --- 
-const updateMetaTags = () => {
-  if (blogPost.value) {
-    document.title = blogPost.value.metaTitle || 'Levitrask Blog'
-    setMetaTag('description', blogPost.value.metaDescription || '')
-    setMetaTag('keywords', blogPost.value.metaKeywords || '')
-  } else {
-    document.title = 'Blog Post Not Found | Levitrask Blog'
-    setMetaTag('description', '')
-    setMetaTag('keywords', '')
-  }
+// --- Meta Tag Management (UPDATED) --- 
+const updateMetaTags = (post = null) => {
+  const title = post?.meta_title || (error.value ? 'Error Loading Blog Post' : 'Blog Post | Levitrask.com');
+  const description = post?.meta_description || (error.value || 'Blog post not found.');
+  const keywords = post?.meta_keywords || 'blog, article';
+
+  document.title = title;
+  setMetaTag('description', description);
+  setMetaTag('keywords', keywords);
+  // Add logic for canonical URL and OG tags if needed, using post.slug and props.lang
+  // Example:
+  // const canonicalUrl = `${window.location.origin}/blog/${props.lang}/${post?.slug || ''}`;
+  // setCanonicalUrl(canonicalUrl);
+  // setMetaTag('property', 'og:title', title);
+  // ... etc ...
 }
 
-const setMetaTag = (name, content) => {
-  let element = document.querySelector(`meta[name="${name}"]`)
+const setMetaTag = (nameOrProperty, content, isProperty = false) => {
+  const attr = isProperty ? 'property' : 'name';
+  let element = document.querySelector(`meta[${attr}="${nameOrProperty}"]`);
   if (!element) {
-    element = document.createElement('meta')
-    element.setAttribute('name', name)
-    document.head.appendChild(element)
+    element = document.createElement('meta');
+    element.setAttribute(attr, nameOrProperty);
+    document.head.appendChild(element);
   }
-  element.setAttribute('content', content)
-}
+  element.setAttribute('content', content || ''); // Ensure content is set
+};
 
-// --- Content Click Handler (for internal links) --- 
+// Helper for canonical (if needed)
+// const setCanonicalUrl = (url) => { ... }; 
+
+// --- Content Click Handler (Remains the same conceptually) --- 
 const handleContentClick = (event) => {
   const target = event.target.closest('a'); // Check closest anchor tag
   if (target && target.closest('.post-body')) { 
@@ -164,7 +181,7 @@ const handleContentClick = (event) => {
       event.preventDefault();
 
       // --- Check if link ALREADY has language prefix --- 
-      const langParam = route.params.lang; // Get current language from route
+      const langParam = props.lang; // Get current language from route
       const hasLangPrefix = href.startsWith(`/${langParam}/`) || href === `/${langParam}`;
 
       // If it does NOT have the prefix, add it
@@ -227,23 +244,34 @@ const getImageSrc = (imageValue) => {
   return placeholder;
 }
 
-// --- Lifecycle and Watchers --- 
+// --- Lifecycle and Watchers (UPDATED) --- 
 
-// Watch for changes in the route parameter (props.id)
+// Watch for changes in props.lang or props.slug
 watch(
-  () => props.id,
-  (newId) => {
-    fetchBlogPost(newId)
+  () => [props.lang, props.slug],
+  ([newLang, newSlug], oldValues) => { // Use oldValues directly
+    // Determine old values safely, default to undefined if oldValues doesn't exist (initial run)
+    const oldLang = oldValues ? oldValues[0] : undefined;
+    const oldSlug = oldValues ? oldValues[1] : undefined;
+
+    // Fetch if props are valid AND (
+    //  it's the initial run (oldValues is undefined) 
+    //  OR lang/slug has actually changed)
+    if (newLang && newSlug && (oldValues === undefined || newLang !== oldLang || newSlug !== oldSlug)) {
+        console.log(`Route changed or initial load. Fetching blog for lang: ${newLang}, slug: ${newSlug}`);
+        fetchBlogPost(newLang, newSlug);
+    }
   },
-  { immediate: true } // Load immediately when component mounts
+  { immediate: true } // Load data immediately when component mounts
 )
 
 onMounted(() => {
-  // Listener setup is now handled within fetchBlogPost after data loads
+  // Initial fetch is handled by the immediate watcher
+  // Listener setup is handled within fetchBlogPost after data loads
 })
 
 onUnmounted(() => {
-  removeContentClickListener(); // Cleanup listener on unmount
+  removeContentClickListener(); 
 })
 
 </script>

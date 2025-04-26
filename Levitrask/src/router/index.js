@@ -10,6 +10,8 @@ const NewsManagement = () => import('../views/admin/NewsManagement.vue');
 const BlogManagement = () => import('../views/admin/BlogManagement.vue'); // Assuming this component exists
 const QuestionManagement = () => import('../views/admin/QuestionManagement.vue'); // Assuming
 const HomeManagement = () => import('../views/admin/HomeManagement.vue');
+const SidebarManagement = () => import('../views/admin/SidebarManagement.vue'); // <--- 添加组件导入
+const ManagedPageManagement = () => import('../views/admin/ManagedPageManagement.vue'); // <-- 新导入
 // Add imports for other admin components if needed
 
 // --- Helper function to set meta tags (handles name and property) ---
@@ -198,8 +200,8 @@ const publicRoutes = [
     },
   },
   {
-    path: 'blog/:id', // 改回明确的路径
-    name: 'blog-details',
+    path: 'blog/:slug', // REMOVED duplicate :lang param
+    name: 'BlogDetails', // Matches the name used in BlogView.vue link
     component: () => import('../views/BlogDetails.vue'),
     props: true,
     meta: {
@@ -298,51 +300,105 @@ const publicRoutes = [
       keywords: '隐私, 政策, 数据保护, 用户隐私, 法律',
     },
   },
+  {
+    path: ':identifier',
+    name: 'managed-page-detail',    
+    component: () => import('../views/ManagedPageDetail.vue'), 
+    props: false,
+    meta: {
+      // Default meta tags (组件会覆盖)
+      title: 'Page Detail | Levitrask.com',
+      description: 'Detailed information.',
+      keywords: 'page, information',
+    },
+  },
 ];
 
-// --- Define Admin routes (NEW) ---
+// --- Define Admin routes (Restore Nested Structure) ---
 const adminRoutes = [
   {
-    path: '/admin/login',
+    path: 'login', 
     name: 'admin-login',
     component: AdminLogin,
     meta: { title: 'Admin Login' }
   },
   {
-    path: '/admin/dashboard',
-    component: AdminDashboard,
-    beforeEnter: requireAdminAuth, // Protect dashboard and children
+    // Path is now just 'dashboard' relative to '/admin'
+    path: 'dashboard', 
+    name: 'admin-dashboard', // Optional name for the layout route itself
+    component: AdminDashboard, // This component should have a <router-view>
+    beforeEnter: requireAdminAuth, // Apply guard to dashboard and all children
+    redirect: { name: 'admin-homepage' }, // Redirect /admin/dashboard to /admin/dashboard/homepage by default
+    meta: { title: 'Admin Dashboard', requiresAuth: true },
     children: [
       {
-        path: '', // Default route for /admin/dashboard
-        name: 'admin-dashboard-home',
-        redirect: { name: 'admin-homepage-editor' } // Redirect to homepage editor by default
-      },
-      {
-        path: 'homepage', // URL: /admin/dashboard/homepage
-        name: 'admin-homepage-editor',
+        path: 'homepage', // Full path: /admin/dashboard/homepage
+        name: 'admin-homepage',
         component: HomeManagement,
-        meta: { title: '首页内容管理' }
+        // beforeEnter is inherited unless overridden
+        meta: { title: 'Homepage Management', requiresAuth: true } // Ensure meta here too
       },
       {
-        path: 'news', 
+        path: 'news',
         name: 'admin-news',
         component: NewsManagement,
-        meta: { title: '新闻管理' }
+        meta: { title: 'News Management', requiresAuth: true }
       },
       {
-         path: 'blogs', // Matches the path from the error message
-         name: 'admin-blogs',
-         component: BlogManagement, 
-         meta: { title: '博客管理' }
-       },
+        path: 'blogs',
+        name: 'admin-blogs',
+        component: BlogManagement,
+        meta: { title: 'Blog Management', requiresAuth: true }
+      },
       {
-         path: 'questions', // Example route for questions
-         name: 'admin-questions',
-         component: QuestionManagement,
-         meta: { title: '问题管理' }
-       },
-      // Add routes for other admin sections as needed
+        path: 'questions',
+        name: 'admin-questions',
+        component: QuestionManagement,
+        meta: { title: 'Question Management', requiresAuth: true }
+      },
+      {
+        // Add the new sidebars route as a child of dashboard
+        path: 'sidebars',
+        name: 'admin-sidebars',
+        component: SidebarManagement,
+        meta: { 
+          title: 'Sidebar Management | Admin Panel',
+          requiresAuth: true
+        } 
+      },
+      {
+        path: 'drug-page-management',
+        name: 'admin-manage-drugs',
+        component: ManagedPageManagement,
+        props: { pageType: 'drug' },
+        meta: {
+          title: 'Drug Page Management',
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'manage-comparisons',
+        name: 'admin-manage-comparisons',
+        component: ManagedPageManagement,
+        props: { pageType: 'comparison' },
+        meta: {
+          title: 'Comparison Page Management',
+          requiresAuth: true
+        },
+        beforeEnter: requireAdminAuth
+      },
+      {
+        path: 'buy-online-management',
+        name: 'admin-buy-online-management',
+        component: ManagedPageManagement,
+        props: { pageType: 'buy-online' },
+        meta: {
+          title: 'Buy Online Page Management',
+          requiresAuth: true
+        },
+        beforeEnter: requireAdminAuth
+      }
+      // Add other nested admin routes here...
     ]
   }
 ];
@@ -374,9 +430,10 @@ const routes = [
     }
   },
   {
+    // Mount admin routes under /admin
     path: '/admin',
-    component: RouterView, // Use RouterView as the wrapper for admin routes
-    children: adminRoutes
+    component: RouterView, // Top-level wrapper for /admin routes
+    children: adminRoutes // Use the nested adminRoutes definition
   },
    // Add a catch-all 404 route if needed
    // { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('../views/NotFound.vue') }

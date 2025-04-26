@@ -18,7 +18,7 @@
         <SideNav
           v-if="navSections && navSections.length > 0"
           :sections="navSections"
-          content-selector=".homepage-main-content > .content-block"
+          content-selector=".homepage-main-content"
           class="sidebar-left"
         />
         <!-- Placeholder if no nav -->
@@ -51,15 +51,17 @@
           </section>
         </div>
 
-        <!-- Right Sidebar (Keep existing DrugSidebar for now, but data needs adjustment) -->
-        <!-- TODO: Decide how the right sidebar on the homepage should be populated -->
-        <!-- Option 1: Use a specific contextKey with the new backend system -->
-        <!-- Option 2: Keep it static or fetch data differently -->
+        <!-- Right Sidebar (Displaying fetched data) -->
         <aside class="sidebar-right">
-          <DrugSidebar
-            :sidebarData="staticHomepageSidebarData"
-            :customTitles="{ quickSummary: 'Levitra at a Glance' }"
-          />
+           <div v-if="isSidebarLoading" class="sidebar-loading">Loading sidebar...</div>
+           <div v-else-if="sidebarError" class="sidebar-error">{{ sidebarError }}</div>
+           <div v-else-if="sidebarBlocks && sidebarBlocks.length > 0">
+               <div v-for="(block, index) in sidebarBlocks" :key="`sidebar-block-${index}`" class="sidebar-block">
+                   <h3 v-if="block.title">{{ block.title }}</h3>
+                   <div v-html="block.html_content"></div>
+               </div>
+           </div>
+            <div v-else class="sidebar-empty"></div> <!-- Optional: Placeholder if no sidebar content -->
         </aside>
       </template>
     </main>
@@ -68,36 +70,50 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import axios from 'axios'
+import { useRoute } from 'vue-router'
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
 import SideNav from '../components/SideNav.vue' // Import SideNav
-import DrugSidebar from '../components/DrugSidebar.vue'
-import { ElDivider } from 'element-plus' // Import ElDivider if used
 
-// --- Re-added Swiper Imports ---
+// --- Swiper Imports ---
 import Swiper from 'swiper'
 import { Navigation } from 'swiper/modules'
 import 'swiper/css'
 import 'swiper/css/navigation'
-// --- End Swiper Imports ---
 
 // --- State for Dynamic Content ---
 const homepageBlocks = ref([])
 const isLoading = ref(true)
 const error = ref(null)
 
+// --- State for Right Sidebar (NEW) ---
+const sidebarBlocks = ref([]); // Array of { title: string, html_content: string }
+const isSidebarLoading = ref(false);
+const sidebarError = ref(null);
+const HOMEPAGE_IDENTIFIER = 'home'; // Identifier for homepage sidebar
+
+const route = useRoute(); // Get route object
+
 // --- API Setup ---
 const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
 const api = axios.create({ baseURL: baseUrl }) // Use a base URL if defined
 
+// Helper function to build API URL (can be moved to a utils file)
+const buildApiUrl = (path) => `${baseUrl}${path}`; // Ensure it uses baseUrl
+
 // --- Fetch Homepage Blocks ---
-const fetchHomepageBlocks = async () => {
+const fetchHomepageBlocks = async (lang) => { // Accept lang parameter
   isLoading.value = true
   error.value = null
+  homepageBlocks.value = []; // Clear previous blocks
   try {
-    const response = await api.get('/api/homepage-blocks') // Use the new public endpoint
+    console.log(`Fetching homepage blocks for language: ${lang}`); // Log language
+    // Use the new public endpoint and pass the language
+    const response = await api.get(buildApiUrl('/api/homepage-blocks'), {
+        params: { lang: lang } // Pass lang as query parameter
+    })
     homepageBlocks.value = response.data || []
     console.log('Fetched homepage blocks:', homepageBlocks.value)
   } catch (err) {
@@ -106,13 +122,49 @@ const fetchHomepageBlocks = async () => {
   } finally {
     isLoading.value = false
     // Ensure Swiper initializes *after* data is fetched and potentially rendered
-    // nextTick in onMounted might still handle this correctly, but
-    // let's explicitly re-trigger initialization check if needed
     nextTick(() => {
       initializeSwiper()
     })
   }
 }
+
+// --- Fetch Sidebar Blocks (NEW) ---
+const fetchSidebarBlocks = async (lang) => { // Accept lang parameter
+  isSidebarLoading.value = true;
+  sidebarError.value = null;
+  sidebarBlocks.value = [];
+  try {
+    // Use the public endpoint, also pass lang for sidebar if needed (adjust API if so)
+    // Assuming sidebar API also needs lang now. If not, remove lang param here.
+    const response = await api.get(buildApiUrl(`/api/sidebars`), {
+        params: { page: HOMEPAGE_IDENTIFIER, lang: lang }
+    });
+    const content = response.data;
+    if (content && Array.isArray(content)) {
+       sidebarBlocks.value = content;
+       console.log(`Fetched sidebar blocks for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}):`, sidebarBlocks.value);
+    } else if (content && typeof content === 'object' && Object.keys(content).length === 0) {
+        console.log(`No sidebar content returned for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}).`);
+        sidebarBlocks.value = [];
+    } else if (content) {
+        console.warn(`Received unexpected sidebar content format for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}):`, content);
+        sidebarBlocks.value = [];
+    } else {
+        sidebarBlocks.value = [];
+    }
+
+  } catch (error) {
+      if (error.response && error.response.status === 404) {
+          console.log(`Sidebar content not found for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}).`);
+          sidebarBlocks.value = [];
+      } else {
+         console.error("Error fetching sidebar blocks:", error);
+         sidebarError.value = error.response?.data?.message || 'Failed to load sidebar content.';
+      }
+  } finally {
+    isSidebarLoading.value = false;
+  }
+};
 
 // --- Computed Properties (NEW/MODIFIED) ---
 
@@ -202,11 +254,35 @@ const initializeSwiper = () => {
   }
 }
 
-// --- Lifecycle Hook ---
+// --- Lifecycle Hook and Watcher ---
 onMounted(() => {
-  fetchHomepageBlocks()
-  // Swiper initialization will now happen in the finally block of fetchHomepageBlocks or via observer
+  const currentLang = route.params.lang || 'en'; // Get initial language
+  console.log(`[IndexView] Mounted. Initial language: ${currentLang}`);
+  fetchHomepageBlocks(currentLang); // Fetch main blocks
+  fetchSidebarBlocks(currentLang); // Fetch sidebar blocks on mount
 })
+
+// Watch for language changes in the route params
+watch(() => route.params.lang, (newLang, oldLang) => {
+  const langToFetch = newLang || 'en'; // Use newLang or default to 'en'
+  if (langToFetch !== (oldLang || 'en')) { // Check if language actually changed
+    console.log(`[IndexView] Language changed from ${oldLang || 'initial'} to ${langToFetch}. Refetching content.`);
+    fetchHomepageBlocks(langToFetch);   // Refetch main blocks
+    fetchSidebarBlocks(langToFetch);    // Refetch sidebar blocks on lang change
+  }
+}, {
+  // immediate: true // No longer needed as onMounted handles initial fetch
+});
+
+// Watch for swiperHtmlContent changes to re-initialize Swiper
+watch(swiperHtmlContent, (newHtml, oldHtml) => {
+  if (newHtml !== oldHtml) {
+    console.log('[IndexView] Swiper HTML content changed, re-initializing Swiper...');
+    nextTick(() => {
+      initializeSwiper();
+    });
+  }
+});
 </script>
 
 <style scoped>
@@ -225,26 +301,24 @@ onMounted(() => {
   max-width: 250px; /* Maximum width */
   min-width: 180px; /* Minimum width */
   /* FIXED POSITIONING */
-  position: fixed;
+  position: sticky;
   top: 90px; /* Adjust based on header height or desired gap */
-  /* align-self: flex-start; /* No longer needed for fixed positioning */
- 
+  height: calc(100vh - 110px); /* Adjust height based on top offset and footer */
   overflow-y: auto; /* Allow sidebar itself to scroll if content is long */
   z-index: 10; /* Ensure sidebar stays on top */
 }
 
 .sidebar-left-placeholder {
-  flex: 1;
-  min-width: 200px;
+  width: 20%; /* Match width */
+  max-width: 250px;
+  min-width: 180px;
 }
 
 /* Main Content Area */
 .homepage-main-content {
-  flex-grow: 1; /* Takes up remaining space */
-  margin-left: 270px; /* sidebar max-width (250px) + layout gap (20px) */
-  min-width: 0; /* <<< ADD THIS LINE to prevent flex item overflow */
-  /* max-width calculation might need adjustment if right sidebar is also fixed */
-  /* max-width: calc(100% - 250px - 20px - width_of_right_sidebar - gap); */ 
+  flex-grow: 1;
+  /* Removed margin-left as flex handles spacing with gap */
+  min-width: 0; /* Prevent flex item overflow */
 }
 
 .drug-header {
@@ -264,13 +338,57 @@ onMounted(() => {
 
 /* Right Sidebar */
 .sidebar-right {
-  width: 20%;
-  max-width: 250px;
-  min-width: 180px;
-  /* Keep as is for now (not fixed or sticky) */
-  /* align-self: flex-start; */ /* This might still be useful depending on content */
-  /* height: calc(100vh - 40px); */ /* Height might not need to be fixed if not sticky/fixed */
+  width: 25%; /* Adjust width as needed */
+  max-width: 300px;
+  min-width: 200px;
+  /* Consider making it sticky as well */
+  /* position: sticky; */
+  /* top: 90px; */
+  /* height: calc(100vh - 110px); */
   /* overflow-y: auto; */
+}
+
+.sidebar-block {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f8f9fa; /* Light background for blocks */
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.sidebar-block h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.1em;
+  color: #343a40;
+}
+
+/* Style for content rendered via v-html within the sidebar */
+.sidebar-block > div {
+  font-size: 0.95em;
+  line-height: 1.6;
+}
+
+/* Optional: Add specific styles for elements within v-html if needed */
+.sidebar-block > div ::v-deep(a) {
+  color: #007bff;
+}
+.sidebar-block > div ::v-deep(ul),
+.sidebar-block > div ::v-deep(ol) {
+  padding-left: 20px;
+}
+
+.sidebar-loading,
+.sidebar-error {
+    padding: 15px;
+    text-align: center;
+    color: #6c757d;
+}
+.sidebar-error {
+    color: #dc3545;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
 }
 
 /* Styling for dynamic blocks */
@@ -489,5 +607,13 @@ onMounted(() => {
 /* Ensure swiper wrapper takes up space even if initially empty */
 .swiper-wrapper:empty {
   min-height: 100px; /* Or some placeholder height */
+}
+
+/* Styles for the SideNav in the right sidebar */
+.sidebar-right ::v-deep(.side-nav) {
+    border-right: none; 
+    border-left: 1px solid #dee2e6; 
+    padding-right: 0; 
+    padding-left: 1.5rem; 
 }
 </style>

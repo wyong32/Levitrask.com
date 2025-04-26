@@ -16,63 +16,43 @@
           class="el-menu-vertical-demo"
           router
         >
-          <!-- 1. 首页 -->
+          <!-- 1. 首页管理 -->
           <el-menu-item index="/admin/dashboard/homepage">
             <el-icon><HomeFilled /></el-icon>
             <span>首页管理</span>
           </el-menu-item>
 
-          <!-- 2. 药物管理 (子菜单禁用) -->
-          <el-sub-menu index="admin-drugs">
-            <template #title>
-              <el-icon><FirstAidKit /></el-icon>
-              <span>药物管理</span>
-            </template>
-            <el-menu-item index="/admin/dashboard/drugs/cialis" disabled>Cialis</el-menu-item>
-            <el-menu-item index="/admin/dashboard/drugs/stendra" disabled>Stendra</el-menu-item>
-            <el-menu-item index="/admin/dashboard/drugs/viagra" disabled>Viagra</el-menu-item>
-            <el-menu-item index="/admin/dashboard/drugs/levitra" disabled>Levitra</el-menu-item>
-          </el-sub-menu>
+          <!-- 2. 药物管理 (之前是 Drug 页面管理) -->
+          <el-menu-item index="/admin/dashboard/drug-page-management">
+            <el-icon><FirstAidKit /></el-icon>
+            <span>药物管理</span>
+          </el-menu-item>
 
-          <!-- 3. 药物对比 (子菜单禁用) -->
-          <el-sub-menu index="admin-comparisons">
-            <template #title>
-              <el-icon><ScaleToOriginal /></el-icon>
-              <span>对比管理</span>
-            </template>
-            <el-menu-item index="/admin/dashboard/comparisons/levitra-cialis" disabled>Levitra vs Cialis</el-menu-item>
-            <el-menu-item index="/admin/dashboard/comparisons/levitra-stendra" disabled>Levitra vs Stendra</el-menu-item>
-            <el-menu-item index="/admin/dashboard/comparisons/levitra-viagra" disabled>Levitra vs Viagra</el-menu-item>
-            <el-menu-item index="/admin/dashboard/comparisons/cialis-stendra" disabled>Cialis vs Stendra</el-menu-item>
-            <el-menu-item index="/admin/dashboard/comparisons/cialis-viagra" disabled>Cialis vs Viagra</el-menu-item>
-            <el-menu-item index="/admin/dashboard/comparisons/stendra-viagra" disabled>Stendra vs Viagra</el-menu-item>
-          </el-sub-menu>
+          <!-- 3. 对比管理 (之前是 对比页面管理) -->
+          <el-menu-item index="/admin/dashboard/manage-comparisons">
+            <el-icon><ScaleToOriginal /></el-icon>
+            <span>对比管理</span>
+          </el-menu-item>
 
-          <!-- 4. 新闻管理 (启用) -->
+          <!-- 4. 新闻管理 -->
           <el-menu-item index="/admin/dashboard/news">
             <el-icon><Document /></el-icon>
             <span>新闻管理</span>
           </el-menu-item>
 
-          <!-- 5. 博客管理 (启用) -->
+          <!-- 5. 博客管理 -->
           <el-menu-item index="/admin/dashboard/blogs">
             <el-icon><Notebook /></el-icon>
             <span>博客管理</span>
           </el-menu-item>
 
-          <!-- 6. 药物在线 (子菜单禁用) -->
-          <el-sub-menu index="admin-buy-online">
-            <template #title>
-              <el-icon><ShoppingCart /></el-icon>
-              <span>药物在线</span>
-            </template>
-            <el-menu-item index="/admin/dashboard/buy-online/levitra" disabled>Buy Levitra Online</el-menu-item>
-            <el-menu-item index="/admin/dashboard/buy-online/viagra" disabled>Buy Viagra Online</el-menu-item>
-            <el-menu-item index="/admin/dashboard/buy-online/cialis" disabled>Buy Cialis Online</el-menu-item>
-            <el-menu-item index="/admin/dashboard/buy-online/stendra" disabled>Buy Stendra Online</el-menu-item>
-          </el-sub-menu>
+          <!-- 6. 药物在线 (新增顶级菜单项) -->
+          <el-menu-item index="/admin/dashboard/buy-online-management">
+            <el-icon><ShoppingCart /></el-icon>
+            <span>药物在线</span>
+          </el-menu-item>
 
-          <!-- 7. 问题管理 (启用) -->
+          <!-- 7. 问题管理 -->
           <el-menu-item index="/admin/dashboard/questions">
             <el-icon><QuestionFilled /></el-icon>
             <span>问题管理</span>

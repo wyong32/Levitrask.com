@@ -18,16 +18,16 @@
       <!-- Data Loaded State -->
       <div v-else class="article-list">
         <!-- Loop through blog posts from fetched data -->
-        <article v-for="post in blogListItems" :key="post.id" class="article-item">
-          <!-- Update router-link to use named route and params -->
+        <article v-for="post in blogListItems" :key="post.slug" class="article-item">
+          <!-- Update router-link to use named route and params (lang and slug) -->
           <router-link
-            :to="{ name: 'blog-details', params: { id: post.id } }"
+            :to="{ name: 'BlogDetails', params: { lang: currentLanguage, slug: post.slug } }"
             class="article-link-wrapper"
           >
             <div class="article-image">
               <img 
                 :src="getImageSrc(post.listImageSrc)" 
-                :alt="post.listTitle || 'Blog post image'" 
+                :alt="post.listImageAlt || post.listTitle || 'Blog post image'"
               />
             </div>
             <div class="article-content">
@@ -50,92 +50,110 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
-// Remove static data import
-// import blogsData from '../Datas/BlogsData.js'
+import { useRoute } from 'vue-router'
 
-// Reactive state
-const blogsData = ref({}) // Holds the object fetched from API
+// State
+const blogsData = ref([])
 const isLoading = ref(true)
 const error = ref(null)
+const route = useRoute()
 
-// Base URL from environment variable
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+// Compute current language from route or default
+const currentLanguage = computed(() => route.params.lang || 'en')
+
+// Base URL
+const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
 
 // Fetch blog data
 onMounted(async () => {
+  fetchBlogList()
+})
+
+// Watch for language changes if the component stays mounted while lang changes
+watch(currentLanguage, (newLang, oldLang) => {
+  if (newLang !== oldLang) {
+    console.log(`Language changed to ${newLang}, fetching blog list...`)
+    fetchBlogList()
+  }
+})
+
+// Function to fetch blog list based on current language
+const fetchBlogList = async () => {
+  isLoading.value = true
+  error.value = null
   try {
-    // const apiUrl = '/api/blogs' // Original hardcoded URL
-    const apiUrl = `${baseUrl}/api/blogs`; // Use environment variable
-    console.log(`Fetching blogs from: ${apiUrl}`);
+    const apiUrl = `${baseUrl}/api/blogs?lang=${currentLanguage.value}`
+    console.log(`Fetching blogs from: ${apiUrl}`)
     const response = await axios.get(apiUrl)
-    blogsData.value = response.data // Assign the fetched object
+    if (Array.isArray(response.data)) {
+      blogsData.value = response.data
+    } else {
+      console.warn('API response data for blogs is not an array:', response.data)
+      blogsData.value = []
+    }
     error.value = null
   } catch (err) {
     console.error('Error fetching blog data:', err)
     error.value = err.response?.data?.message || err.message || 'An unknown error occurred'
-    blogsData.value = {}
+    blogsData.value = []
   } finally {
     isLoading.value = false
   }
-})
+}
 
 // Computed property to get an array for v-for
 const blogListItems = computed(() => {
-  return blogsData.value && typeof blogsData.value === 'object'
-    ? Object.values(blogsData.value)
-    : []
-  // Add sorting if needed, e.g., by date
-  // .sort((a, b) => new Date(b.listDate) - new Date(a.listDate))
+  return blogsData.value.sort((a, b) => new Date(b.listDate) - new Date(a.listDate))
 })
 
 // REVISED function with detailed logging
 const getImageSrc = (imageValue) => {
-  const placeholder = '/images/placeholder-blog.png';
-  console.log(`getImageSrc called with: '${imageValue}'`); // Log input
+  const placeholder = '/images/placeholder-blog.png'
+  console.log(`getImageSrc called with: '${imageValue}'`)
 
   if (!imageValue) {
-    console.log('Value is empty, returning placeholder.');
-    return placeholder; // Handle null, undefined, empty string
+    console.log('Value is empty, returning placeholder.')
+    return placeholder
   }
 
   // Trim whitespace just in case
-  const trimmedValue = imageValue.trim();
-  console.log(`Trimmed value: '${trimmedValue}'`);
+  const trimmedValue = imageValue.trim()
+  console.log(`Trimmed value: '${trimmedValue}'`)
 
-  console.log(`Checking startsWith('data:image'):`, trimmedValue.startsWith('data:image'));
+  console.log(`Checking startsWith('data:image'):`, trimmedValue.startsWith('data:image'))
   if (trimmedValue.startsWith('data:image')) {
-    console.log('Returning existing data URI.');
-    return trimmedValue; // Already a data URI
+    console.log('Returning existing data URI.')
+    return trimmedValue
   }
 
-  console.log(`Checking startsWith('/'):`, trimmedValue.startsWith('/')); // <<< Check this log
+  console.log(`Checking startsWith('/'):`, trimmedValue.startsWith('/'))
   if (trimmedValue.startsWith('/')) {
-    console.log('Returning relative path.'); // <<< Should see this log for '/images/...'
-    return trimmedValue; // <<< THIS LOGIC IS CORRECT
+    console.log('Returning relative path.')
+    return trimmedValue
   }
 
-  console.log(`Checking startsWith('http'):`, trimmedValue.startsWith('http'));
+  console.log(`Checking startsWith('http'):`, trimmedValue.startsWith('http'))
   if (trimmedValue.startsWith('http')) {
-    console.log('Returning absolute URL.');
-    return trimmedValue; // Absolute URL
+    console.log('Returning absolute URL.')
+    return trimmedValue
   }
 
   // If it's not empty, not a data URI, not a path, not a URL,
   // assume it's Base64 data needing the prefix.
-  console.log(`Checking length > 50:`, trimmedValue.length > 50); // <<< Check this log
-  if (trimmedValue.length > 50) { // Basic check for likely Base64 data
-      console.log('Assuming Base64, adding prefix.'); // <<< Should NOT see this for '/images/...'
+  console.log(`Checking length > 50:`, trimmedValue.length > 50)
+  if (trimmedValue.length > 50) {
+    console.log('Assuming Base64, adding prefix.')
       // Assuming PNG, adjust mime type if necessary (e.g., image/jpeg)
-      return `data:image/png;base64,${trimmedValue}`; // <<< THIS IS WHERE IT SHOULDN'T GO
+    return `data:image/png;base64,${trimmedValue}`
   }
 
   // Fallback to placeholder if it doesn't look like any valid format
-  console.warn(`Unrecognized image format for value: ${trimmedValue}, using placeholder.`);
-  return placeholder;
+  console.warn(`Unrecognized image format for value: ${trimmedValue}, using placeholder.`)
+  return placeholder
 }
 
 </script>
@@ -152,7 +170,7 @@ const getImageSrc = (imageValue) => {
 }
 
 .error-message {
-  color: #dc3545; /* Bootstrap danger color */
+  color: #dc3545 /* Bootstrap danger color */
 }
 
 /* Existing styles */

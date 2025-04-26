@@ -6,7 +6,7 @@
       <SideNav
         class="side-nav-component"
         :sections="navSections"
-        content-selector=".main-content > section"
+        content-selector=".main-content"
       />
 
       <!-- Main Content -->

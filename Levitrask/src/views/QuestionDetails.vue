@@ -44,6 +44,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
@@ -52,6 +53,7 @@ import DrugSidebar from '../components/DrugSidebar.vue'
 
 const route = useRoute()
 const router = useRouter()
+const { locale } = useI18n()
 const postBody = ref(null)
 
 // Reactive state for the question data, loading, and error
@@ -107,45 +109,56 @@ const updateMetaTags = (qData) => {
 
 // Computed properties to parse JSON safely
 const parsedNavSections = computed(() => {
-  if (questionData.value && typeof questionData.value.navSections === 'string') {
+  let result = []; // Default to empty array
+  // Use the correct snake_case property name from the API response
+  const rawNavSections = questionData.value?.nav_sections; 
+
+  if (rawNavSections && typeof rawNavSections === 'string') {
     try {
-      const parsed = JSON.parse(questionData.value.navSections);
-      return Array.isArray(parsed) ? parsed : []; // Ensure it's an array
+      const parsed = JSON.parse(rawNavSections);
+      result = Array.isArray(parsed) ? parsed : []; // Ensure it's an array
     } catch (e) {
-      console.error("Error parsing navSections JSON:", e);
-      return []; // Return empty array on parse error
+      console.error("[Debug] Error parsing nav_sections JSON:", e, "Raw data:", rawNavSections);
     }
-  } else if (Array.isArray(questionData.value?.navSections)) {
-      // Handle case where API might already return parsed JSON (unlikely with current backend)
-      return questionData.value.navSections; 
+  } else if (Array.isArray(rawNavSections)) {
+      // Handle case where API might already return parsed JSON
+      result = rawNavSections; 
   }
-  return []; // Default to empty array
+  console.log("[Debug] Parsed Nav Sections (using nav_sections):", result); // <-- Log parsed result
+  return result; // Return the result
 });
 
 const parsedSidebarData = computed(() => {
-  if (questionData.value && typeof questionData.value.sidebarData === 'string') {
+  let result = {}; // Default to empty object
+  // Use the correct snake_case property name from the API response
+  const rawSidebarData = questionData.value?.sidebar_data;
+
+  if (rawSidebarData && typeof rawSidebarData === 'string') {
     try {
-      const parsed = JSON.parse(questionData.value.sidebarData);
-      return typeof parsed === 'object' && parsed !== null ? parsed : {}; // Ensure it's an object
+      const parsed = JSON.parse(rawSidebarData);
+      result = typeof parsed === 'object' && parsed !== null ? parsed : {}; // Ensure it's an object
     } catch (e) {
-      console.error("Error parsing sidebarData JSON:", e);
-      return {}; // Return empty object on parse error
+      console.error("[Debug] Error parsing sidebar_data JSON:", e, "Raw data:", rawSidebarData);
     }
-  } else if (typeof questionData.value?.sidebarData === 'object' && questionData.value?.sidebarData !== null) {
+  } else if (typeof rawSidebarData === 'object' && rawSidebarData !== null) {
        // Handle case where API might already return parsed JSON
-      return questionData.value.sidebarData;
+      result = rawSidebarData;
   }
-  return {}; // Default to empty object
+  console.log("[Debug] Parsed Sidebar Data (using sidebar_data):", result); // <-- Log parsed result
+  return result; // Return the result
 });
 
 // Fetch question data when component mounts or route changes
 async function fetchQuestionData() {
-  const questionId = route.params.id
+  // Get ID and Lang from route params
+  const questionId = route.params.id;
+  const langCode = route.params.lang || locale.value || 'en'; // Use route lang, fallback to i18n locale, then 'en'
+
   if (!questionId) {
     error.value = 'No question ID provided.';
     isLoading.value = false;
-    questionData.value = null; // Ensure reset
-    updateMetaTags(null); // Update meta for no ID case
+    questionData.value = null;
+    updateMetaTags(null);
     return;
   }
 
@@ -153,32 +166,41 @@ async function fetchQuestionData() {
   error.value = null
   questionData.value = null // Reset on new fetch
 
-  console.log(`Fetching question details for ID: ${questionId}`)
+  console.log(`Fetching question details for ID: ${questionId}, Lang: ${langCode}`)
 
   try {
-    const apiUrl = `${baseUrl}/api/questions`; // Base API URL
-    console.log(`Fetching question from: ${apiUrl}/${questionId}`);
-    // Use axios which might handle JSON parsing automatically if Content-Type is set correctly
-    const response = await axios.get(`${apiUrl}/${questionId}`); 
+    const apiUrl = `${baseUrl}/api/questions`;
+    const requestUrl = `${apiUrl}/${questionId}?lang=${langCode}`; // Add lang as query parameter
+    console.log(`[Debug] Fetching question from: ${requestUrl}`);
     
-    // Axios throws for non-2xx, so no need for response.ok check
-    const data = response.data; // Data is already parsed by axios
+    const response = await axios.get(requestUrl);
+    
+    console.log("[Debug] Raw API Response Data:", response.data); // <-- Log raw response data
+    const data = response.data;
 
     if (data && data.id) {
       questionData.value = data; 
+      console.log("[Debug] Assigned questionData:", questionData.value);
+      // Log the actual property names from the API response
+      console.log("[Debug] Raw nav_sections from data:", questionData.value.nav_sections); 
+      console.log("[Debug] Raw sidebar_data from data:", questionData.value.sidebar_data); 
       updateMetaTags(questionData.value);
-      console.log('Question data loaded.');
+      console.log('[Debug] Question data loaded and assigned.');
+      // Ensure i18n locale matches the displayed content language
+      if (locale.value !== langCode) {
+          console.warn(`i18n locale (${locale.value}) might be out of sync with displayed lang (${langCode}). Consider updating locale.`);
+          // Optionally: locale.value = langCode; // If you want i18n to sync with URL param
+      }
     } else {
-      console.warn(`API returned OK but data is missing or invalid for ID '${questionId}':`, data);
+      console.warn(`[Debug] API returned OK but data is missing or invalid for ID '${questionId}', Lang '${langCode}':`, data);
       error.value = `Received invalid data for question ID '${questionId}'.`;
       updateMetaTags(null);
     }
 
   } catch (err) {
-    console.error('Error fetching question details:', err);
-    // Handle axios errors (e.g., err.response.status for 404)
+    console.error('[Debug] Error fetching question details:', err);
     if (err.response && err.response.status === 404) {
-        error.value = `Question with ID '${questionId}' not found.`;
+        error.value = `Question with ID '${questionId}' not found for language '${langCode}'.`; // Include lang in error
     } else {
         error.value = err.response?.data?.message || err.message || 'Failed to load question details.';
     }
@@ -188,8 +210,18 @@ async function fetchQuestionData() {
   }
 }
 
-// Watch route parameter changes to refetch data
-watch(() => route.params.id, fetchQuestionData, { immediate: true }) // Use immediate: true to fetch on initial load
+// Watch route parameter changes (BOTH id and lang) to refetch data
+watch(
+  () => route.params, // Watch the whole params object
+  (newParams, oldParams) => {
+      // Refetch only if id or lang actually changed
+      if (newParams.id !== oldParams?.id || newParams.lang !== oldParams?.lang) {
+           console.log('Route params changed, refetching data...', newParams);
+           fetchQuestionData();
+      }
+  },
+  { immediate: true, deep: true } // immediate for initial load, deep might be needed for nested params if any
+)
 
 // Event listener setup/teardown for internal links
 // Add ref="postBody" to the main content article tag in the template

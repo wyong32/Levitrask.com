@@ -170,7 +170,7 @@ export default (async () => { // <--- Start async IIFE
       port: 5173,
       proxy: {
         '/api': {
-          target: 'http://localhost:3000', // Make sure this is correct for local dev
+          target: 'http://localhost:3000', // Corrected: Added port 3000
           changeOrigin: true,
         }
       }

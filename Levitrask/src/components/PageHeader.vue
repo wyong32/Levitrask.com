@@ -18,29 +18,41 @@
         <!-- Levitra 链接 -->
         <router-link :to="{ name: 'home', params: { lang: locale.value } }">{{ $t('navigation.home') }}</router-link>
 
-        <!-- 第一个下拉菜单：Drugs in this Class -->
+        <!-- 第一个下拉菜单：Drugs in this Class (DYNAMIC) -->
         <div class="nav-item dropdown-container" @mouseenter="isBlogDropdownOpen = true" @mouseleave="isBlogDropdownOpen = false">
-          <a class="dropdown-trigger" :class="{ 'active-dropdown': isBlogActive }">{{ $t('navigation.dropdownDrugs') }} <span class="arrow" :class="{ rotated: isBlogDropdownOpen }">▼</span></a>
+          <a class="dropdown-trigger" :class="{ 'active-dropdown': isDrugActive }">{{ $t('navigation.dropdownDrugs') }} <span class="arrow" :class="{ rotated: isBlogDropdownOpen }">▼</span></a>
           <transition name="fade">
             <div class="dropdown-menu" v-show="isBlogDropdownOpen">
-              <router-link :to="{ name: 'viagra-blog', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.viagraBlog') }}</router-link>
-              <router-link :to="{ name: 'cialis-blog', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.cialisBlog') }}</router-link>
-              <router-link :to="{ name: 'stendra-blog', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.stendraBlog') }}</router-link>
+              <!-- Dynamic links using v-for -->
+              <router-link
+                v-for="page in drugLinks"
+                :key="page.page_identifier"
+                :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                class="dropdown-item">
+                {{ page.list_title }}
+              </router-link>
+              <!-- Show message if no links are loaded -->
+              <span v-if="!isLoadingDropdowns && drugLinks.length === 0" class="dropdown-item disabled">No pages found</span>
+              <span v-if="isLoadingDropdowns" class="dropdown-item disabled">Loading...</span>
             </div>
           </transition>
         </div>
 
-        <!-- 第二个下拉菜单：药物比较 -->
+        <!-- 第二个下拉菜单：药物比较 (DYNAMIC) -->
         <div class="nav-item dropdown-container" @mouseenter="isComparisonDropdownOpen = true" @mouseleave="isComparisonDropdownOpen = false">
           <a class="dropdown-trigger" :class="{ 'active-dropdown': isComparisonActive }">{{ $t('navigation.dropdownCompare') }} <span class="arrow" :class="{ rotated: isComparisonDropdownOpen }">▼</span></a>
           <transition name="fade">
             <div class="dropdown-menu" v-show="isComparisonDropdownOpen">
-              <router-link :to="{ name: 'compare-levitra-viagra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareLvV') }}</router-link>
-              <router-link :to="{ name: 'compare-levitra-cialis', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareLvC') }}</router-link>
-              <router-link :to="{ name: 'compare-levitra-stendra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareLvS') }}</router-link>
-              <router-link :to="{ name: 'compare-cialis-viagra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareCvV') }}</router-link>
-              <router-link :to="{ name: 'compare-cialis-stendra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareCvS') }}</router-link>
-              <router-link :to="{ name: 'compare-stendra-viagra', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.compareSvV') }}</router-link>
+              <!-- Dynamic links -->
+              <router-link
+                v-for="page in comparisonLinks"
+                :key="page.page_identifier"
+                :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                class="dropdown-item">
+                {{ page.list_title }}
+              </router-link>
+              <span v-if="!isLoadingDropdowns && comparisonLinks.length === 0" class="dropdown-item disabled">No pages found</span>
+              <span v-if="isLoadingDropdowns" class="dropdown-item disabled">Loading...</span>
             </div>
           </transition>
         </div>
@@ -49,15 +61,21 @@
         <router-link :to="{ name: 'news', params: { lang: locale.value } }">{{ $t('navigation.news') }}</router-link>
         <router-link :to="{ name: 'blog', params: { lang: locale.value } }">{{ $t('navigation.blog') }}</router-link>
 
-        <!-- NEW Online Dropdown -->
+        <!-- Online Dropdown (DYNAMIC) -->
         <div class="nav-item dropdown-container" @mouseenter="isOnlineDropdownOpen = true" @mouseleave="isOnlineDropdownOpen = false">
           <a class="dropdown-trigger" :class="{ 'active-dropdown': isOnlineActive }">{{ $t('navigation.dropdownOnline') }} <span class="arrow" :class="{ rotated: isOnlineDropdownOpen }">▼</span></a>
           <transition name="fade">
             <div class="dropdown-menu" v-show="isOnlineDropdownOpen">
-              <router-link :to="{ name: 'buy-levitra-online', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.buyLevitra') }}</router-link>
-              <router-link :to="{ name: 'buy-viagra-online', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.buyViagra') }}</router-link>
-              <router-link :to="{ name: 'buy-cialis-online', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.buyCialis') }}</router-link>
-              <router-link :to="{ name: 'buy-stendra-online', params: { lang: locale.value } }" class="dropdown-item">{{ $t('navigation.buyStendra') }}</router-link>
+              <!-- Dynamic links -->
+               <router-link
+                 v-for="page in buyOnlineLinks"
+                 :key="page.page_identifier"
+                 :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                 class="dropdown-item">
+                 {{ page.list_title }}
+               </router-link>
+               <span v-if="!isLoadingDropdowns && buyOnlineLinks.length === 0" class="dropdown-item disabled">No pages found</span>
+               <span v-if="isLoadingDropdowns" class="dropdown-item disabled">Loading...</span>
             </div>
           </transition>
         </div>
@@ -82,49 +100,67 @@
         <nav v-if="isMobileMenuOpen" class="mobile-nav">
           <router-link :to="{ name: 'home', params: { lang: locale.value } }" @click="closeMobileMenu">Levitra</router-link>
 
-          <!-- 移动端下拉菜单：Drugs in this Class -->
+          <!-- 移动端下拉菜单：Drugs in this Class (DYNAMIC) -->
           <div class="mobile-nav-section">
             <button @click="toggleMobileSubmenu('drugs')" class="mobile-submenu-trigger">
                {{ $t('navigation.dropdownDrugs') }}
               <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'drugs' }">▼</span>
             </button>
             <div v-if="mobileSubmenuOpen === 'drugs'" class="mobile-submenu">
-              <router-link :to="{ name: 'cialis-blog', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.cialisBlog') }}</router-link>
-              <router-link :to="{ name: 'stendra-blog', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.stendraBlog') }}</router-link>
-              <router-link :to="{ name: 'viagra-blog', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.viagraBlog') }}</router-link>
+               <!-- Dynamic links using v-for -->
+               <router-link
+                 v-for="page in drugLinks"
+                 :key="page.page_identifier"
+                 :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                 @click="closeMobileMenu">
+                 {{ page.list_title }}
+               </router-link>
+               <!-- Show message if no links are loaded -->
+               <span v-if="!isLoadingDropdowns && drugLinks.length === 0" class="mobile-submenu-item disabled">No pages found</span>
+               <span v-if="isLoadingDropdowns" class="mobile-submenu-item disabled">Loading...</span>
             </div>
           </div>
 
-          <!-- 移动端下拉菜单：Drug Comparison -->
+          <!-- 移动端下拉菜单：Drug Comparison (DYNAMIC) -->
           <div class="mobile-nav-section">
             <button @click="toggleMobileSubmenu('compare')" class="mobile-submenu-trigger">
               {{ $t('navigation.dropdownCompare') }}
               <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'compare' }">▼</span>
             </button>
             <div v-if="mobileSubmenuOpen === 'compare'" class="mobile-submenu">
-              <router-link :to="{ name: 'compare-levitra-viagra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareLvV') }}</router-link>
-              <router-link :to="{ name: 'compare-levitra-cialis', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareLvC') }}</router-link>
-              <router-link :to="{ name: 'compare-levitra-stendra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareLvS') }}</router-link>
-              <router-link :to="{ name: 'compare-cialis-viagra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareCvV') }}</router-link>
-              <router-link :to="{ name: 'compare-cialis-stendra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareCvS') }}</router-link>
-              <router-link :to="{ name: 'compare-stendra-viagra', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.compareSvV') }}</router-link>
+               <!-- Dynamic links -->
+               <router-link
+                 v-for="page in comparisonLinks"
+                 :key="page.page_identifier"
+                 :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                 @click="closeMobileMenu">
+                 {{ page.list_title }}
+               </router-link>
+               <span v-if="!isLoadingDropdowns && comparisonLinks.length === 0" class="mobile-submenu-item disabled">No pages found</span>
+               <span v-if="isLoadingDropdowns" class="mobile-submenu-item disabled">Loading...</span>
             </div>
           </div>
 
           <router-link :to="{ name: 'news', params: { lang: locale.value } }" @click="closeMobileMenu">News</router-link>
           <router-link :to="{ name: 'blog', params: { lang: locale.value } }" @click="closeMobileMenu">Blog</router-link>
 
-          <!-- NEW Mobile Online Submenu -->
+          <!-- Mobile Online Submenu (DYNAMIC) -->
           <div class="mobile-nav-section">
             <button @click="toggleMobileSubmenu('online')" class="mobile-submenu-trigger">
               {{ $t('navigation.dropdownOnline') }}
               <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'online' }">▼</span>
             </button>
             <div v-if="mobileSubmenuOpen === 'online'" class="mobile-submenu">
-              <router-link :to="{ name: 'buy-levitra-online', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.buyLevitra') }}</router-link>
-              <router-link :to="{ name: 'buy-viagra-online', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.buyViagra') }}</router-link>
-              <router-link :to="{ name: 'buy-cialis-online', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.buyCialis') }}</router-link>
-              <router-link :to="{ name: 'buy-stendra-online', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.buyStendra') }}</router-link>
+               <!-- Dynamic links -->
+                <router-link
+                  v-for="page in buyOnlineLinks"
+                  :key="page.page_identifier"
+                  :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                  @click="closeMobileMenu">
+                  {{ page.list_title }}
+                </router-link>
+               <span v-if="!isLoadingDropdowns && buyOnlineLinks.length === 0" class="mobile-submenu-item disabled">No pages found</span>
+               <span v-if="isLoadingDropdowns" class="mobile-submenu-item disabled">Loading...</span>
             </div>
           </div>
         </nav>
@@ -134,10 +170,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowDown } from '@element-plus/icons-vue'
+import axios from 'axios'
 
 // --- i18n --- 
 const { locale, t } = useI18n();
@@ -177,6 +214,32 @@ const changeLanguage = (langCode) => {
   }
 };
 
+// --- State for dynamic links ---
+const drugLinks = ref([]);
+const comparisonLinks = ref([]);
+const buyOnlineLinks = ref([]);
+const isLoadingDropdowns = ref(false);
+
+// --- API Setup ---
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+const api = axios.create({ baseURL: baseUrl });
+
+// --- Fetch Dynamic Links Function ---
+const fetchDropdownLinks = async (pageType, targetRef) => {
+  isLoadingDropdowns.value = true;
+  console.log(`Fetching dropdown links for type: ${pageType}`);
+  try {
+    const response = await api.get(`/managed-pages?type=${pageType}`);
+    targetRef.value = response.data || [];
+    console.log(`Fetched ${targetRef.value.length} links for ${pageType}:`, targetRef.value);
+  } catch (error) {
+    console.error(`Error fetching dropdown links for type ${pageType}:`, error);
+    targetRef.value = [];
+  } finally {
+    isLoadingDropdowns.value = false;
+  }
+};
+
 // 控制桌面下拉菜单显示状态
 const isComparisonDropdownOpen = ref(false)
 const isBlogDropdownOpen = ref(false)
@@ -192,28 +255,60 @@ const route = useRoute()
 // 获取 router 实例
 const router = useRouter();
 
+// --- Computed properties for dropdown active states (UPDATED) ---
+
 // 计算属性：判断药物比较下拉菜单是否应处于活动状态
 const isComparisonActive = computed(() => {
-  // Updated to include new comparison route names
-  return [
+  // Check specific comparison routes if they still exist
+  const comparisonRouteNames = [
     'compare-levitra-cialis',
     'compare-levitra-stendra',
     'compare-levitra-viagra',
     'compare-cialis-stendra',
     'compare-cialis-viagra',
     'compare-stendra-viagra',
-  ].includes(route.name)
-})
+  ];
+  const isLegacyComparisonRoute = comparisonRouteNames.includes(route.name);
 
-// 计算属性：判断博客下拉菜单是否应处于活动状态
-const isBlogActive = computed(() => {
-  return route.name?.endsWith('-blog') || route.path.startsWith('/drugs/')
-})
+  // Check if the current route is a managed page detail AND its identifier is in the comparisonLinks array
+  const isManagedComparisonPage = 
+    route.name === 'managed-page-detail' &&
+    comparisonLinks.value.some(link => link.page_identifier === route.params.identifier);
+
+  return isLegacyComparisonRoute || isManagedComparisonPage;
+});
+
+// 计算属性：判断"药物"下拉菜单是否应处于活动状态 (Renamed from isBlogActive for clarity)
+const isDrugActive = computed(() => { // Renamed from isBlogActive
+  // Check specific legacy drug routes if they exist (e.g., routes ending in -blog)
+  const legacyDrugRoutes = route.name?.endsWith('-blog'); 
+
+  // Check if the current route is a managed page detail AND its identifier is in the drugLinks array
+  const isManagedDrugPage = 
+    route.name === 'managed-page-detail' &&
+    drugLinks.value.some(link => link.page_identifier === route.params.identifier);
+
+  return legacyDrugRoutes || isManagedDrugPage;
+});
 
 // 计算属性：判断在线下拉菜单是否应处于活动状态
 const isOnlineActive = computed(() => {
-  return route.path.startsWith('/online/') || route.path === '/Buy-Levitra-Online'
-})
+  // Check specific online routes if they exist
+  const onlineRouteNames = [
+      'buy-levitra-online', 
+      'buy-viagra-online', 
+      'buy-cialis-online', 
+      'buy-stendra-online'
+  ];
+  const isLegacyOnlineRoute = onlineRouteNames.includes(route.name);
+
+  // Check if the current route is a managed page detail AND its identifier is in the buyOnlineLinks array
+  const isManagedOnlinePage = 
+    route.name === 'managed-page-detail' &&
+    buyOnlineLinks.value.some(link => link.page_identifier === route.params.identifier);
+
+  return isLegacyOnlineRoute || isManagedOnlinePage;
+});
 
 // 切换移动菜单显示/隐藏
 const toggleMobileMenu = () => {
@@ -237,6 +332,20 @@ const toggleMobileSubmenu = (menuName) => {
     mobileSubmenuOpen.value = menuName // 打开点击的那个
   }
 }
+
+// --- Lifecycle Hook (NEW) ---
+onMounted(async () => {
+    isLoadingDropdowns.value = true;
+    try {
+      await Promise.all([
+        fetchDropdownLinks('drug', drugLinks), 
+        fetchDropdownLinks('comparison', comparisonLinks), 
+        fetchDropdownLinks('buy-online', buyOnlineLinks)
+      ]);
+    } finally {
+       isLoadingDropdowns.value = false;
+    }
+});
 </script>
 
 <style scoped>
@@ -307,8 +416,8 @@ const toggleMobileSubmenu = (menuName) => {
   text-decoration: none;
 }
 
-/* 当前活动路由链接样式 */
-.desktop-nav > .router-link-active {
+/* 当前活动路由链接样式 - Use exact active */
+.desktop-nav > .router-link-exact-active {
   /* Target direct children only */
   color: #343a40;
   font-weight: 600;
@@ -451,7 +560,8 @@ const toggleMobileSubmenu = (menuName) => {
 .mobile-nav a:hover {
   background-color: #f8f9fa;
 }
-.mobile-nav a.router-link-active {
+/* Use exact active for mobile links */
+.mobile-nav a.router-link-exact-active {
   background-color: #e9ecef;
   font-weight: bold;
 }
@@ -529,5 +639,12 @@ const toggleMobileSubmenu = (menuName) => {
   color: #333; /* 调整颜色以匹配页眉背景 */
   display: flex;
   align-items: center;
+}
+
+.dropdown-item.disabled,
+.mobile-submenu-item.disabled {
+    color: #aaa;
+    cursor: default;
+    pointer-events: none; /* Prevent clicks */
 }
 </style> 
