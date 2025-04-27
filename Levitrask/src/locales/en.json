@@ -45,5 +45,20 @@
     "loading": "Loading news article...",
     "errorPrefix": "Failed to load article:",
     "notFound": "Article not found."
+  },
+  "indexView": {
+    "header": {
+      "title": "Levitra: A Comprehensive Overview of the Medication",
+      "brandNamesLabel": "Common Brand Name(s):",
+      "brandNamesValue": "Staxyn, Levitra",
+      "genericNamesLabel": "Common Generic Name(s):",
+      "genericNamesValue": "vardenafil, vardenafil HCl, vardenafil hydrochloride",
+      "pronunciationLabel": "Pronunciation:",
+      "pronunciationValue": "var-DEN-a-fil",
+      "drugClassLabel": "Drug Class:",
+      "drugClassValue": "Phosphodiesterase-5 (PDE5) inhibitor",
+      "availabilityLabel": "Availability:",
+      "availabilityValue": "Prescription only; generic available"
+    }
   }
 } 

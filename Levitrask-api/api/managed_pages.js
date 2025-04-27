@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import pool from '../../levitrask-api/utils/db.js';
-import { authenticateAdmin } from '../../levitrask-api/middleware/authMiddleware.js';
+import pool from '../../Levitrask-api/utils/db.js';
+import { authenticateAdmin } from '../../Levitrask-api/middleware/authMiddleware.js';
 
 const PROJECT_ID = 'levitrask';
 const DEFAULT_LANG = 'en'; // Define default language
@@ -38,7 +38,7 @@ const extractTranslatableFields = (body) => ({
 // Helper to extract non-translatable fields from body (for create)
 const extractNonTranslatableFields = (body) => ({
   page_identifier: body.page_identifier ? body.page_identifier.trim() : null,
-  page_type: sanitizePageType(body.page_type),
+  page_type: sanitizePageType(body.page_type)
 });
 
 // --- Admin Endpoints (Protected by authenticateAdmin) ---
@@ -278,6 +278,194 @@ managedPagesRouter.put('/admin/:id/translations/:lang', authenticateAdmin, async
   }
 });
 
+// *** NEW *** PUT /api/managed-pages/admin/reorder - Update sort order for multiple pages
+managedPagesRouter.put('/admin/reorder', authenticateAdmin, async (req, res) => {
+    const { pageType, orderedPages } = req.body;
+    const sanitizedPageType = sanitizePageType(pageType);
+
+    console.log(`[API Managed Pages] PUT /admin/reorder - Updating order for type '${sanitizedPageType}'`);
+
+    if (!sanitizedPageType) {
+        return res.status(400).json({ message: 'Invalid or missing pageType.' });
+    }
+    if (!Array.isArray(orderedPages) || orderedPages.length === 0) {
+        return res.status(400).json({ message: 'Missing or invalid orderedPages array.' });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+        console.log(`[API Managed Pages] Reorder Transaction Started for type ${sanitizedPageType}`);
+
+        const updatePromises = orderedPages.map(page => {
+            if (!page.page_identifier || typeof page.sort_order !== 'number') {
+                console.error('[API Managed Pages] Invalid item in orderedPages:', page);
+                throw new Error('Invalid data format in orderedPages array.'); // Abort transaction
+            }
+            const query = `
+                UPDATE levitrask_managed_pages
+                SET sort_order = $1, updated_at = CURRENT_TIMESTAMP
+                WHERE page_identifier = $2 AND page_type = $3 AND project_id = $4;
+            `;
+            // Log the specific update being attempted
+            // console.log(`  -> Updating ${page.page_identifier} to sort_order ${page.sort_order}`); 
+            return client.query(query, [
+                page.sort_order,
+                page.page_identifier,
+                sanitizedPageType,
+                PROJECT_ID
+            ]);
+        });
+
+        await Promise.all(updatePromises);
+
+        await client.query('COMMIT');
+        console.log(`[API Managed Pages] Reorder Transaction Committed for type ${sanitizedPageType}`);
+        res.status(200).json({ message: 'Page order updated successfully.' });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(`[API Managed Pages] Error updating page order for type '${sanitizedPageType}', transaction rolled back:`, error);
+        if (error.message.includes('Invalid data format')) {
+             res.status(400).json({ message: error.message });
+        } else {
+             res.status(500).json({ message: 'Internal Server Error updating page order.' });
+        }
+    } finally {
+        client.release();
+    }
+});
+
+// PUT /api/managed-pages/admin/:id - Update page and a specific translation
+managedPagesRouter.put('/admin/:id', authenticateAdmin, async (req, res) => {
+    const { id } = req.params;
+    const translatableFields = extractTranslatableFields(req.body);
+
+    console.log(`[API Managed Pages] PUT /admin/:id - Updating page ID '${id}'`);
+
+    if (!id || isNaN(parseInt(id))) {
+        return res.status(400).json({ message: 'Invalid Page ID.' });
+    }
+     // Basic validation for required translatable fields (adjust as needed)
+     if (!translatableFields.meta_title || !translatableFields.meta_description || !translatableFields.content) {
+        return res.status(400).json({ message: 'Missing required fields: Meta Title, Meta Description, and Content are required for translation.' });
+     }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Check if the main page exists
+        const pageCheckQuery = 'SELECT id FROM levitrask_managed_pages WHERE id = $1 AND project_id = $2';
+        const pageCheckResult = await client.query(pageCheckQuery, [id, PROJECT_ID]);
+        if (pageCheckResult.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: `Managed Page with ID ${id} not found.` });
+        }
+
+        // Update main page record
+        const updatePageQuery = `
+            UPDATE levitrask_managed_pages
+            SET page_type = $1, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2 AND project_id = $3;
+        `;
+        const updatePageValues = [
+            req.body.page_type,
+            id,
+            PROJECT_ID
+        ];
+        await client.query(updatePageQuery, updatePageValues);
+
+        // UPSERT logic for the specific language translation (using the dedicated translation endpoint logic)
+        const langCodeToUpdate = DEFAULT_LANG; // Update the default language translation with this PUT
+        const upsertTranslationQuery = `
+            INSERT INTO levitrask_managed_page_translations (
+                managed_page_id, language_code, list_title, list_description,
+                meta_title, meta_description, meta_keywords, content,
+                sidebar_data, nav_sections, updated_at
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP)
+            ON CONFLICT (managed_page_id, language_code)
+            DO UPDATE SET
+                list_title = EXCLUDED.list_title,
+                list_description = EXCLUDED.list_description,
+                meta_title = EXCLUDED.meta_title,
+                meta_description = EXCLUDED.meta_description,
+                meta_keywords = EXCLUDED.meta_keywords,
+                content = EXCLUDED.content,
+                sidebar_data = EXCLUDED.sidebar_data,
+                nav_sections = EXCLUDED.nav_sections,
+                updated_at = CURRENT_TIMESTAMP;
+        `;
+        const translationValues = [
+            id,                     // $1 managed_page_id
+            langCodeToUpdate,       // $2 language_code
+            translatableFields.list_title,        // $3
+            translatableFields.list_description,  // $4
+            translatableFields.meta_title,        // $5
+            translatableFields.meta_description,  // $6
+            translatableFields.meta_keywords,     // $7
+            translatableFields.content,           // $8
+            translatableFields.sidebar_data,      // $9
+            translatableFields.nav_sections       // $10
+        ];
+        await client.query(upsertTranslationQuery, translationValues);
+
+        await client.query('COMMIT');
+        console.log(`[API Managed Pages] Successfully updated page ID ${id}`);
+        res.status(200).json({ message: 'Page updated successfully.' });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(`[API Managed Pages] Error updating page ID ${id}:`, error);
+        res.status(500).json({ message: 'Internal Server Error updating page.', error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// DELETE /api/managed-pages/admin/:id - Delete a page and its translations
+managedPagesRouter.delete('/admin/:id', authenticateAdmin, async (req, res) => {
+    const { id } = req.params;
+    console.log(`[API Managed Pages] DELETE /admin/:id - Deleting page ID '${id}'`);
+
+    if (!id || isNaN(parseInt(id))) {
+        return res.status(400).json({ message: 'Invalid Page ID.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Delete translations
+        const deleteTranslationsQuery = 'DELETE FROM levitrask_managed_page_translations WHERE managed_page_id = $1';
+        await client.query(deleteTranslationsQuery, [id]);
+        console.log(`[API Managed Pages] Deleted translations for page ID ${id}`);
+
+        // Delete main page record
+        const deletePageQuery = 'DELETE FROM levitrask_managed_pages WHERE id = $1';
+        const deletePageResult = await client.query(deletePageQuery, [id]);
+
+        if (deletePageResult.rowCount === 0) {
+            await client.query('ROLLBACK');
+            console.error(`[API Managed Pages] Failed to delete main page record for ID ${id} after deleting translations.`);
+            return res.status(500).json({ message: 'Inconsistency during deletion. Page may be partially deleted.' });
+        }
+
+        await client.query('COMMIT');
+        console.log(`[API Managed Pages] Successfully deleted page ID ${id} and all translations`);
+        res.status(204).send(); // No Content on success
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error(`[API Managed Pages] Error deleting page ID ${id}:`, error);
+        res.status(500).json({ message: 'Internal Server Error deleting page.', error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
 // POST /api/managed-pages/admin - Create a new managed page (main record + first translation)
 // UPDATED: Accepts languageCode, creates main record and first translation record
 managedPagesRouter.post('/admin', authenticateAdmin, async (req, res) => {
@@ -429,7 +617,6 @@ managedPagesRouter.delete('/admin/:type/:identifier', authenticateAdmin, async (
   }
 });
 
-
 // --- Public Endpoints ---
 
 // GET /api/managed-pages?type=drug - Get list of pages for a specific type for public dropdown/listing
@@ -450,6 +637,7 @@ managedPagesRouter.get('/', async (req, res) => {
     const query = `
         SELECT DISTINCT
             p.page_identifier,
+            p.sort_order, -- Add sort_order to SELECT DISTINCT list
             COALESCE(t_lang.list_title, t_default.list_title) AS list_title
         FROM
             levitrask_managed_pages p
@@ -462,7 +650,9 @@ managedPagesRouter.get('/', async (req, res) => {
             AND p.page_type = $4
             AND COALESCE(t_lang.list_title, t_default.list_title) IS NOT NULL
             AND COALESCE(t_lang.list_title, t_default.list_title) <> ''
+        -- CHANGE: Order by sort_order first, then title as fallback
         ORDER BY
+            p.sort_order ASC NULLS LAST, 
             list_title ASC;
     `;
     const result = await pool.query(query, [lang, DEFAULT_LANG, PROJECT_ID, pageType]);

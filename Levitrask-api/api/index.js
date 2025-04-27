@@ -11,9 +11,9 @@ import blogsRouter from './blogs.js';
 import questionsRouter from './questions.js';
 import adminQuestionsRouter from './admin_questions.js'; // Admin question routes
 import authRouter from './auth.js'; // <-- 引入认证路由
-// Import the new homepage router
-import homepageRouter from './admin_homepage.js';
-// Import the new public content router
+// Restore original homepage router import
+import homepageRouter from './admin_homepage.js'; // Restored original import
+// import { registerHomepageRoutes } from './admin_homepage.js'; // Commented out function import
 import contentRouter from './content.js'; 
 import sidebarsRouter from './sidebars.js'; // <--- 添加引入
 import managedPagesRouter from './managed_pages.js'; // <-- 引入新的 managed pages 路由
@@ -38,23 +38,23 @@ const corsOptions = {
 };
 app.use(cors(corsOptions)); 
 
-// Body parsing middleware
+// Body parsing middleware (Temporarily commented out for testing POST)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Simple request logger middleware (Add this)
+// Simple request logger middleware
 app.use('/api', (req, res, next) => {
   console.log(`[Request Logger] Received request: ${req.method} ${req.originalUrl}`);
   next(); // Continue to next middleware/router
 });
 
-// --- Mount Routers (REORDERED) ---
-console.log('[API Entry] Mounting routers (reordered)...');
+// --- Mount Routers / Register Routes ---
+console.log('[API Entry] Mounting/Registering routers...');
 
 // 1. Mount MOST specific admin routes first
 app.use('/api/admin/questions', adminQuestionsRouter); 
 console.log('  ✓ Mounted /api/admin/questions');
-app.use('/api/admin/homepage', homepageRouter); 
+app.use('/api/admin/homepage', homepageRouter); // Restore mounting the router
 console.log('  ✓ Mounted /api/admin/homepage (blocks)');
 
 // 2. Mount other specific resource routes
@@ -71,7 +71,7 @@ console.log('  ✓ Mounted /api/managed-pages');
 app.use('/api/sidebars', sidebarsRouter);
 console.log('  ✓ Mounted /api/sidebars');
 
-// 3. Mount more general routes LAST
+// 4. Mount more general routes LAST
 app.use('/api', contentRouter); // Generic public content getter
 console.log('  ✓ Mounted /api (public content)');
 

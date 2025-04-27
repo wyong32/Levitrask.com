@@ -170,7 +170,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowDown } from '@element-plus/icons-vue'
@@ -179,9 +179,14 @@ import axios from 'axios'
 // --- i18n --- 
 const { locale, t } = useI18n();
 
+const route = useRoute();
+const router = useRouter();
+
+// Define available languages HERE, reflecting router/i18n config
 const availableLanguages = [
   { code: 'en', name: 'English' },
-  { code: 'zh-CN', name: '中文 (简体)' }
+  { code: 'zh-CN', name: '中文 (简体)' },
+  { code: 'ru', name: 'Русский' } // Added Russian
 ];
 
 // 计算属性，显示当前语言的名称
@@ -229,9 +234,14 @@ const fetchDropdownLinks = async (pageType, targetRef) => {
   isLoadingDropdowns.value = true;
   console.log(`Fetching dropdown links for type: ${pageType}`);
   try {
-    const response = await api.get(`/managed-pages?type=${pageType}`);
+    const response = await api.get(`/managed-pages`, {
+      params: { 
+        type: pageType,
+        lang: locale.value
+      } 
+    });
     targetRef.value = response.data || [];
-    console.log(`Fetched ${targetRef.value.length} links for ${pageType}:`, targetRef.value);
+    console.log(`Fetched dropdown links for type ${pageType} (lang: ${locale.value}):`, targetRef.value);
   } catch (error) {
     console.error(`Error fetching dropdown links for type ${pageType}:`, error);
     targetRef.value = [];
@@ -248,12 +258,6 @@ const isOnlineDropdownOpen = ref(false)
 // 控制移动菜单显示状态
 const isMobileMenuOpen = ref(false)
 const mobileSubmenuOpen = ref(null) // 'drugs', 'compare', 'online' or null
-
-// 获取当前路由信息
-const route = useRoute()
-
-// 获取 router 实例
-const router = useRouter();
 
 // --- Computed properties for dropdown active states (UPDATED) ---
 
@@ -345,6 +349,25 @@ onMounted(async () => {
     } finally {
        isLoadingDropdowns.value = false;
     }
+});
+
+// Watch for route changes to update active state and potentially language?
+// Watching locale changes might be needed if i18n setup doesn't automatically update components
+watch(locale, (newLocale, oldLocale) => {
+  // Prevent refetching if locale didn't actually change
+  if (newLocale && newLocale !== oldLocale) {
+     console.log(`Locale changed in header from ${oldLocale} to ${newLocale}, refetching dropdowns...`);
+     // Refetch all dropdown data when locale changes
+     // Add loading state handling if desired
+     isLoadingDropdowns.value = true; // Show loading indicator
+     Promise.all([
+       fetchDropdownLinks('drug', drugLinks),
+       fetchDropdownLinks('comparison', comparisonLinks),
+       fetchDropdownLinks('buy-online', buyOnlineLinks)
+     ]).finally(() => {
+         isLoadingDropdowns.value = false; // Hide loading indicator after all fetches complete
+     });
+  }
 });
 </script>
 

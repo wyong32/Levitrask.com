@@ -140,6 +140,93 @@ blogsRouter.get('/admin/:id', authenticateAdmin, async (req, res) => {
   }
 });
 
+// PUT /api/blogs/admin/:id - Update non-translatable blog fields
+blogsRouter.put('/admin/:id', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { slug, list_date, list_image } = req.body; // Extract fields from frontend payload
+  console.log(`[API Blogs] PUT /admin/:id - Updating non-translatable fields for ID '${id}'`);
+
+  if (isNaN(parseInt(id))) {
+    console.warn(`[API Blogs] PUT /admin/:id - Invalid Blog ID: ${id}`);
+    return res.status(400).json({ message: 'Invalid Blog ID - Expected numeric ID.' });
+  }
+
+  // Basic validation for slug (if provided, as it might not change)
+  if (slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    console.warn(`[API Blogs] PUT /admin/:id - Invalid Slug format: ${slug}`);
+    return res.status(400).json({ message: 'Invalid Slug format. Use lowercase letters, numbers, and hyphens.' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Construct dynamic update query based on provided fields
+    const fieldsToUpdate = [];
+    const values = [];
+    let valueIndex = 1;
+
+    if (slug !== undefined) { // Allow updating slug
+      fieldsToUpdate.push(`blog_id = $${valueIndex++}`);
+      values.push(slug);
+    }
+    if (list_date !== undefined) { // Allow updating list_date (can be null)
+      fieldsToUpdate.push(`list_date = $${valueIndex++}`);
+      values.push(list_date);
+    }
+    if (list_image !== undefined) { // Allow updating list_image (can be null)
+      fieldsToUpdate.push(`list_image = $${valueIndex++}`);
+      values.push(list_image);
+    }
+    
+    // Always update the updated_at timestamp
+    fieldsToUpdate.push(`updated_at = CURRENT_TIMESTAMP`);
+
+    if (values.length === 0) {
+        console.log(`[API Blogs] PUT /admin/:id - No fields provided for update for ID ${id}. Only timestamp will be updated.`);
+        // If only timestamp update is desired, proceed, otherwise could return early
+    }
+    
+    // Add the ID and project_id for the WHERE clause
+    values.push(id); // $${valueIndex++}
+    values.push(PROJECT_ID); // $${valueIndex}
+
+    const updateQuery = `
+      UPDATE levitrask_blogs
+      SET ${fieldsToUpdate.join(', ')}
+      WHERE id = $${valueIndex} AND project_id = $${valueIndex + 1}
+      RETURNING id, updated_at;
+    `;
+
+    console.log(`[API Blogs] Executing update query for ID ${id}:`, updateQuery);
+    console.log(`[API Blogs] Values:`, values);
+    const result = await client.query(updateQuery, values);
+
+    if (result.rowCount === 0) {
+      await client.query('ROLLBACK');
+      console.log(`[API Blogs] PUT /admin/:id - Blog not found for ID '${id}' during update.`);
+      return res.status(404).json({ message: `Blog with ID '${id}' not found.` });
+    }
+
+    await client.query('COMMIT');
+    console.log(`[API Blogs] Successfully updated non-translatable fields for blog ID ${id}.`);
+    res.status(200).json({ message: 'Blog base details updated successfully.', data: result.rows[0] });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    // Check for unique constraint violation on slug (blog_id)
+    if (error.code === '23505' && error.constraint === 'levitrask_blogs_project_id_blog_id_key') { 
+        console.error(`[API Blogs] PUT /admin/:id - Error: Slug '${slug}' already exists for project ${PROJECT_ID}.`, error);
+        return res.status(409).json({ message: `错误：Slug '${slug}' 在此项目中已存在。请选择一个唯一的 Slug。` });
+    } else {
+        console.error(`[API Blogs] Error updating non-translatable fields for ID ${id}:`, error);
+        res.status(500).json({ message: 'Internal Server Error updating blog base details.' });
+    }
+  } finally {
+    client.release();
+  }
+});
+
 // GET /api/blogs/admin/:id/translations/:lang - Get a specific translation
 blogsRouter.get('/admin/:id/translations/:lang', authenticateAdmin, async (req, res) => {
     const { id } = req.params;
@@ -245,75 +332,128 @@ blogsRouter.put('/admin/:id/translations/:lang', authenticateAdmin, async (req, 
   }
 });
 
-// POST /api/blogs/admin - Create a new blog (main record + first translation)
+// POST /api/blogs/admin - Create a new blog (main record + potentially multiple translations) - CORRECTED
 blogsRouter.post('/admin', authenticateAdmin, async (req, res) => {
-  console.log(`[API Blogs] POST /admin - Creating new blog`);
-  const nonTranslatable = extractBlogNonTranslatableFields(req.body);
-  const translatable = extractBlogTranslatableFields(req.body);
-  const langCode = sanitizeLangCode(req.body.languageCode) || DEFAULT_LANG;
+  console.log(`[API Blogs] POST /admin - Creating new blog with potentially multiple translations.`);
+  // Ensure req.body exists
+  if (!req.body) {
+      return res.status(400).json({ message: 'Request body is missing.' });
+  }
+  const { slug, list_date, list_image, translations } = req.body;
 
-  // Validation
-  if (!nonTranslatable.blog_id) { return res.status(400).json({ message: 'Blog Slug (blog_id) is required.' }); }
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(nonTranslatable.blog_id)) { return res.status(400).json({ message: 'Invalid Blog Slug format.' }); }
-  if (!nonTranslatable.list_image) { return res.status(400).json({ message: 'List Image URL is required.' }); }
-  if (!translatable.list_title || !translatable.content || !translatable.meta_title || !translatable.meta_description || !translatable.list_image_alt) {
-      return res.status(400).json({ message: 'Missing required translatable fields (title, content, meta title/desc, image alt).' });
+  // --- Basic Validation ---
+  if (!slug || typeof slug !== 'string' || !slug.trim()) {
+    return res.status(400).json({ message: 'Blog Slug is required and must be a non-empty string.' });
+  }
+  const trimmedSlug = slug.trim();
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(trimmedSlug)) {
+    return res.status(400).json({ message: 'Invalid Blog Slug format. Use lowercase letters, numbers, and hyphens.' });
+  }
+  if (!list_image || typeof list_image !== 'string' || !list_image.trim()) {
+    return res.status(400).json({ message: 'List Image URL is required and must be a non-empty string.' });
+  }
+  // Validate translations object structure
+  if (!translations || typeof translations !== 'object' || translations === null || Object.keys(translations).length === 0) {
+    return res.status(400).json({ message: "At least one language translation must be provided in the 'translations' object." });
   }
 
-  const client = await pool.connect();
+  // Validate default language translation presence and required fields
+  const defaultTranslation = translations[DEFAULT_LANG];
+  if (!defaultTranslation || typeof defaultTranslation !== 'object' || defaultTranslation === null) {
+    return res.status(400).json({ message: `Default language ('${DEFAULT_LANG}') translation is required and must be a valid object.` });
+  }
+  const requiredTranslatableFields = ['list_title', 'content', 'meta_title', 'meta_description', 'list_image_alt'];
+  for (const field of requiredTranslatableFields) {
+    if (!defaultTranslation[field] || typeof defaultTranslation[field] !== 'string' || !defaultTranslation[field].trim()) {
+      return res.status(400).json({ message: `Missing or invalid required field '${field}' in default language ('${DEFAULT_LANG}') translation.` });
+    }
+  }
+
+  // --- Database Operations ---
+  let client; // Define client outside try block for finally
   try {
+    client = await pool.connect();
     await client.query('BEGIN');
-    // Check uniqueness for blog_id (slug)
+
+    // 1. Check uniqueness for blog_id (slug)
     const checkQuery = 'SELECT id FROM levitrask_blogs WHERE blog_id = $1 AND project_id = $2';
-    const checkResult = await client.query(checkQuery, [nonTranslatable.blog_id, PROJECT_ID]);
+    const checkResult = await client.query(checkQuery, [trimmedSlug, PROJECT_ID]);
     if (checkResult.rowCount > 0) {
-        await client.query('ROLLBACK');
-        return res.status(409).json({ message: `Slug '${nonTranslatable.blog_id}' already exists.` });
+      await client.query('ROLLBACK'); // Rollback before sending response
+      return res.status(409).json({ message: `Slug '${trimmedSlug}' already exists.` });
     }
 
-    // Insert main blog record
+    // 2. Insert main blog record
     const insertBlogQuery = `
       INSERT INTO levitrask_blogs (blog_id, project_id, list_image, list_date, created_at, updated_at)
       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING id;
     `;
-    const blogValues = [nonTranslatable.blog_id, PROJECT_ID, nonTranslatable.list_image, nonTranslatable.list_date];
+    const blogValues = [trimmedSlug, PROJECT_ID, list_image.trim(), list_date];
     const blogResult = await client.query(insertBlogQuery, blogValues);
-    const newBlogId = blogResult.rows[0].id; // The numeric ID
+    const newBlogId = blogResult.rows[0].id;
+    console.log(`[API Blogs] Inserted main blog record with ID: ${newBlogId}`);
 
-    // Insert the first translation record
-    const insertTranslationQuery = `
-        INSERT INTO levitrask_blog_translations (
-            blog_id, language_code, list_title, list_description, meta_title, meta_description,
-            meta_keywords, nav_sections, sidebar_data, content, list_image_alt, updated_at
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP);
-    `;
-     const translationValues = [
-        newBlogId,              // $1 Use numeric ID
-        langCode,               // $2
-        translatable.list_title,        // $3
-        translatable.list_description,  // $4
-        translatable.meta_title,        // $5
-        translatable.meta_description,  // $6
-        translatable.meta_keywords,     // $7
-        translatable.nav_sections,      // $8
-        translatable.sidebar_data,      // $9
-        translatable.content,           // $10
-        translatable.list_image_alt     // $11
-    ];
-    await client.query(insertTranslationQuery, translationValues);
+    // 3. Insert translations
+    const translationInsertPromises = [];
+    const languageCodes = Object.keys(translations); // This should be line 352 or near it - SYNTAX VALID
+
+    for (const langCode of languageCodes) {
+        const sanitizedLang = sanitizeLangCode(langCode);
+        const tData = translations[langCode];
+
+        // Check if the translation data is valid and has required fields
+        if (sanitizedLang && tData && typeof tData === 'object' && tData !== null && tData.list_title && tData.content) {
+              const insertTranslationQuery = `
+                  INSERT INTO levitrask_blog_translations (
+                      blog_id, language_code, list_title, list_description, meta_title, meta_description,
+                      meta_keywords, nav_sections, sidebar_data, content, list_image_alt, updated_at
+                  )
+                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP);
+              `;
+              const translationValues = [
+                  newBlogId,
+                  sanitizedLang,
+                  tData.list_title || null,
+                  tData.list_description || null,
+                  tData.meta_title || null,
+                  tData.meta_description || null,
+                  tData.meta_keywords || null,
+                  (tData.nav_sections && Array.isArray(tData.nav_sections)) ? JSON.stringify(tData.nav_sections) : null,
+                  (tData.sidebar_data && Array.isArray(tData.sidebar_data)) ? JSON.stringify(tData.sidebar_data) : null,
+                  tData.content || null,
+                  tData.list_image_alt || null
+              ];
+               console.log(`[API Blogs] Preparing insert for translation lang: ${sanitizedLang}`);
+              translationInsertPromises.push(client.query(insertTranslationQuery, translationValues));
+        } else {
+           console.warn(`[API Blogs] Skipping translation insert for lang '${langCode}' due to missing title/content or invalid data.`);
+        }
+    } // End for loop
+
+    // Execute all valid translation inserts
+    await Promise.all(translationInsertPromises);
+
     await client.query('COMMIT');
-    console.log(`[API Blogs] Successfully created new blog ID ${newBlogId} (Slug: ${nonTranslatable.blog_id}) with first translation in ${langCode}.`);
-    res.status(201).json({ message: 'Blog created successfully', data: { id: newBlogId, slug: nonTranslatable.blog_id, languageCode: langCode } });
+    console.log(`[API Blogs] Successfully created new blog ID ${newBlogId} (Slug: ${trimmedSlug}) with provided translations.`);
+    // Send 201 Created status code
+    res.status(201).json({ message: 'Blog created successfully', data: { id: newBlogId, slug: trimmedSlug } });
+
   } catch (error) {
-    await client.query('ROLLBACK');
+    // Ensure rollback happens on any error after BEGIN
+    if (client) { 
+        try { await client.query('ROLLBACK'); } catch (rollbackError) { console.error('Error during rollback:', rollbackError); }
+    }
     console.error('[API Blogs - POST /admin] Error creating blog:', error);
-    res.status(500).json({ message: 'Internal Server Error creating blog.', error: error.message });
+    // Avoid sending detailed error messages to client in production
+    res.status(500).json({ message: 'Internal Server Error creating blog.' }); // Simplified error message
   } finally {
-    client.release();
+    // Ensure client is released back to the pool
+    if (client) {
+      client.release();
+    }
   }
-});
+}); // End POST /admin route
 
 // DELETE /api/blogs/admin/:id - Delete a blog and ALL its translations
 blogsRouter.delete('/admin/:id', authenticateAdmin, async (req, res) => {

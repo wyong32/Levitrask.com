@@ -26,6 +26,7 @@ questionsRouter.get('/', async (req, res) => {
   try {
     const query = `
       SELECT 
+        q.id AS db_id,
         q.question_id, 
         COALESCE(qt_lang.list_title, qt_default.list_title) AS list_title
       FROM levitrask_questions q
@@ -42,6 +43,7 @@ questionsRouter.get('/', async (req, res) => {
     // Restructure for frontend (keyed by question_id)
     const questions = result.rows.reduce((acc, row) => {
       acc[row.question_id] = {
+        db_id: row.db_id,
         id: row.question_id,
         question_id: row.question_id,
         listTitle: row.list_title,

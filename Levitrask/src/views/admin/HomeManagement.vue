@@ -280,7 +280,9 @@ const formRules = reactive({
 });
 
 // --- API Setup ---
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'; // Restored original
+// const baseUrl = 'http://localhost:3000/api'; // Commented out direct backend URL
+console.log(`[API Setup] Using baseURL: ${baseUrl}`); // Changed log message
 const api = axios.create({ baseURL: baseUrl });
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('admin-auth-token');
@@ -289,6 +291,8 @@ api.interceptors.request.use(config => {
   } else {
      console.warn("Admin token not found in localStorage for API request.");
   }
+  // Log the final config before sending
+  console.log('Axios Request Config:', JSON.stringify(config, null, 2)); 
   return config;
 }, error => {
   return Promise.reject(error);
@@ -447,14 +451,15 @@ const handleEditBlock = (block) => {
   blockForm.id = block.id;
   blockForm.block_id = block.block_id;
 
-  // Populate form with existing translations, filling gaps for supported languages
+  // Populate form with existing translations, filling gaps for ALL supported languages
   const existingTranslations = block.translations || [];
   blockForm.translations = supportedLanguages.value.map(lang => {
       const existing = existingTranslations.find(t => t.language_code === lang.code);
+      // If existing translation found, use it, otherwise create a new empty structure
       return existing ? cloneDeep(existing) : {
           language_code: lang.code,
-          nav_title: '', // Default to empty if no translation exists yet
-          html_content: '' // Default to empty
+          nav_title: '', // Default to empty string
+          html_content: ''  // Default to empty string
       };
   });
 
@@ -469,7 +474,7 @@ const handleDeleteBlock = async (row) => {
       { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
     );
     try {
-      await api.delete(`/admin/homepage/homepage-blocks/${row.id}`); 
+      await api.delete(`/admin/homepage/homepage-blocks/${row.id}`);
       ElMessage.success('区块删除成功！');
       fetchHomepageBlocks();
     } catch (error) {
@@ -569,34 +574,54 @@ const createBlockWithTranslations = async () => {
             html_content: t.html_content
         }))
     };
-    console.log("POST /admin/homepage-blocks payload:", payload);
-    await api.post('/admin/homepage-blocks', payload);
+    console.log("POST /admin/homepage/homepage-blocks payload:", payload);
+    await api.post('/admin/homepage/homepage-blocks', payload);
 };
 
 const updateBlockAndTranslations = async () => {
     const blockDbId = blockForm.id;
-    if (!blockDbId) { // No need to check originalBlockData here for basic update
-        throw new Error("无法更新：缺少区块 ID。");
+    if (!blockDbId) { 
+        throw new Error("无法更新：缺少区块数据库 ID。");
     }
     const updatePromises = [];
-    // Update/Insert each translation via the dedicated endpoint
-    // blockForm.translations now always contains entries for all supported languages
+
+    // Ensure we iterate through all languages present in the form's structure
+    // (which should now match supportedLanguages thanks to handleEditBlock)
+    if (!Array.isArray(blockForm.translations)) {
+         throw new Error("内部错误：blockForm.translations 不是数组。");
+    }
+
     blockForm.translations.forEach(t => {
+        // Validate language code exists before proceeding
+        if (!t.language_code || typeof t.language_code !== 'string') {
+            console.warn('Skipping translation update due to missing/invalid language_code:', t);
+            return; // Skip this iteration
+        }
+        
         const translationPayload = {
-            nav_title: t.nav_title.trim(),
-            html_content: t.html_content
+            // Ensure nav_title is always a string, trim whitespace
+            nav_title: (t.nav_title || '').trim(), 
+            // Ensure html_content is either a string or null, don't trim HTML
+            html_content: (typeof t.html_content === 'string' ? t.html_content : null) 
         };
-        // Only send update if nav_title is not empty? Optional refinement.
-        // if (translationPayload.nav_title) { 
-           console.log(`PUT /admin/homepage-blocks/${blockDbId}/translations/${t.language_code} payload:`, translationPayload);
-           updatePromises.push(
-               api.put(`/admin/homepage-blocks/${blockDbId}/translations/${t.language_code}`, translationPayload)
-           );
-        // }
+
+        // Send PUT request for every language defined in the form,
+        // even if fields are empty (to allow creating/clearing translations)
+        console.log(`Sending PUT /admin/homepage/homepage-blocks/${blockDbId}/translations/${t.language_code} payload:`, translationPayload);
+        updatePromises.push(
+            api.put(`/admin/homepage/homepage-blocks/${blockDbId}/translations/${t.language_code}`, translationPayload)
+        );
     });
-    // Deletion logic is still omitted as per previous decision
+
+    if (updatePromises.length === 0) {
+        console.warn("No valid translations found in the form to update.");
+        // Optionally throw an error or just return if no updates are possible
+        // throw new Error("没有有效的翻译可以更新。"); 
+        return; // Or proceed if only block_id update was intended (though PUT /:id is separate now)
+    }
+
     await Promise.all(updatePromises);
-    console.log(`Block ${blockDbId} translations updated.`);
+    console.log(`Block ${blockDbId} translations updated/created/cleared.`);
 };
 
 // --- Save Order ---
@@ -610,7 +635,7 @@ const saveOrder = async () => {
     try {
         const currentOrderedIds = homepageBlocks.value.map(block => block.id);
         console.log("Saving new order:", currentOrderedIds);
-        await api.put('/admin/homepage-blocks/reorder', { orderedIds: currentOrderedIds });
+        await api.put('/admin/homepage/homepage-blocks/reorder', { orderedIds: currentOrderedIds });
         ElMessage.success("顺序保存成功！");
         orderChanged.value = false;
         await fetchHomepageBlocks(); // Re-fetch to update display_order shown in table and reset originalOrderIds
@@ -796,6 +821,7 @@ const getTranslation = (translations, langCode, field) => {
 const supportedLanguages = ref([ // Ensure this is defined
   { code: 'en', name: 'English' },
   { code: 'zh-CN', name: '简体中文' },
+  { code: 'ru', name: 'Русский' }, // Added Russian
   // { code: 'es', name: 'Español' }, // Keep Spanish removed if desired
 ]);
 const DEFAULT_LANG = 'en'; // Define default lang, ensure consistency
@@ -967,18 +993,5 @@ const DEFAULT_LANG = 'en'; // Define default lang, ensure consistency
     margin-bottom: 20px;
 }
 
-/* Remove old sidebar specific styles if not needed */
-.sidebar-block-item {
-    /* Removed border/padding - now handled by table rows */
-}
-.language-group {
-    /* Removed - now using tabs in dialog */
-}
-.sidebar-block-actions {
-    /* Removed - now part of table actions column */
-}
-.sidebar-buttons-container {
-   /* Removed - Buttons moved to sidebar-header */
-}
 
 </style>

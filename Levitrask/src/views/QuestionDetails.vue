@@ -30,9 +30,12 @@
         <p>Question Not Found</p>
       </div>
 
-      <!-- Right Sidebar: DrugSidebar -->
-      <aside v-if="!isLoading && !error && parsedSidebarData && Object.keys(parsedSidebarData).length > 0" class="sidebar-right">
-        <DrugSidebar :sidebar-data="parsedSidebarData" />
+      <!-- Right Sidebar: Render Blocks -->
+      <aside v-if="!isLoading && !error && parsedSidebarData && parsedSidebarData.length > 0" class="sidebar-right question-sidebar">
+          <div v-for="(block, index) in parsedSidebarData" :key="`sidebar-block-${index}`" class="sidebar-block">
+              <h4 v-if="block.title" class="sidebar-block-title">{{ block.title }}</h4>
+              <div v-if="block.content" v-html="block.content" class="sidebar-block-content"></div>
+          </div>
       </aside>
       <div v-else-if="!isLoading && !error" class="sidebar-right placeholder"></div> <!-- Optional: Placeholder if no sidebar data -->
 
@@ -49,7 +52,6 @@ import axios from 'axios'
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
 import SideNav from '../components/SideNav.vue'
-import DrugSidebar from '../components/DrugSidebar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -129,23 +131,27 @@ const parsedNavSections = computed(() => {
 });
 
 const parsedSidebarData = computed(() => {
-  let result = {}; // Default to empty object
-  // Use the correct snake_case property name from the API response
+  // CHANGE: Expect and return an array of blocks
+  let result = []; // Default to empty array
   const rawSidebarData = questionData.value?.sidebar_data;
 
   if (rawSidebarData && typeof rawSidebarData === 'string') {
     try {
       const parsed = JSON.parse(rawSidebarData);
-      result = typeof parsed === 'object' && parsed !== null ? parsed : {}; // Ensure it's an object
+      // Ensure the parsed result is an array
+      result = Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       console.error("[Debug] Error parsing sidebar_data JSON:", e, "Raw data:", rawSidebarData);
+      result = []; // Default to empty array on error
     }
-  } else if (typeof rawSidebarData === 'object' && rawSidebarData !== null) {
-       // Handle case where API might already return parsed JSON
-      result = rawSidebarData;
+  } else if (Array.isArray(rawSidebarData)) {
+    // Handle case where API might already return parsed array
+    result = rawSidebarData;
   }
-  console.log("[Debug] Parsed Sidebar Data (using sidebar_data):", result); // <-- Log parsed result
-  return result; // Return the result
+  // Filter out any blocks that might be malformed (optional)
+  // result = result.filter(block => typeof block === 'object' && block !== null);
+  console.log("[Debug] Parsed Sidebar Data (expecting array):", result);
+  return result;
 });
 
 // Fetch question data when component mounts or route changes
@@ -438,5 +444,36 @@ onUnmounted(() => {
 .post-body :deep(.simple-table th),
 .post-body :deep(.simple-table td) {
   vertical-align: middle;
+}
+
+/* Add some basic styling for the new sidebar blocks */
+.question-sidebar .sidebar-block {
+  background-color: #f9f9f9; /* Light background for blocks */
+  border: 1px solid #eee;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+}
+
+.question-sidebar .sidebar-block-title {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.1em; /* Slightly larger title */
+  font-weight: 600;
+  color: #303133;
+}
+
+/* Style for content rendered via v-html if needed */
+.question-sidebar .sidebar-block-content :deep(p) {
+  margin-top: 0;
+  margin-bottom: 1em;
+  line-height: 1.6;
+}
+.question-sidebar .sidebar-block-content :deep(a) {
+  color: var(--link-color); /* Use existing link color */
+  text-decoration: none;
+}
+.question-sidebar .sidebar-block-content :deep(a:hover) {
+  text-decoration: underline;
 }
 </style> 

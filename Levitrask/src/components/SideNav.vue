@@ -168,7 +168,7 @@ onUnmounted(() => {
 .side-nav {
   flex: 1;
   position: sticky;
-  top: 100px;
+  top: 0;
   height: fit-content;
   align-self: flex-start;
   padding-right: 1.5rem;

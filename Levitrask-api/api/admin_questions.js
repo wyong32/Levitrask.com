@@ -49,6 +49,61 @@ adminQuestionsRouter.get('/', authenticateAdmin, async (req, res) => {
   }
 });
 
+// GET /:id (Fetch single question details with all translations)
+// Mounted at /api/admin/questions/:id
+adminQuestionsRouter.get('/:id(\\d+)', authenticateAdmin, async (req, res) => {
+    const mainDbId = parseInt(req.params.id, 10);
+    console.log(`[API Admin Questions] GET /:id - Fetching details for DB ID: ${mainDbId}`);
+
+    if (isNaN(mainDbId)) {
+        return res.status(400).json({ message: 'Invalid DB ID format.' });
+    }
+
+    try {
+        // This query should fetch the question's main data and aggregate its translations
+        const fetchQuery = `
+            SELECT
+                q.*, -- Select all columns from the main question table (or specify needed ones)
+                COALESCE(t_agg.translations, '[]'::jsonb) AS translations
+            FROM levitrask_questions q
+            LEFT JOIN (
+                SELECT
+                    qt.question_main_id,
+                    -- Aggregate all necessary translation fields into a JSON array
+                    jsonb_agg(jsonb_build_object(
+                        'language_code', qt.language_code,
+                        'list_title', qt.list_title,
+                        'meta_title', qt.meta_title,
+                        'meta_description', qt.meta_description,
+                        'meta_keywords', qt.meta_keywords,
+                        'nav_sections', qt.nav_sections,
+                        'sidebar_data', qt.sidebar_data,
+                        'content', qt.content,
+                        'updated_at', qt.updated_at
+                        -- Add other translation fields if needed
+                    ) ORDER BY qt.language_code) AS translations
+                FROM levitrask_questions_translations qt
+                GROUP BY qt.question_main_id
+            ) t_agg ON q.id = t_agg.question_main_id
+            WHERE q.id = $1 AND q.project_id = $2; -- Assuming PROJECT_ID is defined in the file scope
+        `;
+        // Make sure PROJECT_ID is defined similar to how it's used in other routes
+        const result = await pool.query(fetchQuery, [mainDbId, PROJECT_ID]);
+
+        if (result.rows.length === 0) {
+            console.log(`  Question not found for DB ID: ${mainDbId}`);
+            return res.status(404).json({ message: `Question with DB ID ${mainDbId} not found.` });
+        }
+
+        console.log(`  Successfully fetched details for DB ID: ${mainDbId}`);
+        res.status(200).json(result.rows[0]); // Return the single question object
+
+    } catch (error) {
+        console.error(`Error fetching question details for DB ID ${mainDbId}:`, error);
+        res.status(500).json({ message: 'Internal Server Error fetching question details.' });
+    }
+});
+
 // POST / (Create new question with translations)
 // Mounted at /api/admin/questions
 adminQuestionsRouter.post('/', authenticateAdmin, async (req, res) => {
@@ -109,12 +164,12 @@ adminQuestionsRouter.post('/', authenticateAdmin, async (req, res) => {
                 question_main_id, language_code, list_title, meta_title, meta_description,
                 meta_keywords, nav_sections, sidebar_data, content, created_at, updated_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
         `;
         for (const t of translations) {
-            // Ensure JSON fields are stringified if necessary or handled as objects by the driver
-            const navSections = t.nav_sections || []; // Default to empty array
-            const sidebarData = t.sidebar_data || {}; // Default to empty object
+            // CHANGE: Use camelCase to access properties from frontend payload
+            const navSections = t.navSections || [];
+            const sidebarData = t.sidebarData || []; // Default to empty array now
 
             const translationValues = [
                 newQuestionMainId,
@@ -123,8 +178,9 @@ adminQuestionsRouter.post('/', authenticateAdmin, async (req, res) => {
                 t.meta_title || null,
                 t.meta_description || null,
                 t.meta_keywords || null,
-                navSections,
-                sidebarData,
+                // CHANGE: Stringify JSON fields before sending
+                JSON.stringify(navSections),
+                JSON.stringify(sidebarData),
                 t.content || null
             ];
              console.log(`  Inserting translation for lang: ${t.language_code}`);
@@ -248,91 +304,78 @@ adminQuestionsRouter.put('/:id(\\d+)', authenticateAdmin, async (req, res) => {
     } catch (error) {
         if (error.code === '23505') { // Handle unique constraint violation (e.g., on question_id)
              console.error(`Error updating question ${mainDbId}: Unique constraint violation.`, error.detail);
-             // Determine which field caused the violation if possible
-             return res.status(409).json({ message: 'Update failed due to unique constraint violation (e.g., Question ID already exists).' });
+             return res.status(409).json({ message: `Slug \"${question_id}\" already exists.` }); // Use question_id in message
         }
-        console.error(`Error updating main question fields for DB ID ${mainDbId}:`, error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        console.error(`Error updating non-translatable fields for DB ID ${mainDbId}:`, error);
+        res.status(500).json({ message: 'Internal Server Error updating question.' });
     }
 });
 
-// PUT /:id/translations/:lang (Add/Update a specific translation)
+// PUT /:id/translations/:lang (UPSERT: Update or Insert Translation)
 // Mounted at /api/admin/questions/:id/translations/:lang
 adminQuestionsRouter.put('/:id(\\d+)/translations/:lang', authenticateAdmin, async (req, res) => {
     const mainDbId = parseInt(req.params.id, 10);
-    const lang = req.params.lang.trim();
-    // Extract all translatable fields from body
-    const {
-        list_title, meta_title, meta_description, meta_keywords,
-        nav_sections, sidebar_data, content
-    } = req.body;
-    console.log(`[API Admin Questions] PUT /:id/translations/:lang - Upserting translation for DB ID: ${mainDbId}, Lang: ${lang}`);
+    const langCode = req.params.lang;
+    const { list_title, meta_title, meta_description, meta_keywords, navSections, sidebarData, content } = req.body;
+
+    console.log(`[API Admin Questions] PUT /:id/translations/:lang - UPSERTing translation for DB ID: ${mainDbId}, Lang: ${langCode}`);
 
     // --- Validation ---
-     if (isNaN(mainDbId)) {
+    if (isNaN(mainDbId)) {
         return res.status(400).json({ message: 'Invalid DB ID format.' });
     }
-    if (!lang || !/^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) { // More specific lang code validation
-        return res.status(400).json({ message: 'A valid language code (e.g., en, zh-CN) is required.' });
+    // Basic lang code validation (can be enhanced)
+    if (!langCode || typeof langCode !== 'string' || langCode.length > 10) {
+        return res.status(400).json({ message: 'Invalid or missing language code.' });
     }
-    // Add validation for required translated fields if necessary (e.g., list_title or content)
-    // if (!list_title) { return res.status(400).json({ message: 'List Title is required.'}); }
-
-     // Ensure JSON fields have defaults if not provided
-    const navSections = nav_sections || [];
-    const sidebarData = sidebar_data || {};
+    // Add validation for required fields if necessary (e.g., list_title for default lang?)
+    // if (langCode === 'en' && !list_title) { return res.status(400).json({ message: 'Default language requires a list title.'}); }
 
     try {
-        // Check if the main question exists first
-        const checkQuery = 'SELECT id FROM levitrask_questions WHERE id = $1 AND project_id = $2';
-        const checkResult = await pool.query(checkQuery, [mainDbId, PROJECT_ID]);
-        if (checkResult.rowCount === 0) {
-             return res.status(404).json({ message: `Main question with DB ID ${mainDbId} not found.` });
-        }
-
-        // UPSERT Logic
         const upsertQuery = `
             INSERT INTO levitrask_questions_translations (
                 question_main_id, language_code, list_title, meta_title, meta_description,
                 meta_keywords, nav_sections, sidebar_data, content, created_at, updated_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            ON CONFLICT (question_main_id, language_code)
-            DO UPDATE SET
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (question_main_id, language_code) DO UPDATE SET
                 list_title = EXCLUDED.list_title,
                 meta_title = EXCLUDED.meta_title,
                 meta_description = EXCLUDED.meta_description,
                 meta_keywords = EXCLUDED.meta_keywords,
-                nav_sections = EXCLUDED.nav_sections, -- Use EXCLUDED for jsonb columns
-                sidebar_data = EXCLUDED.sidebar_data, -- Use EXCLUDED for jsonb columns
+                nav_sections = EXCLUDED.nav_sections, 
+                sidebar_data = EXCLUDED.sidebar_data, 
                 content = EXCLUDED.content,
                 updated_at = CURRENT_TIMESTAMP
-            RETURNING *; -- Return the upserted row
+            RETURNING *; -- Return the inserted or updated row
         `;
-        // Explicitly stringify JSON fields before sending to db
-        const upsertValues = [
-            mainDbId, 
-            lang, 
-            list_title || null, 
-            meta_title || null, 
+
+        // Prepare values - use the camelCase variables destructured above
+        const values = [
+            mainDbId,
+            langCode.trim(),
+            list_title || null,
+            meta_title || null,
             meta_description || null,
-            meta_keywords || null, 
-            JSON.stringify(navSections), // Stringify navSections
-            JSON.stringify(sidebarData), // Stringify sidebarData
+            meta_keywords || null,
+            JSON.stringify(navSections || []),
+            JSON.stringify(sidebarData || []),
             content || null
         ];
-        console.log('Executing Translation Upsert:', upsertValues); // Log values being sent
-        const result = await pool.query(upsertQuery, upsertValues);
 
-        console.log(`  Translation upserted successfully for DB ID: ${mainDbId}, Lang: ${lang}`);
-        res.status(200).json(result.rows[0]); // Return the updated/inserted translation
+        console.log('Executing UPSERT query for translation:', upsertQuery, values);
+        const result = await pool.query(upsertQuery, values);
+
+        console.log(`  Successfully UPSERTed translation for DB ID: ${mainDbId}, Lang: ${langCode}`);
+        res.status(200).json(result.rows[0]); // Return the created/updated translation
 
     } catch (error) {
-        console.error(`Error upserting translation for question DB ID ${mainDbId}, Lang ${lang}:`, error);
-        // Reverted to simpler error response
-        res.status(500).json({ 
-            message: 'Internal Server Error during translation update.'
-        });
+        console.error(`Error UPSERTing translation for DB ID ${mainDbId}, Lang ${langCode}:`, error);
+        // Check for foreign key violation (if question with mainDbId doesn't exist)
+        if (error.code === '23503') { // Foreign key violation
+             return res.status(404).json({ message: `Question with DB ID ${mainDbId} not found.` });
+        }
+        res.status(500).json({ message: 'Internal Server Error updating translation.' });
     }
 });
 

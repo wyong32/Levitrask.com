@@ -19,6 +19,29 @@
            {{ scope.row.list_title || '-' }}
          </template>
       </el-table-column>
+      <el-table-column label="排序" width="100" header-align="center" align="center">
+         <template #default="scope">
+             <el-button 
+               type="info" 
+               :icon="ArrowUpBold" 
+               circle 
+               plain 
+               size="small" 
+               @click="moveItemUp(scope.$index)" 
+               :disabled="scope.$index === 0" 
+             />
+             <el-button 
+               type="info" 
+               :icon="ArrowDownBold" 
+               circle 
+               plain 
+               size="small" 
+               @click="moveItemDown(scope.$index)" 
+               :disabled="scope.$index === managedPages.length - 1" 
+               style="margin-left: 5px;"
+             />
+         </template>
+      </el-table-column>
       <el-table-column prop="updated_at" label="最后更新时间" width="200">
          <template #default="scope">
             {{ formatTimestamp(scope.row.updated_at) }}
@@ -66,13 +89,13 @@
            <div class="form-tip">页面标识符（通常来自 URL）在创建后不可修改。必须唯一。</div>
         </el-form-item>
            </el-col>
-           <el-col :span="12">
-              <el-form-item label="编辑语言 (Language)" prop="languageCode">
+           <el-col :span="6">
+             <el-form-item label="编辑语言 (Language)" prop="language_code">
                    <el-select
                      v-model="selectedLanguage"
                      placeholder="选择语言"
                      style="width: 100%"
-                     @change="loadLanguageForEdit"
+                     @change="switchLanguage"
                      :disabled="!isEditMode"
                    >
                       <el-option
@@ -220,10 +243,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch, computed } from 'vue';
+import { ref, reactive, onMounted, watch, computed, nextTick } from 'vue';
 import axios from 'axios';
 import { ElMessage, ElMessageBox, ElDialog, ElForm, ElFormItem, ElInput, ElButton, ElTable, ElTableColumn, ElIcon, ElDivider, ElRow, ElCol } from 'element-plus';
-import { Edit, Plus, Delete } from '@element-plus/icons-vue';
+import { Edit, Plus, Delete, ArrowUpBold, ArrowDownBold } from '@element-plus/icons-vue';
+import { cloneDeep } from 'lodash';
 
 // --- Define Props ---
 const props = defineProps({
@@ -278,26 +302,50 @@ const DEFAULT_LANG = 'en';
 const supportedLanguages = [
   { code: 'en', name: 'English' },
   { code: 'zh-CN', name: '中文 (简体)' },
+  { code: 'ru', name: 'Русский' },
   // Add more languages here
 ];
 const selectedLanguage = ref(DEFAULT_LANG);
 
-// --- Form Data ---
-const getInitialFormState = () => ({
-  id: null,
-  page_identifier: '',
-  page_type: props.pageType,
+// NEW: Store for all language form data
+const allLanguageData = reactive({});
+
+// --- Add state for reordering --- 
+const isReordering = ref(false);
+
+// --- Initial State for one language ---
+const getInitialLanguageState = (langCode) => ({
+  language_code: langCode,
   list_title: '',
   list_description: '',
   meta_title: '',
   meta_description: '',
   meta_keywords: '',
-  content: '',
+  // Ensure consistent snake_case naming
+  nav_sections: [],
   sidebar_data: [],
-  nav_sections: []
+  content: ''
 });
 
-const editForm = reactive(getInitialFormState());
+// --- Form State ---
+const editForm = reactive({
+  id: null,
+  project_id: null,
+  page_type: props.pageType,
+  page_identifier: '',
+  sort_order: 100,
+  // Fields for the CURRENTLY selected language
+  language_code: DEFAULT_LANG,
+  list_title: '',
+  list_description: '',
+  meta_title: '',
+  meta_description: '',
+  meta_keywords: '',
+  // Use consistent snake_case here to match template v-model
+  nav_sections: [],
+  sidebar_data: [],
+  content: ''
+});
 
 // --- Form Rules (No major changes needed for now, but review specific field requirements) ---
 const formRules = reactive({
@@ -390,52 +438,92 @@ const handleCreate = () => {
 const handleEdit = async (row) => {
   console.log(`Editing page (type: ${props.pageType}):`, row.page_identifier);
   isEditMode.value = true;
-  resetForm();
+  resetForm(); // Resets editForm, selectedLanguage, currentEditId, allLanguageData etc.
   isDialogVisible.value = true;
   isLoadingDetails.value = true;
   detailErrorMessage.value = '';
 
+  // Clear previous multi-language data
+  Object.keys(allLanguageData).forEach(key => delete allLanguageData[key]);
+
   try {
-      const response = await api.get(`/managed-pages/admin/${props.pageType}/${row.page_identifier}`);
-      const data = response.data;
+      // Step 1: Fetch base data + default translation 
+      const baseResponse = await api.get(`/managed-pages/admin/${props.pageType}/${row.page_identifier}`);
+      const baseData = baseResponse.data;
+      console.log('Base data fetched:', baseData);
 
-      currentEditId.value = data.id;
-      currentEditingIdentifier.value = data.page_identifier;
-
-      editForm.id = data.id;
-      editForm.page_identifier = data.page_identifier;
-      editForm.page_type = data.page_type;
-
-      if (data.translation && data.translation.language_code === DEFAULT_LANG) {
-          console.log(`Populating form with ${DEFAULT_LANG} translation.`);
-          editForm.list_title = data.translation.list_title || '';
-          editForm.list_description = data.translation.list_description || '';
-          editForm.meta_title = data.translation.meta_title || '';
-          editForm.meta_description = data.translation.meta_description || '';
-          editForm.meta_keywords = data.translation.meta_keywords || '';
-          editForm.content = data.translation.content || '';
-          editForm.sidebar_data = data.translation.sidebar_data || [];
-          editForm.nav_sections = data.translation.nav_sections || [];
-      } else {
-          console.warn(`No ${DEFAULT_LANG} translation found for page ${data.id}. Form fields for translation will be empty.`);
-          editForm.list_title = '';
-          editForm.list_description = '';
-          editForm.meta_title = '';
-          editForm.meta_description = '';
-          editForm.meta_keywords = '';
-          editForm.content = '';
-          editForm.sidebar_data = [];
-          editForm.nav_sections = [];
+      if (!baseData || !baseData.id) {
+           throw new Error('无法获取页面基础信息。');
       }
 
-      console.log('Loaded data for editing (default lang):', editForm);
-      console.log('Set currentEditId to:', currentEditId.value);
+      currentEditId.value = baseData.id;
+      currentEditingIdentifier.value = baseData.page_identifier;
+      
+      // Initialize allLanguageData structure with non-translatable fields (for reference if needed)
+      // And prepare for translations
+      supportedLanguages.forEach(lang => {
+          allLanguageData[lang.code] = { 
+              ...getInitialLanguageState(lang.code), // Get structure for translatable fields
+              // Keep common non-translatable refs if needed elsewhere, though editForm is primary source
+              // id: baseData.id, 
+              page_identifier: baseData.page_identifier,
+              page_type: baseData.page_type
+          };
+      });
+
+      // Step 2: Populate default language data from base response
+      if (baseData.translation && baseData.translation.language_code === DEFAULT_LANG) {
+          console.log(`Populating ${DEFAULT_LANG} in allLanguageData.`);
+          Object.assign(allLanguageData[DEFAULT_LANG], baseData.translation);
+          // Ensure arrays are proper arrays, not null
+          allLanguageData[DEFAULT_LANG].sidebar_data = baseData.translation.sidebar_data || [];
+          allLanguageData[DEFAULT_LANG].nav_sections = baseData.translation.nav_sections || [];
+      } else {
+          console.warn(`No ${DEFAULT_LANG} translation found in base response.`);
+      }
+
+      // Step 3: Fetch translations for other languages concurrently
+      const otherLanguages = supportedLanguages.filter(l => l.code !== DEFAULT_LANG);
+      const fetchPromises = otherLanguages.map(lang => 
+          api.get(`/managed-pages/admin/${currentEditId.value}/translations/${lang.code}`)
+             .then(response => {
+                 console.log(`Fetched translation for ${lang.code}:`, response.data);
+                 Object.assign(allLanguageData[lang.code], response.data);
+                 // Ensure arrays are proper arrays
+                 allLanguageData[lang.code].sidebar_data = response.data.sidebar_data || [];
+                 allLanguageData[lang.code].nav_sections = response.data.nav_sections || [];
+             })
+             .catch(error => {
+                 if (error.response && error.response.status === 404) {
+                     console.warn(`No translation found for ${lang.code}, keeping empty state.`);
+                     // Empty state is already initialized, just log
+                 } else {
+                     console.error(`Error fetching translation for ${lang.code}:`, error);
+                     // Optionally, store error per language or throw a combined error
+                     // Throwing here might prevent the dialog from opening partially
+                     throw new Error(`Failed to load translation for ${lang.code}: ${error.message}`);
+                 }
+             })
+      );
+
+      await Promise.all(fetchPromises);
+
+      // Step 4: Load the default language data into the active form
+      console.log('Loading default language data into editForm:', allLanguageData[DEFAULT_LANG]);
+      Object.assign(editForm, allLanguageData[DEFAULT_LANG]); 
+      // Also set the non-translatable fields in editForm (as it's the direct model for the form)
+      editForm.id = baseData.id;
+      editForm.page_identifier = baseData.page_identifier;
+      editForm.page_type = baseData.page_type;
+
+      console.log('Final editForm state after loading:', editForm);
+      console.log('Final allLanguageData state:', allLanguageData);
 
   } catch (error) {
-      console.error(`Error fetching details for ${props.pageType}/${row.page_identifier}:`, error);
-      detailErrorMessage.value = error.response?.data?.message || `加载页面 ${props.pageType}/${row.page_identifier} 的详情失败`;
+      console.error(`Error during handleEdit for ${props.pageType}/${row.page_identifier}:`, error);
+      detailErrorMessage.value = error.response?.data?.message || `加载页面详情失败: ${error.message}`;
       ElMessage.error(detailErrorMessage.value);
-      closeDialog();
+      closeDialog(); // Close dialog if initial load fails badly
   } finally {
       isLoadingDetails.value = false;
   }
@@ -446,7 +534,7 @@ const closeDialog = () => {
 };
 
 const resetForm = () => {
-   Object.assign(editForm, getInitialFormState());
+   Object.assign(editForm, getInitialLanguageState(DEFAULT_LANG));
    currentEditingIdentifier.value = null;
    currentEditId.value = null;
    selectedLanguage.value = DEFAULT_LANG;
@@ -461,53 +549,175 @@ const resetForm = () => {
 const handleSubmit = async () => {
   if (!formRef.value) return;
 
+  // 1. Save the final state of the currently viewed language before submitting
+  const currentLangCode = selectedLanguage.value;
+  
+  // --- CORRECTED SAVE LOGIC --- 
+  // Ensure the entry for the current language exists in allLanguageData
+  if (!allLanguageData[currentLangCode]) {
+      console.warn(`Data structure for ${currentLangCode} missing in allLanguageData. Creating it.`);
+      // Create the structure using getInitialLanguageState keys for translatable fields
+      allLanguageData[currentLangCode] = {}; 
+      const fieldsToInit = Object.keys(getInitialLanguageState(currentLangCode)).filter(k => k !== 'id' && k !== 'page_identifier' && k !== 'page_type');
+      const initialState = getInitialLanguageState(currentLangCode);
+      fieldsToInit.forEach(field => {
+           allLanguageData[currentLangCode][field] = initialState[field]; // Initialize with default empty state
+      });
+  }
+  
+  // Now, always save the current editForm state to the (now guaranteed) existing entry
+  console.log(`Saving final state for ${currentLangCode} before submit...`);
+  const fieldsToSave = Object.keys(getInitialLanguageState(currentLangCode)).filter(k => k !== 'id' && k !== 'page_identifier' && k !== 'page_type');
+  fieldsToSave.forEach(field => {
+      if (Array.isArray(editForm[field])) {
+          allLanguageData[currentLangCode][field] = JSON.parse(JSON.stringify(editForm[field]));
+      } else {
+          allLanguageData[currentLangCode][field] = editForm[field];
+      }
+  });
+  console.log('Saved final state:', allLanguageData[currentLangCode]);
+  // --- END CORRECTED SAVE LOGIC ---
+
+  // 2. Validate the form (focus on current language, but could extend)
   formRef.value.validate(async (valid) => {
     if (valid) {
       isSubmitting.value = true;
+      detailErrorMessage.value = ''; // Clear previous detail errors
 
       try {
         if (isEditMode.value) {
+            // --- EDIT MODE --- 
+            console.log(`Updating all translations for Page ID ${currentEditId.value}`);
+            if (!currentEditId.value) {
+                 throw new Error('无法更新，页面 ID 未知。');
+            }
+
+            const updatePromises = supportedLanguages.map(lang => {
+                const langData = allLanguageData[lang.code];
+                if (!langData) {
+                    console.warn(`Skipping update for ${lang.code}: No data found in allLanguageData.`);
+                    return Promise.resolve();
+                }
+
+                // --- Backend Validation Check --- 
+                // Check if the essential fields required by the backend PUT endpoint have values.
+                const hasRequiredFields = langData.meta_title && langData.meta_description && langData.content;
+
+                if (!hasRequiredFields) {
+                    // If the language is the default language OR if it has an ID (meaning it existed before),
+                    // we might still want to send an update to potentially clear fields (if backend allows) 
+                    // or update other non-required fields. However, the current backend *requires* these fields.
+                    // Therefore, we *must* skip if these fields are missing to avoid a 400 error.
+                    console.warn(`Skipping PUT for ${lang.code}: Missing required fields (meta_title, meta_description, or content).`);
+                    // If you *want* to allow clearing fields, the backend validation needs to be relaxed.
+                    return Promise.resolve(); 
+                }
+                // --- End Backend Validation Check --- 
+
+                // Construct payload from allLanguageData for this language
             const payload = {
-                list_title: editForm.list_title,
-                list_description: editForm.list_description,
-                meta_title: editForm.meta_title,
-                meta_description: editForm.meta_description,
-                meta_keywords: editForm.meta_keywords,
-                content: editForm.content,
-                sidebar_data: editForm.sidebar_data,
-                nav_sections: editForm.nav_sections,
-            };
-            console.log(`Submitting updates for Page ID ${currentEditId.value}, Lang ${selectedLanguage.value}`);
-            await api.put(`/managed-pages/admin/${currentEditId.value}/translations/${selectedLanguage.value}`, payload);
-            ElMessage.success(`页面 ${selectedLanguage.value} 语言内容更新成功！`);
+                    list_title: langData.list_title || '',
+                    list_description: langData.list_description || '',
+                    meta_title: langData.meta_title, // Already checked they exist
+                    meta_description: langData.meta_description,
+                    meta_keywords: langData.meta_keywords || '',
+                    content: langData.content,
+                    sidebar_data: langData.sidebar_data || [],
+                    nav_sections: langData.nav_sections || []
+                };
+
+                // Send PUT request to update/create this language's translation
+                console.log(`Sending PUT for ${lang.code}`, payload);
+                return api.put(`/managed-pages/admin/${currentEditId.value}/translations/${lang.code}`, payload);
+            });
+
+            await Promise.all(updatePromises);
+            ElMessage.success(`页面所有语言内容已更新！`);
 
         } else {
-            const payload = {
-                page_identifier: editForm.page_identifier,
-                page_type: props.pageType,
-                languageCode: selectedLanguage.value,
-                list_title: editForm.list_title,
-                list_description: editForm.list_description,
-                meta_title: editForm.meta_title,
-                meta_description: editForm.meta_description,
-                meta_keywords: editForm.meta_keywords,
-                content: editForm.content,
-                sidebar_data: editForm.sidebar_data,
-                nav_sections: editForm.nav_sections,
+            // --- CREATE MODE --- 
+             console.log(`Creating new page (type: ${props.pageType}) with identifier: ${editForm.page_identifier}`);
+            const defaultLangData = allLanguageData[DEFAULT_LANG];
+             if (!defaultLangData) {
+                 throw new Error(`无法创建：缺少默认语言 (${DEFAULT_LANG}) 的数据。`);
+             }
+
+            // Step 1: Create the main page record + default translation
+            const createPayload = {
+                page_identifier: editForm.page_identifier, // From form (non-translatable)
+                page_type: props.pageType, // From props (non-translatable)
+                sort_order: editForm.sort_order,
+                language_code: DEFAULT_LANG, // Explicitly set default language
+                // Translatable fields for default language
+                list_title: defaultLangData.list_title || '',
+                list_description: defaultLangData.list_description || '',
+                meta_title: defaultLangData.meta_title || '',
+                meta_description: defaultLangData.meta_description || '',
+                meta_keywords: defaultLangData.meta_keywords || '',
+                content: defaultLangData.content || '',
+                sidebar_data: defaultLangData.sidebar_data || [],
+                nav_sections: defaultLangData.nav_sections || []
              };
-            console.log(`Submitting new ${payload.page_type} page: ${payload.page_identifier} with first translation in ${payload.languageCode}`);
-            await api.post('/managed-pages/admin', payload);
-            ElMessage.success(`新页面及 ${selectedLanguage.value} 语言内容创建成功！`);
+            console.log('Sending initial POST request:', createPayload);
+            const createResponse = await api.post('/managed-pages/admin', createPayload);
+            // Corrected: Access the ID from the nested 'data' object in the response
+            const newPageId = createResponse.data?.data?.id; 
+
+            if (!newPageId) {
+                throw new Error('创建页面后未能从 API 响应中获取新 ID。');
+            }
+            console.log(`Page created with ID: ${newPageId}`);
+
+            // Step 2: Create translations for other languages if they have content
+            const otherLanguages = supportedLanguages.filter(l => l.code !== DEFAULT_LANG);
+            const translationPromises = [];
+
+            otherLanguages.forEach(lang => {
+                const langData = allLanguageData[lang.code];
+                // Check if this language has meaningful data to save
+                const hasContent = langData && (langData.list_title || langData.meta_title || langData.content); // Adjust check as needed
+                
+                if (hasContent) {
+                     console.log(`Found content for ${lang.code}, creating translation...`);
+                     const translationPayload = {
+                        list_title: langData.list_title || '',
+                        list_description: langData.list_description || '',
+                        meta_title: langData.meta_title || '',
+                        meta_description: langData.meta_description || '',
+                        meta_keywords: langData.meta_keywords || '',
+                        content: langData.content || '',
+                        sidebar_data: langData.sidebar_data || [],
+                        nav_sections: langData.nav_sections || []
+                     };
+                    console.log(`Sending PUT for ${lang.code} (creation flow)`, translationPayload);
+                    translationPromises.push(
+                         api.put(`/managed-pages/admin/${newPageId}/translations/${lang.code}`, translationPayload)
+                    );
+                } else {
+                     console.log(`Skipping translation creation for ${lang.code}: No content found.`);
+                }
+            });
+            
+            if (translationPromises.length > 0) {
+                await Promise.all(translationPromises);
+                console.log('Additional language translations created.');
+            }
+            
+            ElMessage.success(`新页面及提供的语言内容创建成功！`);
         }
+
         closeDialog();
-        fetchManagedPages();
+        fetchManagedPages(); // Refresh list
+
       } catch (error) {
         console.error('Error submitting form:', error);
         let message = error.response?.data?.message || (isEditMode.value ? '更新页面失败' : '创建页面失败');
+        // Handle specific conflict error on creation
         if (!isEditMode.value && error.response?.status === 409) {
              message = `创建失败：标识符 "${editForm.page_identifier}" 在类型 "${props.pageType}" 下已存在。`;
         }
         ElMessage.error(message);
+        // Keep dialog open on error?
       } finally {
         isSubmitting.value = false;
       }
@@ -560,85 +770,113 @@ const formatTimestamp = (timestamp) => {
     }
 };
 
-// NEW: Function to load different language content into the form when editing
-const loadLanguageForEdit = async (newLangCode) => {
-    console.log(`loadLanguageForEdit called with newLangCode: ${newLangCode}, current selectedLanguage: ${selectedLanguage.value}`); // Log entry and state
+// --- Language Switching ---
+const switchLanguage = (newLangCode) => {
+  console.log(`Switching language to: ${newLangCode}`);
+  // Save current edits before switching (important!)
+  saveCurrentLanguageData();
 
-    // Only proceed if in edit mode and we have a page ID.
-    // The @change event implies the language differs from the previous state.
-    // The v-model already updated selectedLanguage.value to newLangCode.
-    if (!isEditMode.value || !currentEditId.value) {
-        console.log(`Exiting loadLanguageForEdit early: isEditMode=${isEditMode.value}, currentEditId=${currentEditId.value}`);
-        return;
-    }
+  // --- Load data for the newly selected language ---
+  const newData = allLanguageData[newLangCode] || getInitialLanguageState(newLangCode);
+  console.log('Data for new language:', newData);
 
-    // If somehow the event fires with the same code (e.g., programmatic change), exit.
-    // This check should happen *after* confirming we are in edit mode with an ID.
-    // We need to compare newLangCode with the *previous* value, which is tricky.
-    // Let's rely on the assumption @change only fires on actual user changes for now.
-    // Or, maybe check if newLangCode IS DIFFERENT from the language JUST loaded into the form?
-    // Simpler: Just proceed, the API call might be redundant but harmless if lang hasn't changed.
+  // CHANGE: Explicitly assign properties using correct names
+  editForm.language_code = newLangCode; // Update the language code in the form
+  editForm.list_title = newData.list_title || '';
+  editForm.list_description = newData.list_description || '';
+  editForm.meta_title = newData.meta_title || '';
+  editForm.meta_description = newData.meta_description || '';
+  editForm.meta_keywords = newData.meta_keywords || '';
+  // Access using snake_case from newData (assuming API returns snake_case)
+  // Use cloneDeep for arrays/objects to avoid reference issues
+  editForm.nav_sections = cloneDeep(newData.nav_sections || []); 
+  editForm.sidebar_data = cloneDeep(newData.sidebar_data || []);
+  editForm.content = newData.content || '';
 
-    // REMOVED: Redundant state update, v-model handles this.
-    // selectedLanguage.value = newLangCode;
+  // Reset validation state for the new language
+  nextTick(() => {
+    formRef.value?.clearValidate();
+  });
+};
 
-    console.log(`Attempting to load language '${newLangCode}' for page ID '${currentEditId.value}' into form.`);
-    isLoadingDetails.value = true; // Indicate loading state
-    detailErrorMessage.value = '';
+// Helper to save the current editForm state back into allLanguageData
+const saveCurrentLanguageData = () => {
+  const currentLang = editForm.language_code;
+  if (!allLanguageData[currentLang]) {
+    allLanguageData[currentLang] = {}; // Initialize if not exists
+  }
+  // Save current form state back to the storage for this language
+  Object.assign(allLanguageData[currentLang], {
+      list_title: editForm.list_title,
+      list_description: editForm.list_description,
+      meta_title: editForm.meta_title,
+      meta_description: editForm.meta_description,
+      meta_keywords: editForm.meta_keywords,
+      // Save using consistent snake_case
+      nav_sections: cloneDeep(editForm.nav_sections),
+      sidebar_data: cloneDeep(editForm.sidebar_data),
+      content: editForm.content,
+  });
+  console.log(`Saved data for ${currentLang}:`, allLanguageData[currentLang]);
+};
+
+// --- Reordering API Call ---
+const updateSortOrderOnBackend = async () => {
+    if (isReordering.value) return; // Prevent concurrent requests
+    isReordering.value = true;
+
+    // Prepare the payload for the backend
+    // Assign sort_order based on the current array index
+    const orderedData = managedPages.value.map((page, index) => ({ 
+        page_identifier: page.page_identifier,
+        sort_order: index // Use index as the new sort order
+    }));
+
+    console.log('Updating sort order on backend with:', orderedData);
 
     try {
-        const response = await api.get(`/managed-pages/admin/${currentEditId.value}/translations/${newLangCode}`);
-        const langData = response.data;
-        console.log(`Received data for ${newLangCode}:`, JSON.stringify(langData)); // Log received data
-
-        // Update only translatable fields in the form
-        editForm.list_title = langData.list_title || '';
-        editForm.list_description = langData.list_description || '';
-        editForm.meta_title = langData.meta_title || '';
-        editForm.meta_description = langData.meta_description || '';
-        editForm.meta_keywords = langData.meta_keywords || '';
-        editForm.content = langData.content || '';
-        editForm.sidebar_data = langData.sidebar_data || [];
-        editForm.nav_sections = langData.nav_sections || [];
-
-        console.log('Form after update:', JSON.stringify(editForm)); // Log form state after update
-
-        ElMessage.success(`已加载 ${newLangCode} 语言内容`);
-
-        // Clear validation state for the loaded fields
-        if (formRef.value) {
-           formRef.value.clearValidate([
-               'list_title', 'list_description', 'meta_title', 'meta_description',
-               'meta_keywords', 'content', 'sidebar_data', 'nav_sections'
-           ]);
-        }
-
-    } catch (error) {
-        console.error(`加载语言内容失败 (ID: ${currentEditId.value}, lang: ${newLangCode}):`, error);
-        if (error.response && error.response.status === 404) {
-            ElMessage.info(`页面 ID ${currentEditId.value} 的 '${newLangCode}' 语言版本不存在，您可以填写新内容并保存以创建。`);
-            editForm.list_title = '';
-            editForm.list_description = '';
-            editForm.meta_title = '';
-            editForm.meta_description = '';
-            editForm.meta_keywords = '';
-            editForm.content = '';
-            editForm.sidebar_data = [];
-            editForm.nav_sections = [];
-            
-            if (formRef.value) {
-                formRef.value.clearValidate([
-                    'list_title', 'list_description', 'meta_title', 'meta_description',
-                    'meta_keywords', 'content', 'sidebar_data', 'nav_sections'
-                ]);
-            }
-        } else {
-            detailErrorMessage.value = `加载 ${newLangCode} 内容失败: ${error.response?.data?.message || error.message}`;
-            ElMessage.error(detailErrorMessage.value);
-        }
+        await api.put('/managed-pages/admin/reorder', {
+            pageType: props.pageType,
+            orderedPages: orderedData
+        });
+        ElMessage.success('排序更新成功!');
+        // Optionally refetch or assume local state is correct
+        // await fetchPages(); // Refetch to confirm
+    } catch (err) {
+        console.error('Error updating sort order:', err);
+        ElMessage.error(`排序更新失败: ${err.response?.data?.message || err.message}`);
+        // Consider reverting the local swap if the API call fails
+        // For simplicity, we might just refetch to get the old order back
+        await fetchManagedPages(); 
     } finally {
-        isLoadingDetails.value = false;
+        isReordering.value = false;
     }
+};
+
+// --- Sorting Methods ---
+const moveItem = (index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= managedPages.value.length) {
+        return; // Out of bounds
+    }
+
+    // Swap items in the local array for immediate visual feedback
+    const itemToMove = managedPages.value[index];
+    managedPages.value.splice(index, 1);
+    managedPages.value.splice(newIndex, 0, itemToMove);
+
+    // Trigger backend update after a short delay to batch potential rapid clicks
+    // Debounce or throttle this call in a real app for better performance
+    // For now, just call it directly
+    updateSortOrderOnBackend(); 
+};
+
+const moveItemUp = (index) => {
+    moveItem(index, -1);
+};
+
+const moveItemDown = (index) => {
+    moveItem(index, 1);
 };
 
 // --- Lifecycle & Watch ---

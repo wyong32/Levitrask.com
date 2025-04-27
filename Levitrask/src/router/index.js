@@ -70,6 +70,8 @@ const publicRoutes = [
         'Levitra online,Levitra dosage, Levitra side effects, Levitra vs Viagra, Levitra vs Cialis,Stendra',
     },
   },
+  /* ROUTE REMOVED: Comparison Pages Start */
+  /*
   {
     path: 'Levitra-vs-Cialis', // 路径不再以 / 开头
     name: 'compare-levitra-cialis',
@@ -142,42 +144,8 @@ const publicRoutes = [
         'Stendra vs Viagra,Stendra,Viagra,Side Effects,Onset Time and Duration,ED drug comparison',
     },
   },
-  {
-    path: 'Cialis',
-    name: 'cialis-blog',
-    component: () => import('../views/Drugs-In-This-Class-List/CialisBlogPost.vue'),
-    meta: {
-      title: 'Cialis Dosage, Side Effects-Cialis online-Levitrask.com',
-      description:
-        'Cialis,a long-lasting ED medication. Covers Cialis usage, Cialis dosage, Cialis side effects, What is Cialis, Cialis generic, Cialis vs Viagra and more.',
-      keywords:
-        'Cialis dosage, Cialis side effects,  Cialis vs Viagra, Cialis vs Lavitra,Stendra,Cialis online',
-    },
-  },
-  {
-    path: 'Stendra',
-    name: 'stendra-blog',
-    component: () => import('../views/Drugs-In-This-Class-List/StendraBlogPost.vue'),
-    meta: {
-      title: 'Stendra Dosage, Side Effects-Stendra online-Levitrask.com',
-      description:
-        'Stendra,a long-lasting ED medication. Covers Stendra usage, Stendra dosage, Stendra side effects,  Stendr generic, Stendra vs Viagra and more.',
-      keywords:
-        'Stendra dosage, Stendra sidae effects, Stendra vs Viagra, Stendra vs Lavitra,Stendra,Stendra online',
-    },
-  },
-  {
-    path: 'Viagra',
-    name: 'viagra-blog',
-    component: () => import('../views/Drugs-In-This-Class-List/ViagraBlogPost.vue'),
-    meta: {
-      title: 'Viagra pill​,generic,side effects​,online buy|Levitrask.com',
-      description:
-        'Viagra (sildenafil), is a well-known ED medication. Covers how it works, dosage, side effects, Viagra vs Levitra,Viagra vs Cialis,Viagra vs Stendra and more.',
-      keywords:
-        'Viagra dosage, Viagra side effects,  Viagra vs Levitra, Viagra vs Cialis,Stendra,Viagra online',
-    },
-  },
+  */
+  /* ROUTE REMOVED: Comparison Pages End */
   {
     path: 'blog',
     name: 'blog',
@@ -200,8 +168,8 @@ const publicRoutes = [
     },
   },
   {
-    path: 'blog/:slug', // REMOVED duplicate :lang param
-    name: 'BlogDetails', // Matches the name used in BlogView.vue link
+    path: 'blog/:slug',
+    name: 'blog-details',
     component: () => import('../views/BlogDetails.vue'),
     props: true,
     meta: {
@@ -232,6 +200,8 @@ const publicRoutes = [
       keywords: 'news article, health news',
     },
   },
+  /* ROUTE REMOVED: Buy Online Pages Start */
+  /*
   {
     path: 'Buy-Levitra-Online',
     name: 'buy-levitra-online',
@@ -280,6 +250,8 @@ const publicRoutes = [
         'buy Stendra online,online,avanafil,online pharmacy ED,Where to Buy Stendra Online',
     },
   },
+  */
+  /* ROUTE REMOVED: Buy Online Pages End */
   {
     path: 'terms',
     name: 'terms',
@@ -403,11 +375,14 @@ const adminRoutes = [
   }
 ];
 
+// --- 支持的语言列表 (建议定义一次) ---
+const supportedLocales = ['en', 'zh-CN', 'ru']; // <--- 0. 添加 'ru' 到支持列表
+
 // --- Combine routes and language prefix ---
 const langPrefixedRoutes = [
   {
-    // Matches /:lang(en|zh-CN)/...
-    path: '/:lang(en|zh-CN)', // Updated regex to accept 'zh-CN'
+    // <--- 1. 更新语言代码的正则表达式
+    path: `/:lang(${supportedLocales.join('|')})`,
     component: RouterView, // Use imported RouterView directly
     children: publicRoutes,
   },
@@ -421,8 +396,8 @@ const routes = [
     path: '/',
     redirect: () => {
         const savedLocale = localStorage.getItem('user-locale');
-        // Only redirect to saved locale if it's one of the specifically supported codes
-        if (savedLocale && (savedLocale === 'en' || savedLocale === 'zh-CN')) {
+        // <--- 3. 更新根路径重定向逻辑
+        if (savedLocale && supportedLocales.includes(savedLocale)) { 
             return `/${savedLocale}`;
         }
         // Otherwise, always default to English
@@ -470,14 +445,15 @@ router.beforeEach((to, from, next) => {
   // --- Frontend Locale Logic --- 
   const lang = to.params.lang;
 
-  // If accessing root or a path without a language prefix (and not admin), redirect.
-  if (!lang || typeof lang !== 'string' || !['en', 'zh-CN'].includes(lang)) {
-     const userLocale = localStorage.getItem('user-locale') || 'en';
-     // Preserve the intended path and hash, add the locale prefix
+  // <--- 2. 更新 beforeEach 中的语言验证
+  if (!lang || typeof lang !== 'string' || !supportedLocales.includes(lang)) { 
+     const userLocale = localStorage.getItem('user-locale');
+     // 确保回退/默认语言也受支持
+     const targetLocale = (userLocale && supportedLocales.includes(userLocale)) ? userLocale : 'en'; 
      const intendedPath = to.fullPath === '/' ? '' : to.fullPath;
-     // Avoid infinite redirect loops if intendedPath already has locale (shouldn't happen with current routes)
-     if (!intendedPath.startsWith(`/${userLocale}`)) {
-       next(`/${userLocale}${intendedPath}`);
+     // Avoid infinite redirect loops if intendedPath already has locale
+     if (!intendedPath.startsWith(`/${targetLocale}`)) {
+       next(`/${targetLocale}${intendedPath}`);
      } else {
         next(); // Already has correct locale or is a non-prefixed path we don't handle here
      } 

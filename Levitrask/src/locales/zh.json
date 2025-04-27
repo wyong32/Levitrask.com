@@ -45,5 +45,20 @@
     "loading": "正在加载新闻文章...",
     "errorPrefix": "文章加载失败：",
     "notFound": "未找到文章。"
+  },
+  "indexView": {
+    "header": {
+      "title": "立威大 (Levitra)：药物全面概述",
+      "brandNamesLabel": "常见商品名：",
+      "brandNamesValue": "Staxyn, Levitra",
+      "genericNamesLabel": "常见通用名：",
+      "genericNamesValue": "伐地那非, 盐酸伐地那非",
+      "pronunciationLabel": "发音：",
+      "pronunciationValue": "var-DEN-a-fil",
+      "drugClassLabel": "药物类别：",
+      "drugClassValue": "磷酸二酯酶-5 (PDE5) 抑制剂",
+      "availabilityLabel": "获取方式：",
+      "availabilityValue": "仅限处方；有仿制药"
+    }
   }
 } 

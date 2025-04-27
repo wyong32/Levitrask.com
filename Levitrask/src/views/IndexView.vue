@@ -27,15 +27,14 @@
         <!-- Main Content Area -->
         <div class="homepage-main-content">
           <header class="drug-header">
-            <h1>Levitra: A Comprehensive Overview of the Medication</h1>
-            <p><strong>Common Brand Name(s):</strong> Staxyn, Levitra</p>
+            <h1>{{ $t('indexView.header.title') }}</h1>
+            <p><strong>{{ $t('indexView.header.brandNamesLabel') }}</strong> {{ $t('indexView.header.brandNamesValue') }}</p>
             <p>
-              <strong>Common Generic Name(s):</strong> vardenafil, vardenafil HCl, vardenafil
-              hydrochloride
+              <strong>{{ $t('indexView.header.genericNamesLabel') }}</strong> {{ $t('indexView.header.genericNamesValue') }}
             </p>
-            <p><strong>Pronunciation:</strong> var-DEN-a-fil</p>
-            <p><strong>Drug Class:</strong> Phosphodiesterase-5 (PDE5) inhibitor</p>
-            <p><strong>Availability:</strong> Prescription only; generic available</p>
+            <p><strong>{{ $t('indexView.header.pronunciationLabel') }}</strong> {{ $t('indexView.header.pronunciationValue') }}</p>
+            <p><strong>{{ $t('indexView.header.drugClassLabel') }}</strong> {{ $t('indexView.header.drugClassValue') }}</p>
+            <p><strong>{{ $t('indexView.header.availabilityLabel') }}</strong> {{ $t('indexView.header.availabilityValue') }}</p>
             <!-- How is it used? - integrated into text -->
           </header>
 
@@ -73,6 +72,7 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
 import SideNav from '../components/SideNav.vue' // Import SideNav
@@ -95,6 +95,7 @@ const sidebarError = ref(null);
 const HOMEPAGE_IDENTIFIER = 'home'; // Identifier for homepage sidebar
 
 const route = useRoute(); // Get route object
+const { t, locale } = useI18n(); // Initialize useI18n
 
 // --- API Setup ---
 const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
@@ -224,11 +225,15 @@ const initializeSwiper = () => {
     console.log('Previous Swiper instance destroyed.')
   }
 
-  // Check if the swiper container exists and has content
-  const swiperWrapper = document.querySelector('.related-generics-swiper .swiper-wrapper')
+  // *** MODIFIED SELECTOR to find either class name ***
+  const swiperContainerSelector = '.related-generics-swiper, .swiperrelated-generics-swiper';
+  const swiperContainer = document.querySelector(swiperContainerSelector);
+  const swiperWrapper = swiperContainer ? swiperContainer.querySelector('.swiper-wrapper') : null;
+
   if (swiperWrapper && swiperWrapper.innerHTML.trim() !== '') {
     try {
-      swiperInstance.value = new Swiper('.related-generics-swiper', {
+       // *** Use the flexible selector for initialization ***
+      swiperInstance.value = new Swiper(swiperContainerSelector, { // Use the selector that finds the element
         modules: [Navigation],
         loop: false,
         slidesPerView: 3,
@@ -242,15 +247,15 @@ const initializeSwiper = () => {
           640: { slidesPerView: 2, spaceBetween: 15 },
           1024: { slidesPerView: 3, spaceBetween: 20 },
         },
-        observer: true, // Automatically reinitialize on DOM changes (like v-html update)
-        observeParents: true, // Observe parent elements too
+        observer: true, 
+        observeParents: true, 
       })
-      console.log('Swiper initialized/re-initialized.')
+      console.log(`Swiper initialized/re-initialized on element matching selector: "${swiperContainerSelector}".`)
     } catch (swiperError) {
       console.error('Failed to initialize Swiper:', swiperError)
     }
   } else {
-    console.log('Swiper container not found or empty, skipping initialization.')
+    console.log(`Swiper container matching "${swiperContainerSelector}" not found or empty, skipping initialization.`)
   }
 }
 
@@ -316,6 +321,7 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
 
 /* Main Content Area */
 .homepage-main-content {
+  width: 70%;
   flex-grow: 1;
   /* Removed margin-left as flex handles spacing with gap */
   min-width: 0; /* Prevent flex item overflow */
@@ -377,6 +383,10 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
 .sidebar-block > div ::v-deep(ol) {
   padding-left: 20px;
 }
+:deep(.sidebar-block img) {
+  max-width: 100%;
+  height: auto;
+}
 
 .sidebar-loading,
 .sidebar-error {
@@ -402,7 +412,7 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
 }
 
 /* Styling for Swiper */
-.swiper-section {
+:deep(.swiper-section) {
   margin-bottom: 2rem;
   position: relative; /* Needed for absolute positioning of nav buttons */
   padding: 0 45px; /* Add padding to prevent content overlap with buttons */
@@ -411,30 +421,51 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
   margin-right: auto;
 }
 
-.swiper-section h2 {
+:deep(.swiper-section h2) {
   text-align: center;
   margin-bottom: 1.5rem;
   font-size: 1.8rem;
   color: #343a40;
 }
 
-.related-generics-swiper-container {
+:deep(.related-generics-swiper-container) {
   position: relative;
 }
 
-.related-generics-swiper {
-  width: 100%;
-  overflow: hidden;
+/* Add position relative to the main container holding swiper and buttons */
+:deep(.swiper-container-wrapperrelated-generics-swiper-container) {
+  position: relative;
+  margin: 2rem 0; /* Keep existing margin if needed */
 }
 
-.swiper-slide {
+:deep(.swiper-container-wrapper) {
+  position: relative;
+  margin: 2rem 0; /* Keep existing margin if needed */
+}
+
+
+/* CORRECTED selector to match JS and HTML & ensure overflow applies */
+/* Using :deep() might help penetrate scoped style boundary if needed */
+/* Target both possible class names */
+:deep(.related-generics-swiper),
+:deep(.swiperrelated-generics-swiper) {
+  width: 100%;
+  overflow: hidden !important; /* Add !important as a test, remove if possible */
+  /* margin-left: auto; */ /* Added by swiper */
+  /* margin-right: auto; */ /* Added by swiper */
+  /* position: relative; */ /* Added by swiper */
+}
+
+:deep(.swiper-slide) {
   display: flex;
   justify-content: center;
   align-items: stretch;
   box-sizing: border-box;
+  /* Optional: Add min-height if slides have variable height */
+  /* min-height: 150px; */ 
 }
 
-.related-generic-item {
+:deep(.related-generic-item) {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -446,128 +477,127 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
   width: 100%;
   box-sizing: border-box;
   text-align: center;
-  height: 100%; /* Make items take full slide height */
+  transition: box-shadow 0.3s ease;
 }
 
-.related-generic-item h3 {
-  font-size: 1rem;
-  color: #0d6efd;
-  margin: 0 0 0.5rem 0;
-  font-weight: 600;
-  line-height: 1.3;
+:deep(.related-generic-item:hover) {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
-.related-generic-item p {
-  font-size: 0.9rem;
-  color: #555;
-  margin: 0 0 1rem 0;
-  line-height: 1.5;
-  flex-grow: 1;
+:deep(.related-generic-item h3) {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.1em;
+    color: #2c3e50;
+    font-weight: 600;
 }
 
-.view-more-button {
-  display: inline-block;
-  background-color: #4a6fbd;
-  color: #ffffff;
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 6px;
-  text-align: center;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-  margin-top: auto;
-  align-self: center; /* Center button horizontally */
+:deep(.related-generic-item p) {
+    font-size: 0.9em;
+    color: #555;
+    line-height: 1.5;
+    flex-grow: 1; /* Allow description to take available space */
+    margin-bottom: 1rem;
 }
 
-.view-more-button:hover {
-  background-color: #3b5998;
-  text-decoration: none;
-}
-:deep(.swiper-container-wrapper) {
-  position: relative;
-}
-.swiper-button-prev,
-.swiper-button-next {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 36px;
-  height: 36px;
-  background-color: rgba(108, 117, 125, 0.7); /* Semi-transparent background */
-  border-radius: 50%;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background-color 0.3s ease, opacity 0.3s ease;
-  z-index: 10;
-}
-.swiper-button-prev:hover,
-.swiper-button-next:hover {
-  background-color: rgba(90, 98, 104, 0.9);
-}
-.swiper-button-prev {
-  left: 0px;
-}
-.swiper-button-next {
-  right: 0px;
-}
-.swiper-button-prev::after,
-.swiper-button-next::after {
-  font-size: 16px;
-  font-weight: bold;
-}
-.swiper-button-disabled {
-  opacity: 0.35;
-  cursor: auto;
-  pointer-events: none;
-}
-.swiper-disclaimer {
-  text-align: center;
-  font-size: 0.85rem;
-  color: #6c757d;
-  margin-top: 1.5rem;
+:deep(.related-generic-item .view-more-button) {
+    display: inline-block;
+    padding: 0.5em 1em;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease;
+    align-self: center; /* Center button horizontally */
 }
 
-/* Ensure content rendered by v-html inherits styles or has specific styles */
-:deep(.content-block div h1),
-:deep(.content-block div h2),
-:deep(.content-block div h3) {
-  margin-top: 1.5em;
-  margin-bottom: 0.8em;
-  /* Add other heading styles */
-}
-:deep(.content-block div p) {
-  margin-bottom: 1em;
-  line-height: 1.7;
-}
-:deep(.content-block div ul),
-:deep(.content-block div ol) {
-  margin-bottom: 1em;
-  padding-left: 30px;
-}
-:deep(.content-block div li) {
-  margin-bottom: 0.5em;
-}
-:deep(.content-block div a) {
-  color: var(--el-color-primary); /* Use theme color */
-  text-decoration: none;
-}
-:deep(.content-block div a:hover) {
-  text-decoration: underline;
-}
-:deep(.homepage-main-content h2){
-  margin-bottom: 1rem;
-  color: rgb(52, 58, 64);
-  font-size: 1.6rem;
-  border-bottom: 1px solid rgb(238, 238, 238);
-  padding-bottom: 0.5rem;
+:deep(.related-generic-item .view-more-button:hover) {
+    background-color: #0056b3;
 }
 
+
+/* Basic Styles for Swiper Navigation Arrows (if needed) */
+/* These might be provided by 'swiper/css/navigation', but add them if arrows remain hidden */
+:deep(.swiper-button-prev),
+:deep(.swiper-button-next) {
+    position: absolute;
+    top: 50%;
+    width: 27px; /* Default width from swiper */
+    height: 44px; /* Default height */
+    margin-top: -22px; /* Center vertically */
+    z-index: 10;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #007aff; /* Example color, adjust as needed */
+    /* background-color: rgba(255, 255, 255, 0.8); */ /* Optional background */
+    /* border-radius: 50%; */ /* Optional shape */ 
+}
+:deep(.swiper-button-prev.swiper-button-disabled),
+:deep(.swiper-button-next.swiper-button-disabled) {
+    opacity: 0.35;
+    cursor: auto;
+    pointer-events: none;
+}
+:deep(.swiper-button-prev:after),
+:deep(.swiper-button-next:after) {
+    font-family: swiper-icons;
+    font-size: 24px; /* Adjust size */
+    font-weight: bold;
+    text-transform: none !important;
+    letter-spacing: 0;
+    font-variant: initial;
+    line-height: 1;
+}
+:deep(.swiper-button-prev:after) {
+    content: 'prev';
+}
+:deep(.swiper-button-next:after) {
+    content: 'next';
+}
+
+:deep(.swiper-button-prev) {
+    left: 10px;
+    right: auto;
+}
+
+:deep(.swiper-button-next) {
+    right: 10px;
+    left: auto;
+}
+
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .homepage-layout {
+    flex-direction: column;
+  }
+  .sidebar-left, .sidebar-right, .sidebar-left-placeholder {
+    width: 100%;
+    max-width: none;
+    position: static; /* Remove sticky on mobile */
+    height: auto;
+    overflow-y: visible;
+    margin-bottom: 20px;
+  }
+  .homepage-main-content {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .swiper-section {
+    padding: 0 15px;
+  }
+  .swiper-button-prev,
+  .swiper-button-next {
+    /* Optionally hide buttons on very small screens or make them smaller */
+    /* display: none; */
+  }
+}
 
 /* Loading/Error States */
 .loading-message,

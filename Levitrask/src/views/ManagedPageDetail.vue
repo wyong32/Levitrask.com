@@ -2,53 +2,45 @@
   <div class="managed-page-detail-view">
     <PageHeader />
     
-    <main class="page-detail-container detail-layout">
+    <main class="content-area-3-column">
       <!-- Optional: Breadcrumbs or Title Area -->
       <!-- <h1 v-if="pageData">{{ pageData.list_title || pageData.meta_title }}</h1> -->
 
-      <div v-if="isLoading" class="loading-message full-width-message">Loading page content...</div>
-      <div v-else-if="errorMessage" class="error-message full-width-message">
+      <!-- Left Sidebar: SideNav -->
+      <aside v-if="!isLoading && !errorMessage && parsedNavSections.length > 0" class="sidebar-left">
+          <SideNav
+            :sections="parsedNavSections"
+            content-selector=".main-content-middle"
+          />
+      </aside>
+      <div v-else-if="!isLoading && !errorMessage" class="sidebar-left placeholder"></div>
+
+      <!-- Main content area -->
+      <div v-if="isLoading" class="loading-message main-content-middle">
+        Loading page content...
+      </div>
+      <div v-else-if="errorMessage" class="error-message main-content-middle">
         <h2>Error Loading Page</h2>
         <p>{{ errorMessage }}</p>
         <!-- Optional: Link back home or to a relevant list -->
         <router-link to="/">Go to Homepage</router-link>
       </div>
+      <article v-else-if="pageData" class="main-content-middle">
+        <!-- Render the main HTML content fetched from API -->
+        <div v-html="pageData.content" class="content-html"></div>
+      </article>
+      <div v-else class="main-content-middle not-found-message">
+         Page data is unavailable.
+      </div>
 
-      <!-- Data Loaded State -->
-      <template v-else-if="pageData">
-          <!-- Left Sidebar for Navigation (NEW) -->
-          <SideNav
-            v-if="pageData.nav_sections && pageData.nav_sections.length > 0"
-            :sections="pageData.nav_sections"
-            content-selector=".detail-main-content" 
-            class="sidebar-left"
-          />
-          <!-- Placeholder if no nav -->
-          <div v-else class="sidebar-left-placeholder"></div>
-
-          <!-- Main Content Area (NEW Wrapper) -->
-          <div class="detail-main-content">
-             <!-- Render the main HTML content fetched from API -->
-             <!-- The existing nav rendered inside main content is removed, SideNav handles it -->
-             <div v-html="pageData.content" class="content-html"></div>
-          </div>
-
-          <!-- Right Sidebar (Modified Structure) -->
-          <aside v-if="pageData.sidebar_data && pageData.sidebar_data.length > 0" class="sidebar-right">
-             <!-- Removed h3, blocks should have titles if needed -->
-             <div v-for="(block, index) in pageData.sidebar_data" :key="`sidebar-${index}`" class="sidebar-block">
-               <h3 v-if="block.title">{{ block.title }}</h3> <!-- Changed from h4 to h3 -->
-               <div v-html="block.html_content"></div>
-               <!-- Removed hr, use CSS for spacing if needed -->
+      <!-- Right Sidebar (Modified Structure) -->
+      <aside v-if="!isLoading && !errorMessage && parsedSidebarData.length > 0" class="sidebar-right managed-page-sidebar">
+             <div v-for="(block, index) in parsedSidebarData" :key="`sidebar-${index}`" class="sidebar-block">
+               <h4 v-if="block.title" class="sidebar-block-title">{{ block.title }}</h4>
+               <div v-if="block.content || block.html_content" v-html="block.content || block.html_content" class="sidebar-block-content"></div>
              </div>
-          </aside>
-           <!-- Placeholder if no right sidebar -->
-          <div v-else class="sidebar-right-placeholder"></div>
-      </template>
-       <!-- Fallback if pageData is somehow null/undefined after loading -->
-       <div v-else class="error-message full-width-message">
-          Page data is unavailable.
-       </div>
+      </aside>
+       <div v-else-if="!isLoading && !errorMessage" class="sidebar-right placeholder"></div>
 
     </main>
 
@@ -57,12 +49,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue';
+import { ref, onMounted, watch, nextTick, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios'; // Or your shared api instance
 import PageHeader from '../components/PageHeader.vue';
 import PageFooter from '../components/PageFooter.vue';
 import SideNav from '../components/SideNav.vue'; // Import SideNav
+import { cloneDeep } from 'lodash'; // Import cloneDeep if needed for parsing, though likely not required here
 
 // --- Props --- 
 // We get type and identifier from the route params directly using useRoute()
@@ -169,55 +162,159 @@ watch(
     { immediate: false } 
 );
 
+// --- Computed properties to parse JSON safely (similar to QuestionDetails) ---
+const parsedNavSections = computed(() => {
+  let result = [];
+  const rawNavSections = pageData.value?.nav_sections; // Use snake_case from API
+
+  if (rawNavSections && typeof rawNavSections === 'string') {
+    try {
+      const parsed = JSON.parse(rawNavSections);
+      result = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error("[ManagedPageDetail] Error parsing nav_sections JSON:", e, "Raw:", rawNavSections);
+    }
+  } else if (Array.isArray(rawNavSections)) {
+    result = rawNavSections;
+  }
+  return result;
+});
+
+const parsedSidebarData = computed(() => {
+  let result = [];
+  const rawSidebarData = pageData.value?.sidebar_data; // Use snake_case from API
+
+  if (rawSidebarData && typeof rawSidebarData === 'string') {
+    try {
+      const parsed = JSON.parse(rawSidebarData);
+      result = Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error("[ManagedPageDetail] Error parsing sidebar_data JSON:", e, "Raw:", rawSidebarData);
+    }
+  } else if (Array.isArray(rawSidebarData)) {
+    result = rawSidebarData;
+  }
+  // CHANGE: Update filter to accept content OR html_content
+  result = result.filter(block => 
+      typeof block === 'object' && 
+      block !== null && 
+      (block.hasOwnProperty('content') || block.hasOwnProperty('html_content'))
+  );
+  return result;
+});
+
 </script>
 
 <style scoped>
-/* Layout styles (inspired by IndexView potentially) */
-.detail-layout {
+/* Adopt 3-column layout styles (assuming shared CSS or define here) */
+.content-area-3-column {
   display: grid;
-  /* Adjust grid template for 3 columns */
-  grid-template-columns: 200px 1fr 250px; /* Example: Adjust widths as needed */
-  gap: 30px; /* Space between columns */
-  max-width: 1200px; /* Increase max-width for 3 columns */
-  margin: 20px auto; /* Center layout */
-  padding: 0 20px; /* Add padding */
+  grid-template-columns: 200px 1fr 250px; /* Adjust widths */
+  gap: 30px;
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 0 20px;
 }
 
 .sidebar-left, .sidebar-left-placeholder {
   grid-column: 1 / 2;
-  /* Add specific styles for left sidebar if needed */
-  position: sticky; /* Make left nav sticky */
-  top: 80px; /* Adjust based on header height + desired offset */
-  height: calc(100vh - 100px); /* Adjust height */
-  overflow-y: auto; /* Allow scrolling if content overflows */
+  position: sticky;
+  top: 80px; /* Adjust based on header height */
+  height: calc(100vh - 100px);
+  overflow-y: auto;
 }
 
-.detail-main-content {
+.main-content-middle {
   grid-column: 2 / 3;
-  min-width: 0; /* Prevent content overflow issues in grid */
+  min-width: 0; /* Prevent overflow */
 }
 
 .sidebar-right, .sidebar-right-placeholder {
   grid-column: 3 / 4;
-  /* Right sidebar specific styles */
+  /* Can add specific styles or rely on .managed-page-sidebar */
 }
 
-.full-width-message {
-    grid-column: 1 / -1; /* Make loading/error span all columns */
-    text-align: center;
-    padding: 40px;
+.loading-message, .error-message, .not-found-message {
+  padding: 40px;
+  text-align: center;
 }
 
-/* Responsive adjustments */
+/* Styles for the content rendered via v-html */
+.content-html :deep(h1), /* Example: Target elements inside v-html */
+.content-html :deep(h2),
+.content-html :deep(h3) {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+.content-html :deep(p) {
+  margin-bottom: 1em;
+  line-height: 1.6;
+}
+.content-html :deep(a) {
+   color: var(--link-color); /* Use theme variable */
+   text-decoration: none;
+}
+.content-html :deep(a:hover) {
+   text-decoration: underline;
+}
+
+:deep(.sidebar-block img){
+  max-width: 100%;
+  height: auto;
+}
+
+/* Styles for the NEW Right Sidebar Blocks */
+.managed-page-sidebar .sidebar-block {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+}
+
+.managed-page-sidebar .sidebar-block-title {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #303133;
+}
+
+.managed-page-sidebar .sidebar-block-content :deep(p) {
+  margin-top: 0;
+  margin-bottom: 1em;
+  line-height: 1.4;
+  font-size: 0.9rem;
+}
+.managed-page-sidebar .sidebar-block-content :deep(a) {
+  color: #007bff;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+.managed-page-sidebar .sidebar-block-content :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.managed-page-sidebar .sidebar-block-content :deep(ul) {
+  padding-left: 1.5em;
+}
+
+.managed-page-sidebar .sidebar-block-content :deep(ul li) {
+  margin-bottom: 0.5em;
+}
+
+
+
+/* Responsive adjustments (keep or adapt from original) */
 @media (max-width: 992px) {
-  .detail-layout {
-    grid-template-columns: 1fr 250px; /* Sidebar right, main content takes rest */
+  .content-area-3-column {
+    grid-template-columns: 1fr 250px;
     gap: 20px;
   }
   .sidebar-left, .sidebar-left-placeholder {
-    display: none; /* Hide left nav on smaller screens */
+    display: none;
   }
-  .detail-main-content {
+  .main-content-middle {
      grid-column: 1 / 2;
   }
    .sidebar-right, .sidebar-right-placeholder {
@@ -226,13 +323,13 @@ watch(
 }
 
 @media (max-width: 768px) {
-  .detail-layout {
-    grid-template-columns: 1fr; /* Single column */
+  .content-area-3-column {
+    grid-template-columns: 1fr;
     max-width: 100%;
     padding: 0 15px;
     margin-top: 15px;
   }
-  .detail-main-content {
+  .main-content-middle {
      grid-column: 1 / -1;
      order: 1;
   }
@@ -245,83 +342,20 @@ watch(
    }
 }
 
-/* Keep existing scoped styles */
+/* Remove or adjust old layout styles if they conflict */
 .page-detail-container {
-  /* Styles from this class are now mostly handled by .detail-layout */
-  /* padding: 20px; */
-  /* max-width: 1000px; */
-  /* margin: 0 auto; */
-  /* min-height: calc(100vh - 120px); */ 
+  /* Might be redundant now */
 }
-
-.loading-area, .error-area {
-  /* text-align: center; */ /* Handled by full-width-message */
-  /* padding: 40px; */
-  color: #606266;
+.detail-main-content {
+  /* Now primarily a grid item */
 }
-
-.error-area h2 {
-    color: #f56c6c;
-    margin-bottom: 15px;
-}
-.error-area p {
-    margin-bottom: 20px;
-}
-
-/* Remove old page-content-wrapper styles if not needed */
-/* .page-content-wrapper { ... } */
-
-/* Remove old page-sidebar styles if covered by .sidebar-right */
-/* .page-sidebar { ... } */
-
-/* Keep styles for content inside main/sidebar */
-.main-content { /* This class might not be needed anymore */
-    /* order: 1; */
-    /* width: 100%; */
-}
-
-/* Remove old page-nav styles as SideNav component handles this */
-/* .page-nav { ... } */
-
 .content-html {
-    line-height: 1.6;
+   /* Styles for direct children inside v-html are better targeted with :deep() */
 }
 
-.content-html ::v-deep(h1),
-.content-html ::v-deep(h2),
-.content-html ::v-deep(h3) {
-    margin-top: 1.5em;
-    margin-bottom: 0.8em;
+/* Add scroll margin to account for sticky header */
+.content-html :deep([id]) {
+  scroll-margin-top: 100px; /* Adjust this value based on actual header height */
 }
-
-.sidebar-block {
-    margin-bottom: 25px; /* Increased spacing */
-    padding-bottom: 20px;
-}
-.sidebar-block:not(:last-child) {
-    border-bottom: 1px solid #eee; /* Add separator */
-}
-
-.sidebar-block h3 { /* Changed from h4 */
-    margin-top: 0;
-    margin-bottom: 10px; /* Increased spacing */
-    font-size: 1.2em; /* Slightly larger title */
-    color: #333;
-}
-.sidebar-block ::v-deep(p) {
-    font-size: 0.95em;
-    line-height: 1.5;
-    color: #555;
-}
-.sidebar-block ::v-deep(a) {
-    color: #007bff;
-    text-decoration: none;
-}
-.sidebar-block ::v-deep(a:hover) {
-    text-decoration: underline;
-}
-
-/* Remove old responsive styles if replaced */
-/* @media (min-width: 768px) { ... } */
 
 </style> 

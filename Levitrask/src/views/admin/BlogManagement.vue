@@ -20,7 +20,7 @@
           <span v-else>N/A</span>
         </template>
       </el-table-column>
-      <el-table-column prop="listTitle" label="标题 ({{ DEFAULT_LANG }})" />
+      <el-table-column prop="listTitle" :label="`标题 (${DEFAULT_LANG})`" />
       <el-table-column label="操作" width="180">
         <template #default="scope">
           <el-button size="small" type="primary" @click="handleEdit(scope.row)" :icon="Edit">编辑</el-button>
@@ -61,8 +61,8 @@
                  v-model="selectedLanguage" 
                  placeholder="选择语言" 
                  style="width: 100%"
-                 @change="loadLanguageForEdit" 
-                 :disabled="!isEditMode && !currentEditingData"
+                 @change="switchLanguage" 
+                 :disabled="!isEditMode && supportedLanguages.length <= 1"
                >
                  <el-option
                    v-for="lang in supportedLanguages"
@@ -71,8 +71,9 @@
                    :value="lang.code"
                  />
                </el-select>
-               <div class="form-tip" v-if="!isEditMode">创建博客时将使用默认语言 ({{ DEFAULT_LANG }})。</div>
-               <div class="form-tip" v-if="isEditMode">选择要编辑的语言版本。切换语言会加载对应内容。</div>
+               <div v-if="!isEditMode" style="font-size: 12px; color: #999; margin-top: 5px;">
+                   创建模式下，请先填写一种语言（如英语），其他语言可在保存后继续编辑。
+               </div>
              </el-form-item>
           </el-col>
         </el-row>
@@ -80,7 +81,7 @@
         <!-- Row 2: List Title and List Date -->
         <el-row :gutter="20">
            <el-col :span="12">
-            <el-form-item label="列表标题 (List Title)" prop="listTitle">
+            <el-form-item label="列表标题 (List Title - 当前语言)" prop="listTitle">
               <el-input v-model="blogForm.listTitle" />
             </el-form-item>
            </el-col>
@@ -93,6 +94,7 @@
                   format="YYYY-MM-DD"
                   value-format="YYYY-MM-DD"
                   style="width: 100%"
+                  :disabled="isEditMode"
                 />
               </el-form-item>
            </el-col>
@@ -102,24 +104,24 @@
         <el-row :gutter="20">
           <el-col :span="12">
              <el-form-item label="列表图片 URL (List Image URL)" prop="listImageSrc">
-               <el-input v-model="blogForm.listImageSrc" placeholder="请输入图片的完整 URL" />
+               <el-input v-model="blogForm.listImageSrc" placeholder="请输入图片的完整 URL"></el-input> 
              </el-form-item>
           </el-col>
            <el-col :span="12">
-             <el-form-item label="图片 Alt 文本" prop="listImageAlt">
-                <el-input v-model="blogForm.listImageAlt" placeholder="图片的简短描述 (用于 SEO 和可访问性)"/>
+             <el-form-item label="图片 Alt 文本 (当前语言)" prop="listImageAlt">
+                <el-input v-model="blogForm.listImageAlt" placeholder="图片的简短描述 (用于 SEO 和可访问性)"></el-input>
              </el-form-item>
           </el-col>
         </el-row>
 
         <el-divider>翻译内容 (当前语言: {{ selectedLanguage }})</el-divider>
 
-        <!-- Row 4: List Source (Full Width) -->
+        <!-- Row 4: List Source (Full Width - Non-Translatable) -->
         <el-form-item label="列表来源/作者 (List Source)" prop="listSource">
-           <el-input v-model="blogForm.listSource" />
+           <el-input v-model="blogForm.listSource" :disabled="isEditMode" />
         </el-form-item>
         
-        <!-- Row 5: List Description (Full Width) -->
+        <!-- Row 5: List Description (Full Width - Translatable) -->
         <el-form-item label="列表描述 (List Description)" prop="listDescription">
            <el-input type="textarea" v-model="blogForm.listDescription" :rows="3" />
         </el-form-item>
@@ -246,7 +248,7 @@
         <span class="dialog-footer">
           <el-button @click="closeDialog">取消</el-button>
           <el-button type="primary" @click="handleSubmit" :loading="isSubmitting">
-            {{ isEditMode ? '更新' : '创建' }}
+            {{ isEditMode ? '更新博客 (所有语言)' : '创建博客' }}
           </el-button>
         </span>
       </template>
@@ -256,549 +258,686 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, nextTick } from 'vue';
+import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue';
 import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Edit, Delete, Plus, ArrowUpBold, ArrowDownBold } from '@element-plus/icons-vue';
 
-// --- State --- 
+// --- Configuration ---
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const DEFAULT_LANG = 'en'; // Default language for table and fallback
+
+// --- Reactive State ---
 const tableData = ref([]);
 const isLoading = ref(false);
+const isLoadingDetails = ref(false); // Separate loading state for dialog details
 const errorMessage = ref('');
 const isSubmitting = ref(false);
 const isDialogVisible = ref(false);
 const isEditMode = ref(false); 
-const currentEditSlug = ref(null);
-const isLoadingDetails = ref(false); 
-const selectedLanguage = ref('');
-const currentEditingData = ref(null);
+const currentEditDbId = ref(null); // Stores the blog_id (slug) being edited
+const currentEditSlug = ref(null); // Stores the blog_id (slug) being edited
+const selectedLanguage = ref(DEFAULT_LANG); // Language currently shown in the form
 
-// --- Constants --- 
-const DEFAULT_LANG = import.meta.env.VITE_DEFAULT_LANG || 'en';
-const SUPPORTED_LANGS_JSON = import.meta.env.VITE_SUPPORTED_LANGS || '[{"code":"en","name":"English"},{"code":"zh-CN","name":"简体中文"}]';
-const supportedLanguages = JSON.parse(SUPPORTED_LANGS_JSON);
+// Define supported languages
+const supportedLanguages = [
+  { code: 'en', name: 'English' },
+  { code: 'zh-CN', name: '中文 (简体)' },
+  { code: 'ru', name: 'Русский' } // Added Russian
+];
 
-// --- API Base URL ---
-// In development, proxy handles '/api'. In production, use the full BASE_URL.
-// Let Axios use relative paths in dev, relying on the proxy.
-const apiBaseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : '';
-
-// Helper function to build API URLs correctly for dev (proxy) and prod
-const buildApiUrl = (path) => {
-    // Ensure path starts with /
-    const ensuredPath = path.startsWith('/') ? path : `/${path}`;
-    // If apiBaseUrl is set (production), prepend it. Otherwise (dev), use relative path.
-    return apiBaseUrl ? `${apiBaseUrl}${ensuredPath}` : ensuredPath;
-}
-
-// --- Form Initial State (MODIFIED) --- 
+// --- Form Definition ---
 const getInitialFormState = () => ({
-  slug: '',
-  listDate: null, 
-  listImageSrc: '', 
+  slug: '',          // Non-translatable
+  listDate: null,      // Non-translatable
+  listImageSrc: '',  // Non-translatable
+  listSource: '',      // Non-translatable - Moved from translation
+  // Translatable fields
   listTitle: '',
-  listSource: '',
   listImageAlt: '', 
   listDescription: '',
   metaTitle: '',
   metaDescription: '',
   metaKeywords: '',
-  content: '',
-  navSections: [],
-  sidebarData: []
+  navSections: [], // Array of { id: string, title: string }
+  sidebarData: [], // Array of { title?: string, html_content: string }
+  content: ''
 });
 
-// --- Form Data (MODIFIED) --- 
+// Holds data for the CURRENTLY selected language in the form
 const blogForm = reactive(getInitialFormState());
-const formRef = ref(null); 
 
-// --- Form Rules (MODIFIED) --- 
+// Stores data for ALL languages when editing/creating
+const allLanguageData = reactive({}); // <-- Introduced storage for all languages
+
+const formRef = ref(null); // Template ref for the form
+
+// --- Form Validation Rules ---
+// Note: Rules apply to the *current* language form
 const formRules = reactive({
   slug: [
-      { required: true, message: 'URL Slug (路径) 不能为空', trigger: 'blur' },
-      { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Slug 只能包含小写字母、数字和连字符', trigger: 'blur' }
+    { required: true, message: '请输入 URL Slug', trigger: 'blur' },
+    { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Slug 只能包含小写字母、数字和连字符 (-)', trigger: 'blur' }
   ],
-  listTitle: [{ required: true, message: '列表标题不能为空', trigger: 'blur' }],
-  listImageSrc: [{ required: true, message: '列表图片 URL 不能为空', trigger: 'blur' }],
-  listImageAlt: [{ required: true, message: '图片 Alt 文本不能为空', trigger: 'blur' }],
-  metaTitle: [{ required: true, message: 'Meta 标题不能为空', trigger: 'blur' }],
-  metaDescription: [{ required: true, message: 'Meta 描述不能为空', trigger: 'blur' }],
-  content: [{ required: true, message: '主要内容不能为空', trigger: 'blur' }],
-  navSectionId: [{ required: true, message: '导航项 ID 不能为空', trigger: 'blur' }],
+  listTitle: [{ required: true, message: '请输入列表标题', trigger: 'blur' }],
+  listImageSrc: [{ required: true, message: '请输入列表图片 URL', trigger: 'blur' }],
+  listImageAlt: [{ required: true, message: '请输入列表图片 Alt 文本', trigger: 'blur' }],
+  listDescription: [{ required: true, message: '请输入列表描述', trigger: 'blur' }],
+  metaTitle: [{ required: true, message: '请输入 Meta 标题', trigger: 'blur' }],
+  metaDescription: [{ required: true, message: '请输入 Meta 描述', trigger: 'blur' }],
+  metaKeywords: [{ required: true, message: '请输入 Meta 关键词', trigger: 'blur' }],
+  content: [{ required: true, message: '请输入主要内容', trigger: 'blur' }],
+  navSectionId: [
+      { required: true, message: '导航项 ID 不能为空', trigger: 'blur' },
+      { pattern: /^[a-zA-Z0-9_-]+$/, message: 'ID 只能包含字母、数字、下划线或连字符', trigger: 'blur' }
+  ],
   navSectionTitle: [{ required: true, message: '导航项标题不能为空', trigger: 'blur' }],
-  sidebarBlockContent: [{ required: true, message: '侧边栏区块内容不能为空', trigger: 'blur' }]
+  // sidebarBlockTitle rule is optional, so no required: true
+  sidebarBlockContent: [{ required: true, message: '侧边栏区块内容不能为空', trigger: 'blur' }],
 });
 
-// --- Computed --- 
-const dialogTitle = computed(() => isEditMode.value ? `编辑博客 (${selectedLanguage.value})` : '创建新博客');
+// --- Computed Properties ---
+const dialogTitle = computed(() => {
+  const langName = supportedLanguages.find(l => l.code === selectedLanguage.value)?.name || selectedLanguage.value;
+  return `${isEditMode.value ? '编辑' : '创建'}博客` + (isEditMode.value ? ` - ${langName}` : '');
+});
 
-// --- Methods --- 
+// --- API Client ---
+// Create an Axios instance specifically for admin requests
+const apiClient = axios.create({ baseURL: API_BASE_URL });
+
+// Add a request interceptor to include the auth token
+apiClient.interceptors.request.use(
+  (config) => {
+    // Retrieve the token from localStorage (adjust key if needed)
+    const token = localStorage.getItem('admin-auth-token'); 
+    if (token) {
+      // If token exists, add the Authorization header
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log('>>> Admin API request interceptor: Added Auth header.'); // Debug log
+    } else {
+      console.warn('>>> Admin API request interceptor: Auth token not found in localStorage.'); // Debug log
+    }
+    return config; // Return the modified config
+  },
+  (error) => {
+    // Handle request error (e.g., if config modification fails)
+    console.error('>>> Admin API request interceptor error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// --- Core Logic Functions ---
+
+// Fetch table data (default language)
 const fetchData = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    const token = localStorage.getItem('admin-auth-token');
-    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-    const response = await axios.get(buildApiUrl('/api/blogs/admin'), config); // Use admin endpoint
-    const responseData = response.data;
+    // --- Use the Admin endpoint to get the list for the table --- 
+    console.log('Fetching admin blog list from /admin endpoint');
+    const response = await apiClient.get(`/blogs/admin`); // Call admin list endpoint
+    console.log('--- Admin Blog List API Response ---');
+    console.log(JSON.stringify(response.data, null, 2));
 
-    if (Array.isArray(responseData)) {
-        tableData.value = responseData.map(blog => ({
-            ...blog // Spread the backend data (contains numeric `id` and string `blog_id`)
-        }));
-        console.log('Fetched blog list (array format):', tableData.value);
+    if (Array.isArray(response.data)) {
+        // --- MODIFIED: Map response including numeric id and slug --- 
+        tableData.value = response.data.map(item => {
+             console.log('Processing admin item:', item);
+             // Backend /admin returns: id (numeric), blog_id (slug), list_title (default lang), updated_at
+             if (!item.id || !item.blog_id) { // Check both IDs
+                 console.warn('Admin item found without numeric id or blog_id (slug):', item);
+             }
+             return {
+                 db_id: item.id,         // <-- Store numeric DB ID
+                 blog_id: item.blog_id,  // <-- Store slug
+                 listTitle: item.list_title || '(无标题)', // Use list_title from response
+                 // Fetch listImageSrc separately if needed, or add to admin endpoint response
+                 listImageSrc: '', // Placeholder, might need adjustment
+                 listImageAlt: '', // Placeholder
+             }
+        });
+        console.log('--- Processed Admin Table Data (with db_id and blog_id) ---');
+        console.log(JSON.stringify(tableData.value, null, 2));
     } else {
-        console.error('API response data for admin blogs is not the expected array format:', responseData);
+        console.warn('Unexpected API response format for admin blogs list (expected array):', response.data);
         tableData.value = [];
-        errorMessage.value = '收到的博客数据格式无法处理。';
     }
 
   } catch (error) {
-    console.error('获取博客列表失败:', error);
-    errorMessage.value = `无法加载博客数据 (${error.response?.data?.message || error.message || '未知错误'})。`;
-    tableData.value = [];
+    console.error('Error fetching admin blog list:', error);
+    errorMessage.value = `获取博客列表失败: ${error.response?.data?.message || error.message}`;
   } finally {
     isLoading.value = false;
   }
 };
 
-const loadLanguageForEdit = (langCode) => {
-    // +++ DEBUG LOG: Function entry +++
-    console.log(`--- loadLanguageForEdit called for lang: ${langCode} ---`);
-    if (!isEditMode.value || !currentEditingData.value) {
-        console.log('loadLanguageForEdit: Not in edit mode or no currentEditingData.');
-        selectedLanguage.value = langCode; 
-        return;
-    }
+// Open Dialog for Creating
+const openCreateDialog = () => {
+  isEditMode.value = false;
+  currentEditDbId.value = null;
+  currentEditSlug.value = null;
+  selectedLanguage.value = DEFAULT_LANG; // Start with default language
 
-    selectedLanguage.value = langCode; 
+  // Clear previous data and initialize storage for all languages
+  Object.keys(allLanguageData).forEach(key => delete allLanguageData[key]);
+  supportedLanguages.forEach(lang => {
+    allLanguageData[lang.code] = getInitialFormState(); // Initialize empty state
+  });
 
-    const dataToLoad = currentEditingData.value.translations?.[langCode] || {};
-    const defaultData = currentEditingData.value.translations?.[DEFAULT_LANG] || {};
-    const baseData = currentEditingData.value; 
+  // Reset the form to the initial state for the default language
+  Object.assign(blogForm, allLanguageData[selectedLanguage.value]);
 
-    // +++ DEBUG LOG: Show data sources +++
-    console.log('loadLanguageForEdit: Base Data:', JSON.stringify(baseData, null, 2));
-    console.log(`loadLanguageForEdit: Data to Load (${langCode}):`, JSON.stringify(dataToLoad, null, 2));
-    console.log(`loadLanguageForEdit: Default Data (${DEFAULT_LANG}):`, JSON.stringify(defaultData, null, 2));
-
-    // Populate language-specific fields, falling back to default lang or empty if not found
-    // Adding logs for clarity
-    blogForm.listTitle = dataToLoad.list_title || defaultData.list_title || ''; // Backend sends snake_case
-    console.log(`  - Setting listTitle: ${blogForm.listTitle}`);
-    blogForm.listSource = dataToLoad.list_source || defaultData.list_source || ''; // Assuming list_source is snake_case too
-    console.log(`  - Setting listSource: ${blogForm.listSource}`);
-    blogForm.listImageAlt = dataToLoad.list_image_alt || defaultData.list_image_alt || ''; // Backend sends snake_case
-    console.log(`  - Setting listImageAlt: ${blogForm.listImageAlt}`);
-    blogForm.listDescription = dataToLoad.list_description || defaultData.list_description || ''; // Backend sends snake_case
-    console.log(`  - Setting listDescription: ${blogForm.listDescription}`);
-    blogForm.metaTitle = dataToLoad.meta_title || defaultData.meta_title || ''; // Backend sends snake_case
-    console.log(`  - Setting metaTitle: ${blogForm.metaTitle}`);
-    blogForm.metaDescription = dataToLoad.meta_description || defaultData.meta_description || ''; // Backend sends snake_case
-    console.log(`  - Setting metaDescription: ${blogForm.metaDescription}`);
-    blogForm.metaKeywords = dataToLoad.meta_keywords || defaultData.meta_keywords || ''; // Backend sends snake_case
-    console.log(`  - Setting metaKeywords: ${blogForm.metaKeywords}`);
-    blogForm.content = dataToLoad.content || defaultData.content || ''; // Backend sends camelCase here
-    console.log(`  - Setting content: ${blogForm.content.substring(0, 50)}...`); // Log partial content
-    blogForm.navSections = Array.isArray(dataToLoad.nav_sections) ? JSON.parse(JSON.stringify(dataToLoad.nav_sections)) : [];
-    console.log(`  - Setting navSections (count): ${blogForm.navSections.length}`);
-    blogForm.sidebarData = Array.isArray(dataToLoad.sidebar_data) ? JSON.parse(JSON.stringify(dataToLoad.sidebar_data)) : [];
-    console.log(`  - Setting sidebarData (count): ${blogForm.sidebarData.length}`);
-
-    // Populate common fields from base data (should only happen once really, but safe to repeat)
-    blogForm.slug = baseData.slug || '';
-    console.log(`  - Setting slug: ${blogForm.slug}`);
-    blogForm.listDate = baseData.list_date || null;
-    console.log(`  - Setting listDate: ${blogForm.listDate}`);
-    blogForm.listImageSrc = baseData.list_image || ''; // Base data has list_image
-    console.log(`  - Setting listImageSrc: ${blogForm.listImageSrc}`);
-
-    // +++ DEBUG LOG: Show final blogForm state +++
-    console.log('--- loadLanguageForEdit: Final blogForm state ---');
-    console.log(JSON.stringify(blogForm, null, 2));
-
-    // Trigger validation update if needed after loading new data
+  isDialogVisible.value = true;
     nextTick(() => {
-        if (formRef.value) {
-           // Optional actions like clearing validation
-        }
+    formRef.value?.clearValidate();
     });
 };
 
-const resetForm = () => {
-  if (formRef.value) {
-    formRef.value.resetFields();
-  }
-  Object.assign(blogForm, getInitialFormState());
-  currentEditSlug.value = null; 
-  currentEditingData.value = null;
-  selectedLanguage.value = DEFAULT_LANG;
-};
-
-const openCreateDialog = () => {
-  isEditMode.value = false;
-  resetForm(); 
-  selectedLanguage.value = DEFAULT_LANG;
-  isDialogVisible.value = true;
-};
-
-const closeDialog = () => {
-  isDialogVisible.value = false;
-};
-
-const addNavSection = () => {
-  blogForm.navSections.push({ id: '', title: '' });
-};
-
-const removeNavSection = (index) => {
-  blogForm.navSections.splice(index, 1);
-};
-
-const addSidebarBlock = () => {
-  blogForm.sidebarData.push({ title: '', html_content: '' });
-};
-
-const removeSidebarBlock = (index) => {
-  blogForm.sidebarData.splice(index, 1);
-};
-
+// Open Dialog for Editing - Modified to fetch all languages using Admin API
 const handleEdit = async (row) => {
-  console.log("Edit clicked for row:", row);
-  // *** USE row.id (NUMERIC ID) for API calls ***
-  const numericId = row.id; 
-  const slug = row.blog_id; // Keep slug for informational purposes or if needed elsewhere
-
-  // Check for NUMERIC ID
-  if (numericId === undefined || numericId === null || isNaN(parseInt(numericId))) { // Added isNaN check
-      console.error("Row data is missing or has invalid numeric ID required for editing.", row);
-      ElMessage.error('无法编辑：缺少或博客的数字 ID 无效。'); // Updated error message
+  // --- Use db_id (numeric) and blog_id (slug) from the row --- 
+  if (!row || row.db_id === undefined || !row.blog_id) {
+    ElMessage.error('无法编辑：缺少博客数字 ID 或 Slug。');
       return;
-  }
-  // Keep slug check as a warning if needed, but numeric ID is critical
-  if (!slug) {
-      console.warn("Row data is missing slug (blog_id), proceeding with numeric ID.", row); 
   }
 
   isEditMode.value = true;
-  resetForm(); 
-  currentEditSlug.value = slug; // Store slug, mainly informational now for edit
-
+  currentEditDbId.value = row.db_id; // <-- Store NUMERIC ID
+  currentEditSlug.value = row.blog_id; // <-- Store slug
   isDialogVisible.value = true;
   isLoadingDetails.value = true;
+  errorMessage.value = '';
+  selectedLanguage.value = DEFAULT_LANG;
 
   try {
-    const token = localStorage.getItem('admin-auth-token');
-    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-
-    // 1. Fetch main data + default translation using NUMERIC ID
-    const adminDetailUrl = buildApiUrl(`/api/blogs/admin/${numericId}`); // USE numericId
-    console.log(`Fetching base blog details from: ${adminDetailUrl}`);
-    const baseResponse = await axios.get(adminDetailUrl, config);
+    // --- Step 1: Fetch base data + default translation using ADMIN endpoint ---
+    console.log(`Fetching admin details for DB ID: ${currentEditDbId.value}`);
+    const baseResponse = await apiClient.get(`/blogs/admin/${currentEditDbId.value}`);
     const baseData = baseResponse.data;
-    console.log("Fetched base details:", baseData);
+    console.log('Admin Base Details Response:', baseData);
 
     if (!baseData || !baseData.slug) {
-        throw new Error("收到的博客基础数据无效。");
-    }
-    const combinedData = {
-        id: baseData.id,
-        slug: baseData.slug,
-        list_date: baseData.list_date,
-        list_image: baseData.list_image, 
-        created_at: baseData.created_at,
-        updated_at: baseData.updated_at,
-        translations: {}
-    };
-    if (baseData.translation) {
-        combinedData.translations[DEFAULT_LANG] = {
-            ...baseData.translation,
-            nav_sections: baseData.translation.nav_sections || [],
-            sidebar_data: baseData.translation.sidebar_data || []
-        };
+      throw new Error('从 Admin API 收到的博客基础数据无效。');
     }
 
-    // 2. Fetch other translations using NUMERIC ID
-    const otherLanguages = supportedLanguages.filter(lang => lang.code !== DEFAULT_LANG);
-    const translationPromises = otherLanguages.map(async (lang) => {
-        const translationUrl = buildApiUrl(`/api/blogs/admin/${numericId}/translations/${lang.code}`); // USE numericId
-        console.log(`Fetching translation for lang ${lang.code} from: ${translationUrl}`);
-        try {
-            const response = await axios.get(translationUrl, config);
-            combinedData.translations[lang.code] = {
-                ...response.data,
-                 nav_sections: response.data.nav_sections || [], 
-                 sidebar_data: response.data.sidebar_data || []
-            };
-            console.log(`Successfully fetched translation for ${lang.code}`);
-        } catch (error) {
-            if (error.response && error.response.status === 404) {
-                console.log(`Translation not found for lang ${lang.code}, will use default or empty.`);
-                combinedData.translations[lang.code] = null; 
+    // Populate non-translatable fields and default translation into allLanguageData
+    allLanguageData[DEFAULT_LANG] = {
+        slug: baseData.slug,
+      listDate: baseData.list_date || null,
+      listImageSrc: baseData.list_image || '',
+      listSource: baseData.translation?.list_source || '', // Get source from default translation if available
+      listTitle: baseData.translation?.list_title || '',
+      listImageAlt: baseData.translation?.list_image_alt || '',
+      listDescription: baseData.translation?.list_description || '',
+      metaTitle: baseData.translation?.meta_title || '',
+      metaDescription: baseData.translation?.meta_description || '',
+      metaKeywords: baseData.translation?.meta_keywords || '',
+      navSections: baseData.translation?.nav_sections || [],
+      sidebarData: baseData.translation?.sidebar_data || [],
+      content: baseData.translation?.content || ''
+    };
+
+    // --- Step 2: Fetch other translations using ADMIN endpoint --- 
+    const otherLanguages = supportedLanguages.filter(l => l.code !== DEFAULT_LANG);
+    const fetchPromises = otherLanguages.map(async (lang) => {
+      try {
+        console.log(`Fetching admin translation for DB ID: ${currentEditDbId.value}, lang: ${lang.code}`);
+        const response = await apiClient.get(`/blogs/admin/${currentEditDbId.value}/translations/${lang.code}`);
+        if (response.data) {
+           // Assign fetched data to the correct language slot
+           allLanguageData[lang.code] = {
+             slug: currentEditSlug.value, // Keep slug consistent
+             listDate: allLanguageData[DEFAULT_LANG]?.listDate, // Copy non-translatable
+             listImageSrc: allLanguageData[DEFAULT_LANG]?.listImageSrc,
+             listSource: allLanguageData[DEFAULT_LANG]?.listSource,
+             // Translatable fields from response
+             listTitle: response.data.list_title || '',
+             listImageAlt: response.data.list_image_alt || '',
+             listDescription: response.data.list_description || '',
+             metaTitle: response.data.meta_title || '',
+             metaDescription: response.data.meta_description || '',
+             metaKeywords: response.data.meta_keywords || '',
+             navSections: response.data.nav_sections || [],
+             sidebarData: response.data.sidebar_data || [],
+             content: response.data.content || ''
+           };
+        }
+      } catch (fetchError) {
+        if (fetchError.response && fetchError.response.status === 404) {
+          console.warn(`No translation found for ${lang.code} (Blog ID: ${currentEditDbId.value}), initializing.`);
+          // Initialize empty state for this language, keeping non-translatables
+           allLanguageData[lang.code] = {
+              ...(allLanguageData[DEFAULT_LANG] || getInitialFormState()), // Copy non-translatables from default
+              slug: currentEditSlug.value,
+              listTitle: '', listImageAlt: '', listDescription: '', metaTitle: '',
+              metaDescription: '', metaKeywords: '', navSections: [], sidebarData: [], content: ''
+           };
             } else {
-                console.error(`Error fetching translation for ${lang.code}:`, error);
+          console.error(`Error fetching admin blog translation for ${lang.code}:`, fetchError);
+          throw fetchError; // Propagate other errors
             }
         }
     });
-    await Promise.all(translationPromises);
 
-    // 3. Store the combined data
-    currentEditingData.value = combinedData;
-    currentEditSlug.value = combinedData.slug; 
-    // +++ DEBUG LOG: Show combined data +++
-    console.log("Stored combined blog details with all translations:");
-    console.log(JSON.stringify(currentEditingData.value, null, 2)); 
+    await Promise.all(fetchPromises);
 
-    // 4. Set initial language and load data into form
-    selectedLanguage.value = DEFAULT_LANG;
-    loadLanguageForEdit(DEFAULT_LANG); // Populate form with default language data
-    // +++ DEBUG LOG: Show form state AFTER initial load +++
-    console.log("Form populated after initial loadLanguageForEdit:");
-    console.log(JSON.stringify(blogForm, null, 2));
+    // Load the default language's data into the form initially
+    if (allLanguageData[DEFAULT_LANG]) {
+      Object.assign(blogForm, allLanguageData[DEFAULT_LANG]);
+    } else {
+      Object.assign(blogForm, getInitialFormState());
+      blogForm.slug = currentEditSlug.value;
+    }
 
   } catch (error) {
-      console.error("Error during handleEdit process:", error);
-      ElMessage.error(`加载编辑数据时出错: ${error.message}`);
+    console.error('Error fetching blog details for editing via Admin API:', error);
+    errorMessage.value = `加载编辑数据失败: ${error.response?.data?.message || error.message}`;
       closeDialog(); 
+    ElMessage.error(errorMessage.value);
   } finally {
       isLoadingDetails.value = false;
   }
 };
 
+// Switch Language in Form (Edit or Create) - NEW Function
+const switchLanguage = (newLangCode) => {
+  if (selectedLanguage.value === newLangCode) return;
+
+  // 1. Save current form state back to storage for the *previous* language
+  if (allLanguageData[selectedLanguage.value]) {
+    const currentData = allLanguageData[selectedLanguage.value];
+    // Save translatable fields
+    currentData.listTitle = blogForm.listTitle;
+    currentData.listImageAlt = blogForm.listImageAlt;
+    currentData.listDescription = blogForm.listDescription;
+    currentData.metaTitle = blogForm.metaTitle;
+    currentData.metaDescription = blogForm.metaDescription;
+    currentData.metaKeywords = blogForm.metaKeywords;
+    currentData.navSections = JSON.parse(JSON.stringify(blogForm.navSections || []));
+    currentData.sidebarData = JSON.parse(JSON.stringify(blogForm.sidebarData || []));
+    currentData.content = blogForm.content;
+     // Also save non-translatable fields (especially important in create mode)
+     currentData.slug = blogForm.slug;
+     currentData.listDate = blogForm.listDate;
+     currentData.listImageSrc = blogForm.listImageSrc;
+     currentData.listSource = blogForm.listSource;
+      console.log(`Saved form data for ${selectedLanguage.value} before switching.`);
+  } else {
+      console.warn(`Attempted to save data for non-existent language key: ${selectedLanguage.value}`);
+  }
+
+  // 2. Load new language data into the form
+  if (allLanguageData[newLangCode]) {
+    const newData = allLanguageData[newLangCode];
+    // Load translatable fields
+    blogForm.listTitle = newData.listTitle;
+    blogForm.listImageAlt = newData.listImageAlt;
+    blogForm.listDescription = newData.listDescription;
+    blogForm.metaTitle = newData.metaTitle;
+    blogForm.metaDescription = newData.metaDescription;
+    blogForm.metaKeywords = newData.metaKeywords;
+    blogForm.navSections = JSON.parse(JSON.stringify(newData.navSections || []));
+    blogForm.sidebarData = JSON.parse(JSON.stringify(newData.sidebarData || []));
+    blogForm.content = newData.content;
+    // Ensure non-translatable fields remain consistent (use base lang's values or current edit ID)
+    const baseData = allLanguageData[DEFAULT_LANG] || {};
+     blogForm.slug = baseData.slug || currentEditSlug.value || '';
+     blogForm.listDate = baseData.listDate || null;
+     blogForm.listImageSrc = baseData.listImageSrc || '';
+     blogForm.listSource = baseData.listSource || '';
+    console.log(`Loaded form data for ${newLangCode}`);
+  } else {
+     // Should not happen if initialized correctly, initialize defensively
+     console.warn(`Data for language ${newLangCode} not found. Initializing.`);
+     const baseData = allLanguageData[DEFAULT_LANG] || getInitialFormState();
+     allLanguageData[newLangCode] = {
+         ...baseData,
+         slug: blogForm.slug,
+         listTitle: '', listImageAlt: '', listDescription: '', metaTitle: '',
+         metaDescription: '', metaKeywords: '', navSections: [], sidebarData: [], content: ''
+     };
+     Object.assign(blogForm, allLanguageData[newLangCode]);
+  }
+
+  // 3. Update selected language state
+  selectedLanguage.value = newLangCode;
+
+  // Clear validation for potentially changed fields
+  nextTick(() => {
+    formRef.value?.clearValidate();
+  });
+};
+
+// Delete Blog Post
+const handleDelete = (row) => {
+  // Corrected: Check for numeric db_id instead of slug blog_id
+  if (!row || row.db_id === undefined || row.db_id === null) { 
+    ElMessage.error('无法删除：缺少博客数字 ID (db_id)。');
+    return;
+  }
+  ElMessageBox.confirm(
+    // Use listTitle (if available) or numeric ID for confirmation message
+    `确定要删除博客 "${row.listTitle || '(ID: ' + row.db_id + ')'}" 吗？此操作将删除所有语言的翻译且无法撤销。`,
+    '确认删除',
+    { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
+  ).then(async () => {
+    isSubmitting.value = true;
+    try {
+      // Corrected: Use Admin API endpoint with numeric ID
+      await apiClient.delete(`/blogs/admin/${row.db_id}`); 
+      ElMessage.success('博客删除成功');
+      await fetchData(); // Refresh list
+    } catch (error) {
+      console.error('Error deleting blog:', error);
+      ElMessage.error(`删除失败: ${error.response?.data?.message || error.message}`);
+    } finally {
+      isSubmitting.value = false;
+    }
+  }).catch(() => ElMessage.info('删除已取消'));
+};
+
+
+// Submit Form (Create or Update) - Modified for Multi-Language
 const handleSubmit = async () => {
   if (!formRef.value) return;
+
+  // Save current language state before submitting
+  if (allLanguageData[selectedLanguage.value]) {
+    const currentData = allLanguageData[selectedLanguage.value];
+    currentData.slug = blogForm.slug;
+    currentData.listDate = blogForm.listDate;
+    currentData.listImageSrc = blogForm.listImageSrc;
+    currentData.listSource = blogForm.listSource; // Added missing source save
+    currentData.listTitle = blogForm.listTitle;
+    currentData.listImageAlt = blogForm.listImageAlt;
+    currentData.listDescription = blogForm.listDescription;
+    currentData.metaTitle = blogForm.metaTitle;
+    currentData.metaDescription = blogForm.metaDescription;
+    currentData.metaKeywords = blogForm.metaKeywords;
+    currentData.navSections = JSON.parse(JSON.stringify(blogForm.navSections || []));
+    currentData.sidebarData = JSON.parse(JSON.stringify(blogForm.sidebarData || []));
+    currentData.content = blogForm.content;
+    console.log(`Saved final form data for ${selectedLanguage.value} before submit.`);
+  }
 
   formRef.value.validate(async (valid) => {
     if (valid) {
       isSubmitting.value = true;
       try {
-         const numericId = currentEditingData.value?.id;
-         const token = localStorage.getItem('admin-auth-token');
-         if (!token) {
-           ElMessage.error('认证令牌未找到，请重新登录。');
-           isSubmitting.value = false;
-           return;
-         }
-         const config = { headers: { Authorization: `Bearer ${token}` } };
-
          if (isEditMode.value) {
-             if (!numericId) {
-                 ElMessage.error('无法更新：缺少博客的数字 ID。');
-                 isSubmitting.value = false;
-                 return;
-             }
+          // --- EDIT --- 
+          console.log(`Updating blog with DB ID: ${currentEditDbId.value}`);
 
-             // --- Step 1: Update Translation (Send snake_case keys) --- 
-             const updateTranslationUrl = buildApiUrl(`/api/blogs/admin/${numericId}/translations/${selectedLanguage.value}`);
-             console.log(`Sending PUT request to ${updateTranslationUrl} for translation`);
-             // Build payload with snake_case keys expected by backend helper
-             const translationPayload = {
-                 list_title: blogForm.listTitle,
-                 list_description: blogForm.listDescription,
-                 meta_title: blogForm.metaTitle,
-                 meta_description: blogForm.metaDescription,
-                 meta_keywords: blogForm.metaKeywords,
-                 nav_sections: blogForm.navSections,
-                 sidebar_data: blogForm.sidebarData,
-                 content: blogForm.content, // Backend helper expects camelCase for this one
-                 list_image_alt: blogForm.listImageAlt
-                 // list_source: blogForm.listSource // Add if backend expects list_source
-             };
-             console.log("Translation Update Payload (snake_case):");
-             console.log(JSON.parse(JSON.stringify(translationPayload))); // Log the actual payload
-             
-             const translationResponse = await axios.put(updateTranslationUrl, translationPayload, config);
-             console.log('Translation update response:', translationResponse);
-             ElMessage.success(`博客翻译 (${selectedLanguage.value}) 更新成功！`);
+          // Step 1: Update non-translatable fields + slug via PUT /admin/:id
+          const baseLangData = allLanguageData[DEFAULT_LANG]; // Assume base data is reliable here
+          const nonTranslatablePayload = {
+             slug: baseLangData.slug, // Send the current slug (may be updated)
+             list_date: baseLangData.listDate,
+             list_image: baseLangData.listImageSrc,
+             // list_source: baseLangData.listSource, // Source might be considered translatable? Check API.
+          };
+          console.log("Sending PUT to /admin/:id for non-translatable data:", nonTranslatablePayload);
+          await apiClient.put(`/blogs/admin/${currentEditDbId.value}`, nonTranslatablePayload);
 
-             // --- Step 2 (Optional): Update Common Fields ... remains the same ...
-             const originalBaseData = currentEditingData.value || {};
-             const dateChanged = originalBaseData.list_date !== blogForm.listDate;
-             const imageChanged = originalBaseData.list_image !== blogForm.listImageSrc;
-             if (dateChanged || imageChanged) {
-                 const updateCommonUrl = buildApiUrl(`/api/blogs/admin/${numericId}`);
-                 console.log(`Sending PUT request to ${updateCommonUrl} for common fields`);
-                 const commonPayload = {};
-                 if (dateChanged) commonPayload.listDate = blogForm.listDate;
-                 if (imageChanged) commonPayload.listImage = blogForm.listImageSrc;
-                 console.log("Common Fields Update Payload:", JSON.parse(JSON.stringify(commonPayload)));
-                 try {
-                     console.warn("Backend endpoint for updating common blog fields (PUT /api/blogs/admin/:id) not implemented or called.");
-                     ElMessage.warning('翻译已保存，但列表日期或图片 URL 的更改无法保存（缺少后端支持）。');
-                 } catch(commonError) {
-                     console.error("Error updating common blog fields:", commonError);
-                     ElMessage.error(`翻译更新成功，但基础信息（日期/图片）更新失败: ${commonError.response?.data?.message || commonError.message}`);
-                 }
-             }
+          // Step 2: Update each translation via PUT /admin/:id/translations/:lang
+          const translationPromises = Object.keys(allLanguageData).map(langCode => {
+            const langData = allLanguageData[langCode];
+            if (!langData) return Promise.resolve(); // Should not happen
+
+            // Prepare payload for the specific language translation
+            const translationPayload = {
+              list_title: langData.listTitle,
+              list_description: langData.listDescription,
+              meta_title: langData.metaTitle,
+              meta_description: langData.metaDescription,
+              meta_keywords: langData.metaKeywords,
+              nav_sections: langData.navSections || [], // Ensure array
+              sidebar_data: langData.sidebarData || [], // Ensure array
+              content: langData.content,
+              list_image_alt: langData.listImageAlt,
+              list_source: langData.listSource // Include source in translation PUT
+            };
+
+            // Only send request if there's meaningful data or if it's the default lang (which might be getting cleared)
+            const hasMeaningfulData = translationPayload.list_title || translationPayload.content || translationPayload.list_image_alt;
+            if (!hasMeaningfulData && langCode !== DEFAULT_LANG) {
+                console.warn(`Skipping PUT for ${langCode} as no meaningful data provided.`);
+                return Promise.resolve();
+            }
+
+            console.log(`Sending PUT to /admin/:id/translations/${langCode}:`, translationPayload);
+            return apiClient.put(`/blogs/admin/${currentEditDbId.value}/translations/${langCode}`, translationPayload);
+          });
+
+          await Promise.all(translationPromises);
+          ElMessage.success('博客更新成功');
 
          } else {
-           // --- Create Blog (POST - Requires snake_case for translation part too!) ---
-           // Backend POST expects specific fields, ensure names match extract helpers
+          // --- CREATE --- 
+          console.log('Creating new blog post via /admin...');
+          // Prepare payload for the single POST request
+          // Assumes backend POST /admin accepts this structure:
+          // { nonTranslatableFields..., translations: { langCode1: { ... }, langCode2: { ... } } }
+          const baseData = allLanguageData[DEFAULT_LANG] || getInitialFormState();
             const createPayload = {
-               slug: blogForm.slug,
-               listDate: blogForm.listDate,
-               listImageSrc: blogForm.listImageSrc, 
-               languageCode: selectedLanguage.value,
-               // Translatable fields with snake_case keys
-               list_title: blogForm.listTitle,
-               list_description: blogForm.listDescription,
-               meta_title: blogForm.metaTitle,
-               meta_description: blogForm.metaDescription,
-               meta_keywords: blogForm.metaKeywords,
-               nav_sections: blogForm.navSections,
-               sidebar_data: blogForm.sidebarData,
-               content: blogForm.content, // Keep as content
-               list_image_alt: blogForm.listImageAlt
-               // list_source: blogForm.listSource // Add if needed
-           };
-           if (!createPayload.slug) {
-               ElMessage.error('创建时必须提供 Slug。');
-               isSubmitting.value = false;
-               return;
-           }
-           const createUrl = buildApiUrl('/api/blogs/admin'); 
-           console.log(`Sending POST request to ${createUrl} for lang ${selectedLanguage.value}`);
-           console.log("Create Payload (mixed case):");
-           console.log(JSON.parse(JSON.stringify(createPayload))); // Log the actual payload
-           const response = await axios.post(createUrl, createPayload, config);
-           console.log('Create response:', response);
-           ElMessage.success('博客创建成功！');
+            // Non-translatable fields from default lang form
+            slug: baseData.slug, 
+            list_date: baseData.listDate,
+            list_image: baseData.listImageSrc,
+            // Translations object
+            translations: {}
+          };
+
+          Object.keys(allLanguageData).forEach(langCode => {
+            const langData = allLanguageData[langCode];
+             // Only include translation if it has some essential content
+            const hasMeaningfulData = langData.listTitle || langData.content || langData.listImageAlt;
+            if (langData && hasMeaningfulData) {
+              createPayload.translations[langCode] = {
+                  list_title: langData.listTitle,
+                  list_description: langData.listDescription,
+                  meta_title: langData.metaTitle,
+                  meta_description: langData.metaDescription,
+                  meta_keywords: langData.metaKeywords,
+                  nav_sections: langData.navSections || [],
+                  sidebar_data: langData.sidebarData || [],
+                  content: langData.content,
+                  list_image_alt: langData.listImageAlt,
+                  list_source: langData.listSource
+              };
+            } else {
+                console.warn(`Skipping language ${langCode} in create payload due to missing essential data.`);
+            }
+          });
+
+           // Ensure default language translation exists even if empty, API might require it
+          if (!createPayload.translations[DEFAULT_LANG] && allLanguageData[DEFAULT_LANG]) {
+              createPayload.translations[DEFAULT_LANG] = {
+                  list_title: allLanguageData[DEFAULT_LANG].listTitle || '', // Default empty
+                  list_description: allLanguageData[DEFAULT_LANG].listDescription || '',
+                  meta_title: allLanguageData[DEFAULT_LANG].metaTitle || '',
+                  meta_description: allLanguageData[DEFAULT_LANG].metaDescription || '',
+                  meta_keywords: allLanguageData[DEFAULT_LANG].metaKeywords || '',
+                  nav_sections: allLanguageData[DEFAULT_LANG].navSections || [],
+                  sidebar_data: allLanguageData[DEFAULT_LANG].sidebarData || [],
+                  content: allLanguageData[DEFAULT_LANG].content || '',
+                  list_image_alt: allLanguageData[DEFAULT_LANG].listImageAlt || '',
+                  list_source: allLanguageData[DEFAULT_LANG].listSource || ''
+              };
+              console.warn(`Including empty default language (${DEFAULT_LANG}) translation in create payload.`);
+          }
+         
+          console.log("Sending POST to /admin:", JSON.stringify(createPayload, null, 2)); // Log formatted payload
+          await apiClient.post(`/blogs/admin`, createPayload);
+          ElMessage.success('博客创建成功');
          }
 
          closeDialog();
-         await fetchData();
+        await fetchData(); // Refresh table
+
        } catch (error) { 
-         console.error('提交博客失败:', error);
-         const errorMsg = error.response?.data?.message || 
-                          (error.response?.status === 401 ? '认证失败或令牌已过期' : error.message) || 
-                          '操作失败，请稍后重试';
-         ElMessage.error(`${isEditMode.value ? '更新' : '创建'}失败 (${selectedLanguage.value}): ${errorMsg}`);
+        console.error('Error submitting blog:', error);
+        // Enhanced error logging
+        let errorMessage = '提交失败';
+        if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            console.error('Error Response Data:', error.response.data);
+            console.error('Error Response Status:', error.response.status);
+            console.error('Error Response Headers:', error.response.headers);
+            errorMessage += `: ${error.response.status} - ${error.response.data?.message || '服务器未提供详细信息'}`;
+        } else if (error.request) {
+            // The request was made but no response was received
+            console.error('Error Request:', error.request);
+            errorMessage += ': 未收到服务器响应，请检查网络连接和后端服务。';
+        } else {
+            // Something happened in setting up the request that triggered an Error
+            console.error('Error Message:', error.message);
+            errorMessage += `: ${error.message}`;
+        }
+        ElMessage.error(errorMessage);
        } finally {
          isSubmitting.value = false;
        }
     } else {
-      console.log('表单验证失败');
-      ElMessage.warning('请检查表单输入项');
+      console.log('Form validation failed');
+      ElMessage.warning('请检查当前语言的表单字段是否都有效。切换到其他语言选项卡检查。');
       return false;
     }
-  });
+  }); // End validate callback
 };
 
-const handleDelete = async (row) => {
-  // *** USE row.id (NUMERIC ID) ***
-  const numericId = row.id;
-  const slugToDelete = row.blog_id; // Keep slug for display message
-  const titleToDelete = row.list_title || slugToDelete || '未命名';
 
-  // Check for NUMERIC ID
-  if (numericId === undefined || numericId === null || isNaN(parseInt(numericId))) { // Added isNaN check
-      console.error("Row data is missing or has invalid numeric ID required for deleting.", row);
-      ElMessage.error('无法删除：缺少或博客的数字 ID 无效。'); // Updated error message
-      return;
-  }
-  console.log(`Delete button clicked for ID: ${numericId} (Slug: ${slugToDelete})`);
-
-  ElMessageBox.confirm(
-    `确定要删除博客 "${titleToDelete}" (ID: ${numericId}, Slug: ${slugToDelete}) 吗？此操作将删除所有语言版本且无法撤销。`,
-    '确认删除',
-    {
-      confirmButtonText: '确认删除',
-      cancelButtonText: '取消',
-      type: 'warning',
-    }
-  )
-    .then(async () => {
-      console.log(`Attempting to delete blog with ID: ${numericId}`);
-      try {
-         const token = localStorage.getItem('admin-auth-token');
-         if (!token) {
-             ElMessage.error('认证失败，请重新登录');
-             return; 
-         }
-         // Use the Admin Delete Endpoint with numeric ID
-         const apiUrl = buildApiUrl(`/api/blogs/admin/${numericId}`); // USE numericId
-         const config = { headers: { Authorization: `Bearer ${token}` } };
-         console.log(`Sending DELETE request to ${apiUrl}`);
-         await axios.delete(apiUrl, config);
-         ElMessage.success('博客删除成功！');
-         await fetchData(); 
-      } catch (error) { 
-         console.error('删除博客失败:', error);
-         const message = error.response?.data?.message || 
-                         (error.response?.status === 401 ? '认证失败或令牌已过期' : error.message) || 
-                         '删除操作失败';
-         ElMessage.error(`删除失败: ${message}`);
-      } 
-    })
-    .catch(() => {
-      ElMessage.info('已取消删除');
-    });
+// Close Dialog handler
+const closeDialog = () => {
+  isDialogVisible.value = false;
+  // Reset logic is handled by @closed event
 };
 
-onMounted(() => {
-  fetchData();
+// Reset Form State (called by @closed event)
+const resetForm = () => {
+  Object.assign(blogForm, getInitialFormState());
+  Object.keys(allLanguageData).forEach(key => delete allLanguageData[key]);
+  currentEditDbId.value = null;
+  currentEditSlug.value = null;
   selectedLanguage.value = DEFAULT_LANG;
+  isEditMode.value = false;
+  isSubmitting.value = false;
+  isLoadingDetails.value = false;
+  if (formRef.value) {
+    formRef.value.resetFields(); // Also resets validation state
+  }
+  console.log("Form reset executed.");
+};
+
+
+// --- Dynamic List Management (Nav Sections) ---
+const addNavSection = () => {
+  blogForm.navSections = blogForm.navSections || []; // Ensure array exists
+  blogForm.navSections.push({ id: '', title: '' });
+};
+
+const removeNavSection = (index) => {
+  if (blogForm.navSections && blogForm.navSections.length > index) {
+    blogForm.navSections.splice(index, 1);
+  }
+};
+
+// --- Dynamic List Management (Sidebar Blocks) ---
+const addSidebarBlock = () => {
+  blogForm.sidebarData = blogForm.sidebarData || []; // Ensure array exists
+  blogForm.sidebarData.push({ title: '', html_content: '' });
+};
+
+const removeSidebarBlock = (index) => {
+   if (blogForm.sidebarData && blogForm.sidebarData.length > index) {
+      blogForm.sidebarData.splice(index, 1);
+   }
+};
+
+// --- Lifecycle Hooks ---
+onMounted(() => {
+  fetchData(); // Fetch initial table data
 });
 
 </script>
 
 <style scoped>
-/* Basic styles */
+/* General Styles */
 .main-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
 }
-
-.loading-area,
-.error-area {
+.loading-area, .error-area {
   padding: 20px;
   text-align: center;
   color: #909399;
 }
 .error-area {
-  color: #f56c6c;
+  color: #F56C6C;
 }
 
+/* Dialog Styles */
+.el-dialog__body {
+    padding-bottom: 0; /* Reduce bottom padding if footer exists */
+}
+.dialog-footer {
+  text-align: right;
+  padding: 10px 20px;
+  border-top: 1px solid #eee;
+  margin-top: 10px;
+}
+
+/* Form Styles */
+.el-form-item {
+    margin-bottom: 22px; /* Standard spacing */
+}
+.form-tip {
+  font-size: 12px;
+  color: #999;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+.form-hint {
+   font-size: 0.9em;
+   color: #666;
+   margin-bottom: 15px;
+}
+
+/* Dynamic List Styles */
 .dynamic-list-item {
-  margin-bottom: 15px;
+  background-color: #f9f9f9;
   padding: 15px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid #eee;
   border-radius: 4px;
-  background-color: #f9fafc;
+  margin-bottom: 15px;
+  position: relative;
 }
-
-.dynamic-list-item:last-child {
-   /* margin-bottom: 0; */ /* Keep margin for button spacing */
-}
-
 .dynamic-list-actions {
   display: flex;
   align-items: center; /* Vertically center buttons */
-  justify-content: flex-end; /* Align buttons to the right */
-  /* Add height or padding if needed to ensure vertical alignment */
-   padding-top: 30px; /* Adjust based on label height */
+  justify-content: center; /* Horizontally center button(s) */
+  height: 100%; /* Allow vertical centering */
+  padding-top: 30px; /* Align with input label approximately */
+  box-sizing: border-box;
 }
-
-.form-hint {
-  font-size: 12px;
-  color: #909399;
-  margin-top: -10px; /* Adjust spacing */
-  margin-bottom: 10px;
-}
-
-/* Style for the new sidebar block section */
-.sidebar-block-item .el-col:first-child { 
-    /* Give more space to title/content inputs */
-}
-
+/* Adjust actions vertical alignment for sidebar blocks due to taller content */
 .sidebar-block-item .dynamic-list-actions {
-   /* Adjust alignment if needed, inherited styles might be ok */
+   padding-top: 5px; /* Reduce top padding */
+   align-items: flex-start; /* Align to top */
+}
+.sidebar-block-item .el-divider {
+   border-color: #e0e0e0; /* Make internal divider lighter */
 }
 
-/* Ensure dialog content doesn't overflow vertically */
-.el-dialog__body {
-    max-height: 70vh; /* Adjust as needed */
-    overflow-y: auto;
+
+/* Table Styles */
+.el-table img {
+   display: block; /* Prevent extra space below image */
+   max-width: 100%;
+   height: auto;
 }
 </style> 

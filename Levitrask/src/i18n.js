@@ -3,23 +3,26 @@ import { createI18n } from 'vue-i18n'
 // 导入语言文件 (假设文件名不变，但内容可能代表 zh-CN)
 import en from './locales/en.json'
 import zh_CN from './locales/zh.json' // 重命名导入以清晰
+import ru from './locales/ru.json' // 1. 导入俄语文件 (你需要创建这个文件)
 
 // 获取初始语言：优先 localStorage，否则默认英文
 function getStartingLocale() {
   const savedLocale = localStorage.getItem('user-locale');
-  // 只信任 localStorage 中明确保存的受支持语言代码
-  if (savedLocale === 'en' || savedLocale === 'zh-CN') {
+  // 3. 更新支持的语言代码列表
+  const supportedLocales = ['en', 'zh-CN', 'ru']; 
+  if (savedLocale && supportedLocales.includes(savedLocale)) { 
     console.log(`[i18n] Using saved locale: ${savedLocale}`);
     return savedLocale;
   }
   // 否则，无论浏览器设置如何，都默认使用英文
-  console.log('[i18n] No valid saved locale found, defaulting to en.');
+  console.log('[i18n] No valid saved locale found or unsupported, defaulting to en.');
   return 'en'; 
 }
 
 const messages = {
   'en': en,
   'zh-CN': zh_CN, // 使用 'zh-CN' 作为键
+  'ru': ru, // 2. 添加俄语到 messages
 };
 
 const i18n = createI18n({

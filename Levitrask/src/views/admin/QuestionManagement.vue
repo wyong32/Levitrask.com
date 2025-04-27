@@ -94,45 +94,33 @@
                   <el-button type="danger" @click="removeNavSection(index)" :icon="Delete" circle />
                 </div>
               </div>
-              <el-button @click="addNavSection" type="success" plain :icon="Plus">添加导航项 ({{ lang.name }})</el-button>
+              <el-button @click="addNavSection" type="success" plain :icon="Plus" style="margin-bottom: 10px;">添加导航项 ({{ lang.name }})</el-button>
         <p class="form-hint">提示: 此处的 ID 必须与下方内容中使用的 section 标签的 ID 完全一致。</p>
 
         <!-- Right Sidebar Data -->
               <el-divider>右侧边栏内容 (Sidebar Data - {{ lang.name }})</el-divider>
-              <el-checkbox v-model="questionForm.translations[lang.code].sidebarData.includeRelatedResources" label="包含相关资源链接" size="large" />
-              <div v-if="questionForm.translations[lang.code].sidebarData.includeRelatedResources" class="sidebar-section-editor">
-            <h4>相关资源链接:</h4>
-                  <div v-for="(link, index) in questionForm.translations[lang.code].sidebarData.relatedResources" :key="`${lang.code}-rel-${index}`" class="dynamic-list-item">
-                     <el-form-item :label="`链接 ${index + 1} 文本`" :prop="`translations.${lang.code}.sidebarData.relatedResources.${index}.text`" :rules="formRules.sidebarLinkText">
-                       <el-input v-model="link.text" placeholder="显示的链接文字" />
+              <div v-for="(block, index) in questionForm.translations[lang.code].sidebarData" :key="`${lang.code}-sidebar-${index}`" class="dynamic-list-item sidebar-block-item">
+                <h4>区块 {{ index + 1 }}</h4>
+                <el-form-item 
+                  :label="`区块 ${index + 1} 标题 (可选)`" 
+                  :prop="`translations.${lang.code}.sidebarData.${index}.title`" 
+                  >
+                  <el-input v-model="block.title" placeholder="侧边栏区块的标题" />
                      </el-form-item>
-                     <el-form-item :label="`链接 ${index + 1} 路径 (To)`" :prop="`translations.${lang.code}.sidebarData.relatedResources.${index}.to`" :rules="formRules.sidebarLinkTo">
-                       <el-input v-model="link.to" placeholder="例如: /blog/some-post 或 /questions/other-q" />
+                <el-form-item 
+                  :label="`区块 ${index + 1} 内容 (HTML)`" 
+                  :prop="`translations.${lang.code}.sidebarData.${index}.content`" 
+                  :rules="formRules.sidebarBlockContent"
+                >
+                  <el-input type="textarea" v-model="block.content" :rows="5" placeholder="输入侧边栏区块的 HTML 内容" />
                      </el-form-item>
                      <div class="dynamic-list-actions">
-                       <el-button type="danger" @click="removeRelatedResource(index)" :icon="Delete" circle />
+                  <el-button type="danger" @click="removeSidebarBlock(index)" :icon="Delete" circle />
                      </div>
+                 <el-divider v-if="index < questionForm.translations[lang.code].sidebarData.length - 1" style="margin-top: 15px; margin-bottom: 15px;" />
                   </div>
-                   <el-button @click="addRelatedResource" type="success" plain :icon="Plus">添加相关资源 ({{ lang.name }})</el-button>
-        </div>
-
-              <el-checkbox v-model="questionForm.translations[lang.code].sidebarData.includeFaqs" label="包含常见问题链接" size="large" style="margin-top: 15px;"/>
-               <div v-if="questionForm.translations[lang.code].sidebarData.includeFaqs" class="sidebar-section-editor">
-            <h4>常见问题链接:</h4>
-                   <div v-for="(link, index) in questionForm.translations[lang.code].sidebarData.faqs" :key="`${lang.code}-faq-${index}`" class="dynamic-list-item">
-                     <el-form-item :label="`链接 ${index + 1} 文本`" :prop="`translations.${lang.code}.sidebarData.faqs.${index}.text`" :rules="formRules.sidebarLinkText">
-                       <el-input v-model="link.text" placeholder="显示的链接文字" />
-                     </el-form-item>
-                     <el-form-item :label="`链接 ${index + 1} 路径 (To)`" :prop="`translations.${lang.code}.sidebarData.faqs.${index}.to`" :rules="formRules.sidebarLinkTo">
-                       <el-input v-model="link.to" placeholder="例如: /questions/another-faq" />
-                     </el-form-item>
-                     <div class="dynamic-list-actions">
-                       <el-button type="danger" @click="removeFaq(index)" :icon="Delete" circle />
-                     </div>
-                   </div>
-                   <el-button @click="addFaq" type="success" plain :icon="Plus">添加常见问题 ({{ lang.name }})</el-button>
-        </div>
-              <!-- Add checkboxes and editors for other potential sidebar sections -->
+              <el-button @click="addSidebarBlock" type="success" plain :icon="Plus" style="margin-bottom: 10px;">添加侧边栏区块 ({{ lang.name }})</el-button>
+               <p class="form-hint">提示: 内容区域支持输入 HTML 代码，用来在自定义侧边栏区块的显示。</p>
 
         <!-- Main Content -->
               <el-divider>主要内容 (HTML - {{ lang.name }})</el-divider>
@@ -176,7 +164,33 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue';
+
+// --- BEGIN API Client Setup (Moved to Top) ---
 import axios from 'axios';
+
+// Create a configured Axios instance for this component
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api', // Use /api or your actual backend base URL
+  // timeout: 10000, // Optional: Add timeout
+});
+
+// Add request interceptor for Authentication
+apiClient.interceptors.request.use(config => {
+  const token = localStorage.getItem('admin-auth-token'); // Adjust storage key if needed
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn("Admin auth token not found in localStorage for API request.");
+    // Handle missing token case if needed (e.g., redirect to login)
+  }
+  return config;
+}, error => {
+  // Handle request error
+  console.error('API Request Error:', error);
+  return Promise.reject(error);
+});
+// --- END API Client Setup ---
+
 import { ElMessage, ElMessageBox, ElTabs, ElTabPane, ElForm, ElFormItem, ElInput, ElButton, ElTable, ElTableColumn, ElDialog, ElRow, ElCol, ElIcon, ElCheckbox, ElDivider } from 'element-plus';
 import { Plus, Delete, Check, Edit } from '@element-plus/icons-vue';
 import { cloneDeep } from 'lodash-es';
@@ -195,33 +209,35 @@ const errorMessage = ref('');
 const isSubmitting = ref(false);
 const isDialogVisible = ref(false);
 const isEditMode = ref(false); 
-const currentEditDbId = ref(null);
-const isLoadingDetails = ref(false);
+const currentEditDbId = ref(null); // Numeric DB ID
+const isLoadingDetails = ref(false); // Added for loading state in dialog
 
-// --- Form Initial State & Data (RESTRUCTURED for Multi-language) ---
-const getInitialTranslationState = () => ({
+// --- Form Initial State & Data ---
+const getInitialTranslationState = (langCode = '') => ({ // Added langCode for potential defaults
+  language_code: langCode,
   list_title: '',
   meta_title: '',
   meta_description: '',
   meta_keywords: '',
+  // Ensure navSections is always initialized as an array
   navSections: [],
-  sidebarData: {
-  includeRelatedResources: false,
-      relatedResources: [],
-  includeFaqs: false,
-      faqs: [],
-  },
+  // CHANGE: sidebarData is now an array of blocks
+  sidebarData: [],
   content: ''
 });
 
 const getInitialFormState = () => {
     const initialState = {
-        id: null,
-        question_id: '',
-        translations: {}
+        id: null, // Numeric DB ID
+        question_id: '', // Text slug
+        // Add other non-translatable fields from levitrask_questions here if any
+        // category: '',
+        // is_active: true,
+        translations: {} // Structure to hold data per language
     };
     supportedLanguages.value.forEach(lang => {
-        initialState.translations[lang.code] = getInitialTranslationState();
+        // Initialize each language, ensuring structure exists
+        initialState.translations[lang.code] = getInitialTranslationState(lang.code);
     });
     return initialState;
 };
@@ -230,12 +246,13 @@ const questionForm = reactive(getInitialFormState());
 const formRef = ref(null); 
 const activeLangTab = ref(DEFAULT_LANG);
 
-// --- Form Validation Rules (Adjusted for structure) ---
+// --- Form Validation Rules ---
 const formRules = reactive({
   question_id: [
       { required: true, message: '请输入 URL Slug (路径)', trigger: 'blur' },
       { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Slug 只能包含小写字母、数字和连字符 (-)', trigger: 'blur' }
   ],
+  // Use a function for dynamic validation message based on active tab? Or apply required only to default lang.
   defaultListTitle: [{ required: true, message: `请输入 ${DEFAULT_LANG} 列表标题`, trigger: 'blur' }],
   defaultContent: [{ required: true, message: `请输入 ${DEFAULT_LANG} 内容`, trigger: 'blur' }],
   navSectionId: [
@@ -243,299 +260,387 @@ const formRules = reactive({
       { pattern: /^[a-zA-Z0-9_-]+$/, message: 'ID 只能包含字母、数字、下划线或连字符', trigger: 'blur' }
   ],
   navSectionTitle: [{ required: true, message: '请输入导航项标题', trigger: 'blur' }],
-  sidebarLinkText: [{ required: true, message: '请输入链接文本', trigger: 'blur' }],
-  sidebarLinkTo: [{ required: true, message: '请输入链接路径', trigger: 'blur' }], 
+  // REMOVE: old sidebar link rules
+  // sidebarLinkText: [{ required: true, message: '请输入链接文本', trigger: 'blur' }],
+  // sidebarLinkTo: [{ required: true, message: '请输入链接路径', trigger: 'blur' }],
+  // ADD: new rule for sidebar block content
+  sidebarBlockContent: [{ required: true, message: '请输入侧边栏区块内容', trigger: 'blur' }],
 });
 
 // --- Computed --- 
-const dialogTitle = computed(() => isEditMode.value ? `编辑问题 (ID: ${currentEditDbId.value})` : '创建新问题');
+const dialogTitle = computed(() => isEditMode.value ? '编辑问题' : '创建问题');
 
-// --- API Setup ---
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
-const adminApi = axios.create({ baseURL: apiBaseUrl });
-
-adminApi.interceptors.request.use(config => {
-  const token = localStorage.getItem('admin-auth-token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  } else {
-     console.warn("Admin token not found in localStorage for API request.");
-  }
-  return config;
-}, error => {
-  return Promise.reject(error);
-});
-
-// --- Event Handlers ---
-
-// --- Data Fetching ---
-const fetchData = async () => {
+// --- API Calls ---
+const fetchQuestions = async () => {
   isLoading.value = true;
   errorMessage.value = '';
-  tableData.value = [];
   try {
-    const response = await adminApi.get(`/admin/questions`);
-    if (Array.isArray(response.data)) {
+    // Assuming the GET /admin/questions endpoint returns the needed list structure
+    console.log('Fetching admin question list...');
+    // Ensure the API endpoint matches your backend route
+    const response = await apiClient.get('/admin/questions'); // Updated endpoint
+    console.log('API Response:', response.data);
+
+    // Process data for the table (extract default language title)
         tableData.value = response.data.map(item => {
-            const defaultTranslation = item.translations?.find(t => t.language_code === DEFAULT_LANG);
+      const defaultTranslation = item.translations?.find(t => t.language_code === DEFAULT_LANG) || {};
             return {
-                id: item.id,
-                question_id: item.question_id,
-                listTitle: defaultTranslation?.list_title || '(无标题)',
-                translations: item.translations || []
+        db_id: item.id, // Store the numeric DB ID
+        question_id: item.question_id, // Store the slug
+        listTitle: defaultTranslation.list_title || `[No Title - ${item.question_id}]`,
+        // Store the full item data for editing if needed, or fetch details separately
+        fullData: item // Storing full data might be large, fetching details is better
             };
         });
-         console.log("Fetched questions for admin:", tableData.value);
-    } else {
-      console.warn('Admin questions API response data is not an array:', response.data);
-      tableData.value = [];
-      errorMessage.value = '收到的数据格式无法处理。'
-    }
+    console.log('Processed Table Data:', tableData.value);
+
   } catch (error) {
-    console.error("Error fetching admin questions:", error);
-    errorMessage.value = error.response?.data?.message || '加载问题列表失败';
-    ElMessage.error(errorMessage.value);
+    console.error('Error fetching questions:', error);
+    errorMessage.value = '加载问题列表失败。 ' + (error.response?.data?.message || error.message);
   } finally {
     isLoading.value = false;
   }
 };
 
-// --- Dialog Management ---
-const resetForm = () => {
-    Object.assign(questionForm, getInitialFormState());
-    currentEditDbId.value = null;
-    activeLangTab.value = DEFAULT_LANG;
-    nextTick(() => {
-  if (formRef.value) {
-          formRef.value.clearValidate();
-  }
+const fetchQuestionDetails = async (dbId) => {
+  isLoadingDetails.value = true;
+  try {
+    console.log(`Fetching details for question DB ID: ${dbId}`);
+    // **ASSUMPTION:** Backend provides GET /admin/questions/:id endpoint
+    // This endpoint should return the main data + ALL translations, similar to the list endpoint but for one item.
+    const response = await apiClient.get(`/admin/questions/${dbId}`);
+    const questionData = response.data;
+    console.log(`Fetched details:`, questionData);
+
+    // Reset form to initial state first to clear previous data
+    resetForm();
+    isEditMode.value = true;
+    currentEditDbId.value = dbId; // Store numeric ID
+
+    // Populate non-translatable fields
+    questionForm.id = questionData.id;
+    questionForm.question_id = questionData.question_id;
+    // Populate other non-translatable fields from questionData if they exist in the form state
+    // questionForm.category = questionData.category;
+    // questionForm.is_active = questionData.is_active;
+
+    // Populate translations
+    supportedLanguages.value.forEach(lang => {
+      const translation = questionData.translations?.find(t => t.language_code === lang.code);
+      if (translation) {
+        // Ensure nested structures exist before assigning
+        questionForm.translations[lang.code] = {
+          ...getInitialTranslationState(lang.code), // Start with defaults
+          // Assign basic fields directly from translation object
+          list_title: translation.list_title || '',
+          meta_title: translation.meta_title || '',
+          meta_description: translation.meta_description || '',
+          meta_keywords: translation.meta_keywords || '',
+          content: translation.content || '',
+          // CHANGE: Access snake_case from API response for JSON fields
+          navSections: cloneDeep(translation.nav_sections || []),
+          sidebarData: cloneDeep(translation.sidebar_data || []) // Expecting array, default to []
+        };
+      } else {
+        // If a translation for a supported language is missing, initialize it
+        questionForm.translations[lang.code] = getInitialTranslationState(lang.code);
+        console.warn(`No translation found for ${lang.code}, initialized.`);
+      }
     });
+
+    activeLangTab.value = DEFAULT_LANG; // Reset tab to default
+    isDialogVisible.value = true;
+
+  } catch (error) {
+    console.error(`Error fetching question details for DB ID ${dbId}:`, error);
+    ElMessage.error('加载问题详情失败。 ' + (error.response?.data?.message || error.message));
+  } finally {
+    isLoadingDetails.value = false;
+  }
 };
 
+const createQuestion = async (payload) => {
+  // **ASSUMPTION:** Backend provides POST /admin/questions
+  console.log('Creating new question with payload:', payload);
+  const response = await apiClient.post('/admin/questions', payload);
+  return response.data; // Expecting the newly created question data back
+};
+
+const updateQuestion = async (dbId, formState) => {
+  // **ASSUMPTION:** Backend provides PUT /admin/questions/:id for non-translatable fields
+  // **ASSUMPTION:** Backend provides PUT /admin/questions/:id/translations/:lang for translations
+
+  console.log(`Updating question DB ID: ${dbId}`);
+  let updatedData = null;
+
+  // 1. Update non-translatable fields (IF NEEDED - slug is disabled in edit mode usually)
+  // Only include fields that are actually part of the main table and potentially changed
+  const nonTranslatablePayload = {
+     question_id: formState.question_id, // Slug is usually fixed after creation
+     // Add other non-translatable fields if they exist and are editable
+     // category: formState.category,
+     // is_active: formState.is_active,
+  };
+  // Check if non-translatable fields actually need updating (optional, depends on backend robustness)
+  // For now, let's assume we *might* update the main table (e.g., if slug *was* editable)
+  // If slug is ALWAYS disabled in edit, this PUT might be skippable unless other fields exist.
+  try {
+     console.log('Updating non-translatable fields:', nonTranslatablePayload);
+     // Use PUT /:id for non-translatable updates
+     const mainUpdateResponse = await apiClient.put(`/admin/questions/${dbId}`, nonTranslatablePayload);
+     updatedData = mainUpdateResponse.data; // Get potentially updated base data
+     console.log('Non-translatable fields updated successfully.');
+  } catch (error) {
+      console.error('Error updating non-translatable fields:', error);
+      // If slug conflict (409) or other error, re-throw to stop the process
+       if (error.response && error.response.status === 409) {
+          throw new Error(`Slug "${nonTranslatablePayload.question_id}" already exists.`);
+       }
+       throw new Error('Failed to update base question details.');
+  }
+
+
+  // 2. Update translations for each language
+  const translationPromises = supportedLanguages.value.map(lang => {
+    const langCode = lang.code;
+    const translationPayload = formState.translations[langCode];
+    if (!translationPayload) {
+        console.warn(`No translation data found in form state for ${langCode}, skipping update.`);
+        return Promise.resolve(); // Skip if no data somehow
+    }
+    // Ensure payload structure matches backend expectations
+    const cleanedPayload = {
+        list_title: translationPayload.list_title || null,
+        meta_title: translationPayload.meta_title || null,
+        meta_description: translationPayload.meta_description || null,
+        meta_keywords: translationPayload.meta_keywords || null,
+        navSections: translationPayload.navSections || [],
+        // CHANGE: Send sidebarData as an array
+        sidebarData: translationPayload.sidebarData || [], // Send array
+        content: translationPayload.content || null,
+    };
+    console.log(`Updating translation for ${langCode}:`, cleanedPayload);
+    // **ASSUMPTION:** Use PUT /:id/translations/:lang for each translation
+    return apiClient.put(`/admin/questions/${dbId}/translations/${langCode}`, cleanedPayload);
+  });
+
+  // Wait for all translation updates
+  await Promise.all(translationPromises);
+  console.log('All translations updated successfully.');
+
+  // Optionally, fetch the final state again to ensure consistency, or trust the last API response
+  // For simplicity, we might just rely on the data returned from the main PUT or assume success
+  // If the main PUT didn't run (e.g., only translations updated), we need to fetch the final state.
+   if (!updatedData) {
+       console.log("Fetching final state after translation-only update...");
+       const finalStateResponse = await apiClient.get(`/admin/questions/${dbId}`);
+       updatedData = finalStateResponse.data;
+   }
+
+  return updatedData; // Return the potentially updated question data
+};
+
+
+const deleteQuestion = async (dbId) => {
+   // **ASSUMPTION:** Backend provides DELETE /admin/questions/:id
+   console.log(`Deleting question DB ID: ${dbId}`);
+   await apiClient.delete(`/admin/questions/${dbId}`);
+   console.log(`Question DB ID: ${dbId} deleted successfully.`);
+};
+
+
+// --- Event Handlers ---
 const openCreateDialog = () => {
     resetForm();
   isEditMode.value = false;
   isDialogVisible.value = true;
+  activeLangTab.value = DEFAULT_LANG;
+  currentEditDbId.value = null;
 };
 
-const handleEdit = (row) => {
-    resetForm();
-    isEditMode.value = true;
-    currentEditDbId.value = row.id;
-
-    questionForm.id = row.id;
-    questionForm.question_id = row.question_id;
-
-    const existingTranslations = row.translations || [];
-    supportedLanguages.value.forEach(lang => {
-        const existing = existingTranslations.find(t => t.language_code === lang.code);
-        if (existing) {
-            questionForm.translations[lang.code] = {
-                list_title: existing.list_title || '',
-                meta_title: existing.meta_title || '',
-                meta_description: existing.meta_description || '',
-                meta_keywords: existing.meta_keywords || '',
-                navSections: existing.nav_sections || [],
-                sidebarData: {
-                    includeRelatedResources: !!(existing.sidebar_data?.relatedResources?.length > 0),
-                    relatedResources: existing.sidebar_data?.relatedResources || [],
-                    includeFaqs: !!(existing.sidebar_data?.faqs?.length > 0),
-                    faqs: existing.sidebar_data?.faqs || [],
-                },
-                content: existing.content || ''
-            };
-        } else {
-             questionForm.translations[lang.code] = getInitialTranslationState();
-        }
-    });
-
-    activeLangTab.value = DEFAULT_LANG;
-    isDialogVisible.value = true;
-};
-
-const closeDialog = () => {
-  isDialogVisible.value = false;
-};
-
-// --- Dynamic List Management (Modified for Active Language Tab) ---
-const addNavSection = () => {
-  const currentLang = activeLangTab.value;
-  if (questionForm.translations[currentLang]) {
-     if (!Array.isArray(questionForm.translations[currentLang].navSections)) {
-         questionForm.translations[currentLang].navSections = [];
-     }
-     questionForm.translations[currentLang].navSections.push({ id: '', title: '' });
+const handleEdit = async (row) => {
+  // Use the numeric db_id stored in the table data
+  if (row.db_id === undefined || row.db_id === null) {
+      console.error("Row data is missing 'db_id'. Cannot edit.", row);
+      ElMessage.error("无法编辑：缺少必要的 ID 信息。");
+      return;
   }
-};
-const removeNavSection = (index) => {
-   const currentLang = activeLangTab.value;
-   if (questionForm.translations[currentLang]?.navSections) {
-       questionForm.translations[currentLang].navSections.splice(index, 1);
-   }
-};
-const addRelatedResource = () => {
-  const currentLang = activeLangTab.value;
-   if (questionForm.translations[currentLang]) {
-       if (!questionForm.translations[currentLang].sidebarData) questionForm.translations[currentLang].sidebarData = { relatedResources: [], faqs: [] };
-       if (!Array.isArray(questionForm.translations[currentLang].sidebarData.relatedResources)) {
-            questionForm.translations[currentLang].sidebarData.relatedResources = [];
-       }
-       questionForm.translations[currentLang].sidebarData.relatedResources.push({ text: '', to: '' });
-       questionForm.translations[currentLang].sidebarData.includeRelatedResources = true;
-   }
-};
-const removeRelatedResource = (index) => {
-    const currentLang = activeLangTab.value;
-    if (questionForm.translations[currentLang]?.sidebarData?.relatedResources) {
-         questionForm.translations[currentLang].sidebarData.relatedResources.splice(index, 1);
-         if (questionForm.translations[currentLang].sidebarData.relatedResources.length === 0) {
-             questionForm.translations[currentLang].sidebarData.includeRelatedResources = false;
-         }
-    }
-};
-const addFaq = () => {
-    const currentLang = activeLangTab.value;
-    if (questionForm.translations[currentLang]) {
-       if (!questionForm.translations[currentLang].sidebarData) questionForm.translations[currentLang].sidebarData = { relatedResources: [], faqs: [] };
-        if (!Array.isArray(questionForm.translations[currentLang].sidebarData.faqs)) {
-             questionForm.translations[currentLang].sidebarData.faqs = [];
-        }
-        questionForm.translations[currentLang].sidebarData.faqs.push({ text: '', to: '' });
-        questionForm.translations[currentLang].sidebarData.includeFaqs = true;
-    }
-};
-const removeFaq = (index) => {
-     const currentLang = activeLangTab.value;
-     if (questionForm.translations[currentLang]?.sidebarData?.faqs) {
-          questionForm.translations[currentLang].sidebarData.faqs.splice(index, 1);
-          if (questionForm.translations[currentLang].sidebarData.faqs.length === 0) {
-              questionForm.translations[currentLang].sidebarData.includeFaqs = false;
-          }
-     }
+  console.log(`Editing row with DB ID: ${row.db_id}`);
+  // Fetch full details using the DB ID
+  await fetchQuestionDetails(row.db_id);
 };
 
-// --- Form Submission --- 
+const handleDelete = (row) => {
+  if (row.db_id === undefined || row.db_id === null) {
+      console.error("Row data is missing 'db_id'. Cannot delete.", row);
+      ElMessage.error("无法删除：缺少必要的 ID 信息。");
+      return;
+  }
+   const title = row.listTitle || row.question_id; // Use title or slug for confirmation message
+   ElMessageBox.confirm(
+     `确定要删除问题 "${title}" (DB ID: ${row.db_id}) 吗？此操作无法撤销。`,
+     '确认删除',
+     {
+       confirmButtonText: '删除',
+       cancelButtonText: '取消',
+       type: 'warning',
+     }
+   )
+   .then(async () => {
+     try {
+       await deleteQuestion(row.db_id);
+       ElMessage.success('问题删除成功！');
+       // Refresh the list after deleting
+       await fetchQuestions();
+     } catch (error) {
+       console.error(`Error deleting question DB ID ${row.db_id}:`, error);
+       ElMessage.error('删除失败。 ' + (error.response?.data?.message || error.message));
+     }
+   })
+   .catch(() => {
+     // User cancelled
+     ElMessage.info('删除已取消');
+   });
+};
+
 const handleSubmit = async () => {
   if (!formRef.value) return;
-
   isSubmitting.value = true;
   try {
-    const isValid = await formRef.value.validate();
+    // Validate the form (might only validate the currently active tab + base fields)
+    // Consider full validation across all languages if necessary before submitting
+    await formRef.value.validate();
 
-    let translationsValid = true;
-    const defaultTranslation = questionForm.translations[DEFAULT_LANG];
-    if (!defaultTranslation.list_title || !defaultTranslation.meta_title || !defaultTranslation.meta_description || !defaultTranslation.content) {
-        translationsValid = false;
-        ElMessage.error(`请填写默认语言 (${DEFAULT_LANG}) 的必填翻译字段 (列表标题, Meta 标题, Meta 描述, 内容)。`);
-    }
+    // Prepare payload - structure might differ slightly for create vs update
+    // Create expects a single object with non-translatable fields + a translations array
+    // Update involves separate calls
+    
+    const formToSend = cloneDeep(questionForm); // Work with a copy
 
-    if (!isValid || !translationsValid) {
-         console.log('Form validation failed');
-         ElMessage.warning('请检查表单输入是否完整且符合要求。');
-         isSubmitting.value = false;
-         return;
-    }
-
-    if (isEditMode.value && currentEditDbId.value) {
-      console.log('Updating question:', currentEditDbId.value);
-
-      const updatePromises = supportedLanguages.value.map(lang => {
-          const langCode = lang.code;
-          const translationData = questionForm.translations[langCode];
-          const sidebarDataToSave = {
-              relatedResources: translationData.sidebarData.includeRelatedResources ? translationData.sidebarData.relatedResources : [],
-              faqs: translationData.sidebarData.includeFaqs ? translationData.sidebarData.faqs : []
-          };
-
-          const translationPayload = {
-              list_title: translationData.list_title,
-              meta_title: translationData.meta_title,
-              meta_description: translationData.meta_description,
-              meta_keywords: translationData.meta_keywords,
-              nav_sections: translationData.navSections,
-              sidebar_data: sidebarDataToSave,
-              content: translationData.content,
-          };
-          console.log(`Updating translation for ${langCode}:`, translationPayload);
-          return adminApi.put(`/admin/questions/${currentEditDbId.value}/translations/${langCode}`, translationPayload);
-      });
-      await Promise.all(updatePromises);
+    if (isEditMode.value) {
+      // --- Update Logic ---
+      if (!currentEditDbId.value) {
+         throw new Error("Cannot update: Missing current question DB ID.");
+      }
+      const updatedQuestion = await updateQuestion(currentEditDbId.value, formToSend);
       ElMessage.success('问题更新成功！');
+      // Optionally update the table row data without full refresh
+      const index = tableData.value.findIndex(item => item.db_id === currentEditDbId.value);
+      if (index !== -1 && updatedQuestion) {
+          const defaultTranslation = updatedQuestion.translations?.find(t => t.language_code === DEFAULT_LANG) || {};
+          tableData.value[index] = {
+             db_id: updatedQuestion.id,
+             question_id: updatedQuestion.question_id,
+             listTitle: defaultTranslation.list_title || `[No Title - ${updatedQuestion.question_id}]`,
+             fullData: updatedQuestion
+            };
+        } else {
+           await fetchQuestions(); // Fallback to full refresh
+      }
+
 
     } else {
-      console.log('Creating new question');
-      const translationsPayload = supportedLanguages.value.map(lang => {
-            const langCode = lang.code;
-            const translationData = questionForm.translations[langCode];
-             const sidebarDataToSave = {
-                relatedResources: translationData.sidebarData.includeRelatedResources ? translationData.sidebarData.relatedResources : [],
-                faqs: translationData.sidebarData.includeFaqs ? translationData.sidebarData.faqs : []
-             };
-            return {
-                language_code: langCode,
-                list_title: translationData.list_title,
-                meta_title: translationData.meta_title,
-                meta_description: translationData.meta_description,
-                meta_keywords: translationData.meta_keywords,
-                nav_sections: translationData.navSections,
-                sidebar_data: sidebarDataToSave,
-                content: translationData.content,
-            };
-       }).filter(t => t.list_title || t.content);
+      // --- Create Logic ---
+      const createPayload = {
+          question_id: formToSend.question_id,
+          // Add other non-translatable fields here from formToSend if they exist
+          // category: formToSend.category,
+          // is_active: formToSend.is_active,
+          translations: supportedLanguages.value.map(lang => ({
+             ...formToSend.translations[lang.code], // Include all fields
+             // CHANGE: Ensure sidebarData is array
+             sidebarData: formToSend.translations[lang.code].sidebarData || [],
+             language_code: lang.code
+          }))
+      };
+       // Filter out translations that might be completely empty if backend requires at least one field?
+       // createPayload.translations = createPayload.translations.filter(t => t.list_title || t.content); // Example filter
 
-       if (translationsPayload.length === 0) {
-            ElMessage.error('至少需要为一种语言填写标题或内容。');
-            isSubmitting.value = false;
-            return;
-       }
+      const newQuestion = await createQuestion(createPayload);
+      ElMessage.success('问题创建成功！');
+      // Add the new question to the table data (or refresh list)
+       await fetchQuestions(); // Refresh list is simpler
 
-       const mainPayload = {
-          question_id: questionForm.question_id,
-          translations: translationsPayload
-       };
-       console.log("Creating with payload:", mainPayload);
-       await adminApi.post(`/admin/questions`, mainPayload);
-       ElMessage.success('新问题创建成功！');
     }
 
     closeDialog();
-    await fetchData();
 
   } catch (error) {
-    console.error("Error submitting question form:", error);
-    const apiErrorMessage = error.response?.data?.message || (isEditMode.value ? '更新失败' : '创建失败');
-    ElMessage.error(`操作失败: ${apiErrorMessage}`);
+    console.error('Error submitting form:', error);
+    // Check if error is just validation failure
+    if (error && typeof error === 'object' && !(error instanceof Error)) {
+         console.log('Form validation failed:', error);
+         // ElMessage automatically handles form validation errors typically
+    } else {
+        ElMessage.error('提交失败：' + (error.message || '请检查表单并重试。'));
+    }
   } finally {
     isSubmitting.value = false;
   }
 };
 
-// --- Deletion --- 
-const handleDelete = async (row) => {
-  if (!row.id) {
-      ElMessage.error('无法删除：缺少问题数据库 ID。');
-      return;
+const resetForm = () => {
+    // Reset reactive form state
+    Object.assign(questionForm, getInitialFormState());
+    // Reset specific edit mode states
+    isEditMode.value = false;
+    currentEditDbId.value = null;
+    activeLangTab.value = DEFAULT_LANG;
+    // Reset validation state
+    nextTick(() => {
+        if (formRef.value) {
+            formRef.value.clearValidate();
+            formRef.value.resetFields(); // May reset based on initial props, use Object.assign for safety
+        }
+    });
+};
+
+const closeDialog = () => {
+  resetForm();
+  isDialogVisible.value = false;
+};
+
+// --- Dynamic List Management ---
+const addNavSection = () => {
+  const currentLang = activeLangTab.value;
+  if (!questionForm.translations[currentLang].navSections) {
+         questionForm.translations[currentLang].navSections = [];
+     }
+     questionForm.translations[currentLang].navSections.push({ id: '', title: '' });
+};
+
+const removeNavSection = (index) => {
+   const currentLang = activeLangTab.value;
+  if (questionForm.translations[currentLang].navSections) {
+       questionForm.translations[currentLang].navSections.splice(index, 1);
+   }
+};
+
+const addSidebarBlock = () => {
+  const currentLang = activeLangTab.value;
+  if (!questionForm.translations[currentLang].sidebarData) {
+    questionForm.translations[currentLang].sidebarData = []; // Ensure it's an array
   }
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除问题 "${row.listTitle}" (ID: ${row.question_id}) 吗？`,
-      '确认删除',
-      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
-    );
-    await adminApi.delete(`/admin/questions/${row.id}`);
-    ElMessage.success('问题删除成功！');
-    await fetchData();
-  } catch (error) {
-      if (error !== 'cancel') {
-        console.error(`Error deleting question ${row.id}:`, error);
-        ElMessage.error(`删除失败: ${error.response?.data?.message || error.message}`);
-      }
+  // Add a new block object
+  questionForm.translations[currentLang].sidebarData.push({ title: '', content: '' });
+};
+
+const removeSidebarBlock = (index) => {
+  const currentLang = activeLangTab.value;
+  if (questionForm.translations[currentLang].sidebarData) {
+    questionForm.translations[currentLang].sidebarData.splice(index, 1);
   }
 };
 
-// --- Lifecycle ---
+// --- Lifecycle Hooks ---
 onMounted(() => {
-  fetchData();
+  fetchQuestions();
+});
+
+// Optional: Watch active tab change if you need to trigger something specifically
+watch(activeLangTab, (newLang, oldLang) => {
+  console.log(`Switched language tab from ${oldLang} to ${newLang}`);
+  // You might want to re-validate or perform other actions on tab change
 });
 
 </script>
