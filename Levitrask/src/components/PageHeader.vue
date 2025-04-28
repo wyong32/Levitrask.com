@@ -16,8 +16,8 @@
       <!-- 常规导航 (桌面端显示) -->
       <nav class="main-nav desktop-nav">
         <template v-if="$i18n.availableLocales.length > 0">
-          <!-- Add wrapper div with key -->
-          <div :key="locale.value" class="nav-content-wrapper">
+          <!-- Change key binding to global locale -->
+          <div :key="$i18n.locale.value" class="nav-content-wrapper">
             <router-link :to="{ name: 'home', params: { lang: locale.value } }">{{ $t('navigation.home') }}</router-link>
 
             <!-- 第一个下拉菜单：Drugs in this Class (DYNAMIC) -->
@@ -104,8 +104,8 @@
       <transition name="slide-fade">
         <nav v-if="isMobileMenuOpen" class="mobile-nav">
           <template v-if="$i18n.availableLocales.length > 0">
-            <!-- Add wrapper div with key -->
-            <div :key="locale.value" class="nav-content-wrapper">
+            <!-- Change key binding to global locale -->
+            <div :key="$i18n.locale.value" class="nav-content-wrapper">
               <router-link :to="{ name: 'home', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.home') }}</router-link>
 
               <!-- 移动端下拉菜单：Drugs in this Class (DYNAMIC) -->
