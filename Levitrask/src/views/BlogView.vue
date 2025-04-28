@@ -21,7 +21,7 @@
         <article v-for="post in blogListItems" :key="post.slug" class="article-item">
           <!-- Update router-link to use named route and params (lang and slug) -->
           <router-link
-            :to="{ name: 'BlogDetails', params: { lang: currentLanguage, slug: post.slug } }"
+            :to="{ name: 'blog-details', params: { lang: currentLanguage, slug: post.slug } }"
             class="article-link-wrapper"
           >
             <div class="article-image">

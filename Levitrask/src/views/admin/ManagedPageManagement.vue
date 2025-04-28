@@ -377,8 +377,10 @@ const formRules = reactive({
 });
 
 // --- API Setup ---
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+// Correct baseURL setup: Use environment variable for production, leave empty for local dev (Vite proxy handles /api)
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
 const api = axios.create({ baseURL: baseUrl });
+console.log(`[API Setup Mgmt] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`);
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('admin-auth-token');
@@ -398,7 +400,8 @@ const fetchManagedPages = async () => {
   errorMessage.value = '';
   managedPages.value = [];
   try {
-    const response = await api.get(`/managed-pages/admin?type=${props.pageType}`);
+    // Add /api prefix
+    const response = await api.get(`/api/managed-pages/admin?type=${props.pageType}`);
     managedPages.value = response.data || [];
     console.log(`Fetched managed pages for admin (type: ${props.pageType}):`, managedPages.value);
   } catch (error) {
@@ -448,7 +451,8 @@ const handleEdit = async (row) => {
 
   try {
       // Step 1: Fetch base data + default translation 
-      const baseResponse = await api.get(`/managed-pages/admin/${props.pageType}/${row.page_identifier}`);
+      // Add /api prefix
+      const baseResponse = await api.get(`/api/managed-pages/admin/${props.pageType}/${row.page_identifier}`);
       const baseData = baseResponse.data;
       console.log('Base data fetched:', baseData);
 
@@ -485,7 +489,8 @@ const handleEdit = async (row) => {
       // Step 3: Fetch translations for other languages concurrently
       const otherLanguages = supportedLanguages.filter(l => l.code !== DEFAULT_LANG);
       const fetchPromises = otherLanguages.map(lang => 
-          api.get(`/managed-pages/admin/${currentEditId.value}/translations/${lang.code}`)
+          // Add /api prefix
+          api.get(`/api/managed-pages/admin/${currentEditId.value}/translations/${lang.code}`)
              .then(response => {
                  console.log(`Fetched translation for ${lang.code}:`, response.data);
                  Object.assign(allLanguageData[lang.code], response.data);
@@ -628,7 +633,8 @@ const handleSubmit = async () => {
 
                 // Send PUT request to update/create this language's translation
                 console.log(`Sending PUT for ${lang.code}`, payload);
-                return api.put(`/managed-pages/admin/${currentEditId.value}/translations/${lang.code}`, payload);
+                // Add /api prefix
+                return api.put(`/api/managed-pages/admin/${currentEditId.value}/translations/${lang.code}`, payload);
             });
 
             await Promise.all(updatePromises);
@@ -659,7 +665,8 @@ const handleSubmit = async () => {
                 nav_sections: defaultLangData.nav_sections || []
              };
             console.log('Sending initial POST request:', createPayload);
-            const createResponse = await api.post('/managed-pages/admin', createPayload);
+            // Add /api prefix
+            const createResponse = await api.post('/api/managed-pages/admin', createPayload);
             // Corrected: Access the ID from the nested 'data' object in the response
             const newPageId = createResponse.data?.data?.id; 
 
@@ -691,7 +698,8 @@ const handleSubmit = async () => {
                      };
                     console.log(`Sending PUT for ${lang.code} (creation flow)`, translationPayload);
                     translationPromises.push(
-                         api.put(`/managed-pages/admin/${newPageId}/translations/${lang.code}`, translationPayload)
+                         // Add /api prefix
+                         api.put(`/api/managed-pages/admin/${newPageId}/translations/${lang.code}`, translationPayload)
                     );
                 } else {
                      console.log(`Skipping translation creation for ${lang.code}: No content found.`);
@@ -744,7 +752,8 @@ const handleDelete = (row) => {
     .then(async () => {
       console.log(`Attempting to delete page (type: ${props.pageType}, id: ${row.page_identifier})`);
       try {
-        await api.delete(`/managed-pages/admin/${props.pageType}/${row.page_identifier}`);
+        // Add /api prefix
+        await api.delete(`/api/managed-pages/admin/${props.pageType}/${row.page_identifier}`);
         ElMessage.success(`页面 "${row.page_identifier}" 删除成功！`);
         fetchManagedPages();
       } catch (error) {
@@ -835,7 +844,8 @@ const updateSortOrderOnBackend = async () => {
     console.log('Updating sort order on backend with:', orderedData);
 
     try {
-        await api.put('/managed-pages/admin/reorder', {
+        // Add /api prefix
+        await api.put('/api/managed-pages/admin/reorder', {
             pageType: props.pageType,
             orderedPages: orderedData
         });

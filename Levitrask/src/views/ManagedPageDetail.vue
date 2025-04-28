@@ -69,8 +69,10 @@ const errorMessage = ref('');
 const route = useRoute();
 
 // --- API Setup ---
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+// Correct baseURL setup: Use environment variable for production, leave empty for local dev (Vite proxy handles /api)
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
 const api = axios.create({ baseURL: baseUrl });
+console.log(`[API Setup Detail] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`); // Add log for debugging
 // No auth token needed for public requests
 
 // --- Helper to set Meta Tags (simplified from router) ---
@@ -120,7 +122,8 @@ const fetchPageData = async (identifier) => {
   try {
     // UPDATED: Use the new API endpoint with lang and identifier
     console.log(`Fetching page data for lang: ${lang}, identifier: ${identifier}`);
-    const response = await api.get(`/managed-pages/${lang}/${identifier}`); // Use lang from route
+    // Always include /api in the path
+    const response = await api.get(`/api/managed-pages/${lang}/${identifier}`); 
     pageData.value = response.data;
     console.log('Fetched page data:', pageData.value);
 
