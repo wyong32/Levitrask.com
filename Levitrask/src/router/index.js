@@ -433,64 +433,71 @@ const router = createRouter({
 
 // Navigation Guard for Language Handling and Meta Tags
 router.beforeEach((to, from, next) => {
-  console.log('[Debug Router] Guard entered. Path:', to.path, 'Params:', to.params); // <-- 添加日志
+  console.log('[Debug Router] Guard entered. Path:', to.path, 'Params:', to.params);
 
   // Skip ALL processing for admin routes
   if (to.path.startsWith('/admin')) {
-    console.log('[Debug Router] Skipping admin route:', to.path); // <-- 添加日志
-    document.title = to.meta.title || 'Admin Panel'; // Set admin title
-    // Potentially clear frontend meta tags if they interfere
-    // Example: removeDescriptionTag(); removeKeywordsTag(); 
+    console.log('[Debug Router] Skipping admin route:', to.path);
+    document.title = to.meta.title || 'Admin Panel'; 
     next();
     return;
   }
 
   // --- Frontend Locale Logic --- 
   const lang = to.params.lang;
-  console.log('[Debug Router] Extracted lang from params:', lang); // <-- 添加日志
+  console.log('[Debug Router] Extracted lang from params:', lang);
 
   // <--- 2. 更新 beforeEach 中的语言验证
   if (!lang || typeof lang !== 'string' || !supportedLocales.includes(lang)) { 
-     console.log('[Debug Router] Invalid or missing lang in params. Checking localStorage...'); // <-- 添加日志
+     console.log('[Debug Router] Invalid or missing lang in params. Checking localStorage...');
      const userLocale = localStorage.getItem('user-locale');
-     console.log('[Debug Router] localStorage locale:', userLocale); // <-- 添加日志
-     // 确保回退/默认语言也受支持
+     console.log('[Debug Router] localStorage locale:', userLocale);
      const targetLocale = (userLocale && supportedLocales.includes(userLocale)) ? userLocale : 'en'; 
-     console.log('[Debug Router] Determined target locale for redirect:', targetLocale); // <-- 添加日志
+     console.log('[Debug Router] Determined target locale for redirect:', targetLocale);
      const intendedPath = to.fullPath === '/' ? '' : to.fullPath;
-     // Avoid infinite redirect loops if intendedPath already has locale
      if (!intendedPath.startsWith(`/${targetLocale}`)) {
        const redirectPath = `/${targetLocale}${intendedPath}`;
-       console.log('[Debug Router] Redirecting to:', redirectPath); // <-- 添加日志
+       console.log('[Debug Router] Redirecting to:', redirectPath);
        next(redirectPath);
      } else {
-        console.log('[Debug Router] Already has correct locale or non-prefixed path, calling next().'); // <-- 添加日志
-        next(); // Already has correct locale or is a non-prefixed path we don't handle here
+        console.log('[Debug Router] Already has correct locale or non-prefixed path, calling next().');
+        next(); 
      } 
      return;
   }
 
-  console.log('[Debug Router] Valid lang found:', lang); // <-- 添加日志
-  // Set the locale for i18n
-  if (i18n && i18n.global && i18n.global.locale.value !== lang) { // Check if i18n exists
-    console.log('[Debug Router] Current i18n locale:', i18n.global.locale.value, ' differs from route lang:', lang); // <-- 添加日志
-    try {
-      console.log('[Debug Router] Attempting to set i18n locale and localStorage...'); // <-- 添加日志
-      i18n.global.locale.value = lang;
-      localStorage.setItem('user-locale', lang);
-      console.log('[Debug Router] Successfully set i18n locale to:', i18n.global.locale.value, 'and localStorage.'); // <-- 添加日志
-      // Optional: Update html lang attribute
-      // document.documentElement.lang = lang;
-    } catch (e) {
-      console.error('[Debug Router] Error setting locale in beforeEach:', e); // <-- 添加错误捕获
-    }
-  } else if (!i18n || !i18n.global) {
-      console.error('[Debug Router] i18n instance is not available in beforeEach guard!'); // <-- 添加错误日志
-  } else {
-      console.log('[Debug Router] i18n locale already matches route lang or no change needed.'); // <-- 添加日志
-  }
+  console.log('[Debug Router] Valid lang found:', lang);
+  
+  // --- MODIFIED PART: Always set locale and use nextTick --- 
+  const currentLocale = i18n && i18n.global ? i18n.global.locale.value : null;
+  console.log('[Debug Router] Comparing route lang:', lang, 'with current i18n locale:', currentLocale);
 
-  console.log('[Debug Router] Calling next() after locale check.'); // <-- 添加日志
+  if (i18n && i18n.global) {
+      // Always attempt to set locale, even if it matches
+      try {
+          console.log('[Debug Router] Attempting to set i18n locale and localStorage (even if same)...');
+          i18n.global.locale.value = lang;
+          localStorage.setItem('user-locale', lang);
+          console.log('[Debug Router] Successfully set i18n locale to:', i18n.global.locale.value, 'and localStorage.');
+
+          console.log('[Debug Router] Calling next() inside nextTick after setting locale.');
+          // Use nextTick to delay navigation continuation
+          nextTick(() => {
+              next(); 
+          });
+          return; // Ensure next() is not called again outside nextTick
+
+      } catch (e) {
+          console.error('[Debug Router] Error setting locale in beforeEach:', e);
+          // Fall through to default next() call in case of error
+      }
+  } else {
+      console.error('[Debug Router] i18n instance is not available in beforeEach guard!');
+      // Fall through to default next() call if i18n is missing
+  }
+  // --- END OF MODIFIED PART ---
+
+  console.log('[Debug Router] Calling next() directly (fallback or error case).');
   next(); 
 });
 
