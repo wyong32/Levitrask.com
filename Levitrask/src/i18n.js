@@ -7,16 +7,22 @@ import ru from './locales/ru.json' // 1. 导入俄语文件 (你需要创建这�
 
 // 获取初始语言：优先 localStorage，否则默认英文
 function getStartingLocale() {
+  console.log('[Debug i18n] Entering getStartingLocale...');
   const savedLocale = localStorage.getItem('user-locale');
+  console.log('[Debug i18n] localStorage locale:', savedLocale);
   // 3. 更新支持的语言代码列表
   const supportedLocales = ['en', 'zh-CN', 'ru']; 
+  let localeToReturn = 'en'; // Default to 'en'
   if (savedLocale && supportedLocales.includes(savedLocale)) { 
     console.log(`[i18n] Using saved locale: ${savedLocale}`);
-    return savedLocale;
+    localeToReturn = savedLocale;
+  } else {
+    // 否则，无论浏览器设置如何，都默认使用英文
+    console.log('[i18n] No valid saved locale found or unsupported, defaulting to en.');
+    localeToReturn = 'en'; 
   }
-  // 否则，无论浏览器设置如何，都默认使用英文
-  console.log('[i18n] No valid saved locale found or unsupported, defaulting to en.');
-  return 'en'; 
+  console.log('[Debug i18n] getStartingLocale determined:', localeToReturn);
+  return localeToReturn; 
 }
 
 const messages = {
@@ -25,14 +31,25 @@ const messages = {
   'ru': ru, // 2. 添加俄语到 messages
 };
 
-const i18n = createI18n({
-  legacy: false, // 使用 Composition API 模式
-  locale: getStartingLocale(), // 设置初始语言 (现在会严格默认 en)
-  fallbackLocale: 'en', // 回退语言
-  messages, 
-  // 其他选项...
-  // missingWarn: false, // 可选：禁用缺少翻译的警告
-  // fallbackWarn: false, // 可选：禁用回退翻译的警告
-});
+console.log('[Debug i18n] Messages object for i18n:', messages);
+
+let i18n;
+try {
+  console.log('[Debug i18n] Attempting to create i18n instance...');
+  i18n = createI18n({
+    legacy: false, // 使用 Composition API 模式
+    locale: getStartingLocale(), // 设置初始语言 (现在会严格默认 en)
+    fallbackLocale: 'en', // 回退语言
+    messages, 
+    // 其他选项...
+    // missingWarn: false, // 可选：禁用缺少翻译的警告
+    // fallbackWarn: false, // 可选：禁用回退翻译的警告
+  });
+  console.log('[Debug i18n] i18n instance created successfully.');
+} catch (e) {
+  console.error('[Debug i18n] Error creating i18n instance:', e);
+  // Provide a fallback minimal i18n instance if creation fails?
+  // Or handle error appropriately
+}
 
 export default i18n; 
