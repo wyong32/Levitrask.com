@@ -226,15 +226,18 @@ const buyOnlineLinks = ref([]);
 const isLoadingDropdowns = ref(false);
 
 // --- API Setup ---
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+// Correct baseURL setup: Use environment variable for production, leave empty for local dev (Vite proxy handles /api)
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
 const api = axios.create({ baseURL: baseUrl });
+console.log(`[API Setup] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`); // Add log for debugging
 
 // --- Fetch Dynamic Links Function ---
 const fetchDropdownLinks = async (pageType, targetRef) => {
   isLoadingDropdowns.value = true;
   console.log(`Fetching dropdown links for type: ${pageType}`);
   try {
-    const response = await api.get(`/managed-pages`, {
+    // Always include /api in the path
+    const response = await api.get(`/api/managed-pages`, { 
       params: { 
         type: pageType,
         lang: locale.value

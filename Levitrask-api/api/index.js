@@ -48,13 +48,6 @@ app.use('/api', (req, res, next) => {
   next(); // Continue to next middleware/router
 });
 
-// !!!!! TEMPORARY TEST ROUTE !!!!!
-app.get('/api/managed-pages', (req, res) => {
-  console.log('>>>> TEST ROUTE /api/managed-pages HIT <<<<');
-  res.status(200).json({ message: 'Test route hit!', type: req.query.type, lang: req.query.lang });
-});
-// !!!!! END TEMPORARY TEST ROUTE !!!!!
-
 // --- Mount Routers / Register Routes ---
 console.log('[API Entry] Mounting/Registering routers...');
 
