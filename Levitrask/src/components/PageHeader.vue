@@ -5,8 +5,7 @@
         <img src="/images/logo.png" alt="Levitrask Logo" class="logo-image" />
         <span class="logo-text">Levitrask.com</span>
       </router-link>
-      <!-- Debug Locale Display -->
-      <span style="color: red; margin-left: 15px;">Locale: {{ $i18n.locale }}</span> 
+      <!-- Debug Locale Display REMOVED -->
 
       <!-- 汉堡包菜单按钮 (仅移动端显示) -->
       <button @click="toggleMobileMenu" class="mobile-menu-button">
