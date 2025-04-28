@@ -226,7 +226,7 @@ const buyOnlineLinks = ref([]);
 const isLoadingDropdowns = ref(false);
 
 // --- API Setup ---
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+const baseUrl = import.meta.env.VITE_API_BASE_URL || ''; // Default to empty string for local proxy
 const api = axios.create({ baseURL: baseUrl });
 
 // --- Fetch Dynamic Links Function ---
