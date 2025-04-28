@@ -18,11 +18,11 @@
       <!-- 常规导航 (桌面端显示) -->
       <nav class="main-nav desktop-nav">
         <!-- Levitra 链接 -->
-        <router-link :to="{ name: 'home', params: { lang: locale.value } }">{{ $t('navigation.home') }}</router-link>
+        <router-link :to="{ name: 'home', params: { lang: locale.value } }">{{ t('navigation.home') }}</router-link>
 
         <!-- 第一个下拉菜单：Drugs in this Class (DYNAMIC) -->
         <div class="nav-item dropdown-container" @mouseenter="isBlogDropdownOpen = true" @mouseleave="isBlogDropdownOpen = false">
-          <a class="dropdown-trigger" :class="{ 'active-dropdown': isDrugActive }">{{ $t('navigation.dropdownDrugs') }} <span class="arrow" :class="{ rotated: isBlogDropdownOpen }">▼</span></a>
+          <a class="dropdown-trigger" :class="{ 'active-dropdown': isDrugActive }">{{ t('navigation.dropdownDrugs') }} <span class="arrow" :class="{ rotated: isBlogDropdownOpen }">▼</span></a>
           <transition name="fade">
             <div class="dropdown-menu" v-show="isBlogDropdownOpen">
               <!-- Dynamic links using v-for -->
@@ -42,7 +42,7 @@
 
         <!-- 第二个下拉菜单：药物比较 (DYNAMIC) -->
         <div class="nav-item dropdown-container" @mouseenter="isComparisonDropdownOpen = true" @mouseleave="isComparisonDropdownOpen = false">
-          <a class="dropdown-trigger" :class="{ 'active-dropdown': isComparisonActive }">{{ $t('navigation.dropdownCompare') }} <span class="arrow" :class="{ rotated: isComparisonDropdownOpen }">▼</span></a>
+          <a class="dropdown-trigger" :class="{ 'active-dropdown': isComparisonActive }">{{ t('navigation.dropdownCompare') }} <span class="arrow" :class="{ rotated: isComparisonDropdownOpen }">▼</span></a>
           <transition name="fade">
             <div class="dropdown-menu" v-show="isComparisonDropdownOpen">
               <!-- Dynamic links -->
@@ -60,12 +60,12 @@
         </div>
 
         <!-- 其他常规链接 (使用翻译) -->
-        <router-link :to="{ name: 'news', params: { lang: locale.value } }">{{ $t('navigation.news') }}</router-link>
-        <router-link :to="{ name: 'blog', params: { lang: locale.value } }">{{ $t('navigation.blog') }}</router-link>
+        <router-link :to="{ name: 'news', params: { lang: locale.value } }">{{ t('navigation.news') }}</router-link>
+        <router-link :to="{ name: 'blog', params: { lang: locale.value } }">{{ t('navigation.blog') }}</router-link>
 
         <!-- Online Dropdown (DYNAMIC) -->
         <div class="nav-item dropdown-container" @mouseenter="isOnlineDropdownOpen = true" @mouseleave="isOnlineDropdownOpen = false">
-          <a class="dropdown-trigger" :class="{ 'active-dropdown': isOnlineActive }">{{ $t('navigation.dropdownOnline') }} <span class="arrow" :class="{ rotated: isOnlineDropdownOpen }">▼</span></a>
+          <a class="dropdown-trigger" :class="{ 'active-dropdown': isOnlineActive }">{{ t('navigation.dropdownOnline') }} <span class="arrow" :class="{ rotated: isOnlineDropdownOpen }">▼</span></a>
           <transition name="fade">
             <div class="dropdown-menu" v-show="isOnlineDropdownOpen">
               <!-- Dynamic links -->
@@ -100,12 +100,12 @@
       <!-- 移动端导航菜单 (点击汉堡按钮展开) -->
       <transition name="slide-fade">
         <nav v-if="isMobileMenuOpen" class="mobile-nav">
-          <router-link :to="{ name: 'home', params: { lang: locale.value } }" @click="closeMobileMenu">Levitra</router-link>
+          <router-link :to="{ name: 'home', params: { lang: locale.value } }" @click="closeMobileMenu">{{ t('navigation.home') }}</router-link>
 
           <!-- 移动端下拉菜单：Drugs in this Class (DYNAMIC) -->
           <div class="mobile-nav-section">
             <button @click="toggleMobileSubmenu('drugs')" class="mobile-submenu-trigger">
-               {{ $t('navigation.dropdownDrugs') }}
+               {{ t('navigation.dropdownDrugs') }}
               <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'drugs' }">▼</span>
             </button>
             <div v-if="mobileSubmenuOpen === 'drugs'" class="mobile-submenu">
@@ -126,7 +126,7 @@
           <!-- 移动端下拉菜单：Drug Comparison (DYNAMIC) -->
           <div class="mobile-nav-section">
             <button @click="toggleMobileSubmenu('compare')" class="mobile-submenu-trigger">
-              {{ $t('navigation.dropdownCompare') }}
+              {{ t('navigation.dropdownCompare') }}
               <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'compare' }">▼</span>
             </button>
             <div v-if="mobileSubmenuOpen === 'compare'" class="mobile-submenu">
@@ -143,13 +143,13 @@
             </div>
           </div>
 
-          <router-link :to="{ name: 'news', params: { lang: locale.value } }" @click="closeMobileMenu">News</router-link>
-          <router-link :to="{ name: 'blog', params: { lang: locale.value } }" @click="closeMobileMenu">Blog</router-link>
+          <router-link :to="{ name: 'news', params: { lang: locale.value } }" @click="closeMobileMenu">{{ t('navigation.news') }}</router-link>
+          <router-link :to="{ name: 'blog', params: { lang: locale.value } }" @click="closeMobileMenu">{{ t('navigation.blog') }}</router-link>
 
           <!-- Mobile Online Submenu (DYNAMIC) -->
           <div class="mobile-nav-section">
             <button @click="toggleMobileSubmenu('online')" class="mobile-submenu-trigger">
-              {{ $t('navigation.dropdownOnline') }}
+              {{ t('navigation.dropdownOnline') }}
               <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'online' }">▼</span>
             </button>
             <div v-if="mobileSubmenuOpen === 'online'" class="mobile-submenu">
