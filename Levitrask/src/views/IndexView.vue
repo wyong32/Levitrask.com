@@ -599,6 +599,33 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
   }
 }
 
+:deep(.comparison-table-container table) {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px; /* Ensure table doesn't collapse too much */
+}
+
+:deep(.comparison-table-container th),
+:deep(.comparison-table-container td) {
+  border: 1px solid #dee2e6;
+  padding: 0.8rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+:deep(.comparison-table-container th) {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+:deep(.comparison-table-container tbody tr:nth-child(odd)) {
+  background-color: #f8f9fa;
+}
+
+:deep(.comparison-table-container tbody tr:hover) {
+  background-color: #e9ecef;
+}
+
 /* Loading/Error States */
 .loading-message,
 .error-message {

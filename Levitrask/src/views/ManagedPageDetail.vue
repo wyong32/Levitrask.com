@@ -206,6 +206,16 @@ const parsedSidebarData = computed(() => {
 </script>
 
 <style scoped>
+:deep(ul) {
+  list-style: disc;
+  margin-left: 20px;
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+:deep(li) {
+  margin-bottom: 0.5rem;
+}
+
 /* Adopt 3-column layout styles (assuming shared CSS or define here) */
 .content-area-3-column {
   display: grid;
@@ -251,7 +261,6 @@ const parsedSidebarData = computed(() => {
   line-height: 1.6;
 }
 .content-html :deep(a) {
-   color: var(--link-color); /* Use theme variable */
    text-decoration: none;
 }
 .content-html :deep(a:hover) {
@@ -342,15 +351,38 @@ const parsedSidebarData = computed(() => {
    }
 }
 
-/* Remove or adjust old layout styles if they conflict */
-.page-detail-container {
-  /* Might be redundant now */
+:deep(.comparison-table-container) {
+  overflow-x: auto; /* Allow horizontal scrolling on small screens */
+  margin: 1.5rem 0;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
 }
-.detail-main-content {
-  /* Now primarily a grid item */
+
+:deep(.comparison-table-container table) {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px; /* Ensure table doesn't collapse too much */
 }
-.content-html {
-   /* Styles for direct children inside v-html are better targeted with :deep() */
+
+:deep(.comparison-table-container th),
+:deep(.comparison-table-container td) {
+  border: 1px solid #dee2e6;
+  padding: 0.8rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+:deep(.comparison-table-container th) {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+:deep(.comparison-table-container tbody tr:nth-child(odd)) {
+  background-color: #f8f9fa;
+}
+
+:deep(.comparison-table-container tbody tr:hover) {
+  background-color: #e9ecef;
 }
 
 /* Add scroll margin to account for sticky header */

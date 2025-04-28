@@ -59,16 +59,17 @@ managedPagesRouter.get('/admin', authenticateAdmin, async (req, res) => {
       SELECT 
         p.id,
         p.page_identifier,
+        p.sort_order, -- Include sort_order in selection
         COALESCE(t_en.list_title, '[No Title - ' || p.page_identifier || ']') AS list_title, -- Fallback title
         p.updated_at -- Use main table's updated_at for overall last modified? Or translation's? Main seems better.
       FROM levitrask_managed_pages p
       LEFT JOIN levitrask_managed_page_translations t_en ON p.id = t_en.managed_page_id AND t_en.language_code = $1
       WHERE p.project_id = $2 AND p.page_type = $3
-      ORDER BY p.page_identifier ASC;
+      ORDER BY p.sort_order ASC NULLS LAST, p.page_identifier ASC; -- Order by sort_order first, then identifier as tie-breaker
     `;
     const result = await pool.query(query, [DEFAULT_LANG, PROJECT_ID, pageType]);
     
-    console.log(`[API Managed Pages] Fetched ${result.rows.length} pages for type '${pageType}'.`);
+    console.log(`[API Managed Pages] Fetched ${result.rows.length} pages for type '${pageType}' sorted by sort_order.`);
     res.status(200).json(result.rows);
 
   } catch (error) {
