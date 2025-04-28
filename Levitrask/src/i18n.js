@@ -5,27 +5,17 @@ import en from './locales/en.json'
 import zh_CN from './locales/zh.json' // 重命名导入以清晰
 import ru from './locales/ru.json' // 1. 导入俄语文件 (你需要创建这个文件)
 
-// 获取初始语言：优先 URL 路径，其次 localStorage，最后默认英文
+// 获取初始语言：优先 localStorage，否则默认英文
 function getStartingLocale() {
-  const supportedLocales = ['en', 'zh-CN', 'ru']; 
-  const pathLang = window.location.pathname.split('/')[1]; // 尝试从路径获取语言 (例如 /en/xxx -> en)
-
-  // 1. 检查路径中的语言是否有效
-  if (pathLang && supportedLocales.includes(pathLang)) {
-    console.log(`[i18n] Using locale from initial path: ${pathLang}`);
-    localStorage.setItem('user-locale', pathLang); // 将从 URL 获取的有效语言存回 localStorage
-    return pathLang;
-  }
-
-  // 2. 如果路径无效，检查 localStorage
   const savedLocale = localStorage.getItem('user-locale');
+  // 3. 更新支持的语言代码列表
+  const supportedLocales = ['en', 'zh-CN', 'ru']; 
   if (savedLocale && supportedLocales.includes(savedLocale)) { 
     console.log(`[i18n] Using saved locale: ${savedLocale}`);
     return savedLocale;
   }
-
-  // 3. 如果两者都无效，默认 'en'
-  console.log('[i18n] No valid locale found in path or storage, defaulting to en.');
+  // 否则，无论浏览器设置如何，都默认使用英文
+  console.log('[i18n] No valid saved locale found or unsupported, defaulting to en.');
   return 'en'; 
 }
 
