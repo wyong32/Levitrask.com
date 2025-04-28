@@ -182,6 +182,10 @@ const { locale, t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
+// ***** 新增日志 *****
+console.log('[PageHeader setup] Initial locale:', locale.value);
+// ***** 结束新增 *****
+
 // Define available languages HERE, reflecting router/i18n config
 const availableLanguages = [
   { code: 'en', name: 'English' },
@@ -342,6 +346,9 @@ const toggleMobileSubmenu = (menuName) => {
 
 // --- Lifecycle Hook (NEW) ---
 onMounted(async () => {
+    // ***** 新增日志 *****
+    console.log('[PageHeader onMounted] Locale:', locale.value);
+    // ***** 结束新增 *****
     isLoadingDropdowns.value = true;
     try {
       await Promise.all([
@@ -357,6 +364,9 @@ onMounted(async () => {
 // Watch for route changes to update active state and potentially language?
 // Watching locale changes might be needed if i18n setup doesn't automatically update components
 watch(locale, (newLocale, oldLocale) => {
+  // ***** 新增日志 *****
+  console.log('[PageHeader locale watch] Locale changed:', newLocale);
+  // ***** 结束新增 *****
   // Prevent refetching if locale didn't actually change
   if (newLocale && newLocale !== oldLocale) {
      console.log(`Locale changed in header from ${oldLocale} to ${newLocale}, refetching dropdowns...`);
