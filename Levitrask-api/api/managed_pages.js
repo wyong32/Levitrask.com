@@ -623,6 +623,10 @@ managedPagesRouter.delete('/admin/:type/:identifier', authenticateAdmin, async (
 // GET /api/managed-pages?type=drug - Get list of pages for a specific type for public dropdown/listing
 // UPDATED: Join with translations table for list_title, filter by default lang? Or any available lang? Any seems better.
 managedPagesRouter.get('/', async (req, res) => {
+  // ***** 新增日志 *****
+  console.log(`>>> [PUBLIC MANAGED PAGES / ENTRY] Request received for type: ${req.query.type}, lang: ${req.query.lang}`);
+  // ***** 结束新增 *****
+
   const pageType = sanitizePageType(req.query.type);
   const lang = sanitizeLangCode(req.query.lang) || DEFAULT_LANG; // Allow specifying lang, default to 'en'
   console.log(`[API Managed Pages] GET /?type=${pageType}&lang=${lang} (Public List) - Fetching list (Project: ${PROJECT_ID})`);
