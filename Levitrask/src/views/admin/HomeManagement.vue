@@ -280,10 +280,11 @@ const formRules = reactive({
 });
 
 // --- API Setup ---
-const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api'; // Restored original
-// const baseUrl = 'http://localhost:3000/api'; // Commented out direct backend URL
-console.log(`[API Setup] Using baseURL: ${baseUrl}`); // Changed log message
+// Correct baseURL setup: Use environment variable for production, leave empty for local dev (Vite proxy handles /api)
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
 const api = axios.create({ baseURL: baseUrl });
+console.log(`[API Setup HomeMgmt] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`);
+
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('admin-auth-token');
   if (token) {
@@ -304,7 +305,8 @@ const fetchHomepageBlocks = async () => {
   errorMessage.value = '';
   orderChanged.value = false;
   try {
-    const response = await api.get('/admin/homepage/homepage-blocks');
+    // Add /api prefix
+    const response = await api.get('/api/admin/homepage/homepage-blocks');
     homepageBlocks.value = response.data || [];
     originalOrderIds.value = homepageBlocks.value.map(block => block.id);
     console.log('Fetched homepage blocks:', homepageBlocks.value);
@@ -326,7 +328,8 @@ const fetchSidebarData = async () => {
   originalSidebarData.value = []; // Reset original data as well
   isSidebarDataChanged.value = false; // Reset change flag
   try {
-    const response = await api.get('sidebars/admin');
+    // Add /api prefix
+    const response = await api.get('/api/sidebars/admin');
     const sidebars = response.data || [];
     const homeSidebar = sidebars.find(s => s.page_identifier === HOMEPAGE_IDENTIFIER);
 
@@ -474,7 +477,8 @@ const handleDeleteBlock = async (row) => {
       { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
     );
     try {
-      await api.delete(`/admin/homepage/homepage-blocks/${row.id}`);
+      // Add /api prefix
+      await api.delete(`/api/admin/homepage/homepage-blocks/${row.id}`);
       ElMessage.success('区块删除成功！');
       fetchHomepageBlocks();
     } catch (error) {
@@ -574,8 +578,8 @@ const createBlockWithTranslations = async () => {
             html_content: t.html_content
         }))
     };
-    console.log("POST /admin/homepage/homepage-blocks payload:", payload);
-    await api.post('/admin/homepage/homepage-blocks', payload);
+    console.log("POST /api/admin/homepage/homepage-blocks payload:", payload);
+    await api.post('/api/admin/homepage/homepage-blocks', payload);
 };
 
 const updateBlockAndTranslations = async () => {
@@ -607,9 +611,9 @@ const updateBlockAndTranslations = async () => {
 
         // Send PUT request for every language defined in the form,
         // even if fields are empty (to allow creating/clearing translations)
-        console.log(`Sending PUT /admin/homepage/homepage-blocks/${blockDbId}/translations/${t.language_code} payload:`, translationPayload);
+        console.log(`Sending PUT /api/admin/homepage/homepage-blocks/${blockDbId}/translations/${t.language_code} payload:`, translationPayload);
         updatePromises.push(
-            api.put(`/admin/homepage/homepage-blocks/${blockDbId}/translations/${t.language_code}`, translationPayload)
+            api.put(`/api/admin/homepage/homepage-blocks/${blockDbId}/translations/${t.language_code}`, translationPayload)
         );
     });
 
@@ -635,7 +639,7 @@ const saveOrder = async () => {
     try {
         const currentOrderedIds = homepageBlocks.value.map(block => block.id);
         console.log("Saving new order:", currentOrderedIds);
-        await api.put('/admin/homepage/homepage-blocks/reorder', { orderedIds: currentOrderedIds });
+        await api.put('/api/admin/homepage/homepage-blocks/reorder', { orderedIds: currentOrderedIds });
         ElMessage.success("顺序保存成功！");
         orderChanged.value = false;
         await fetchHomepageBlocks(); // Re-fetch to update display_order shown in table and reset originalOrderIds
@@ -783,11 +787,11 @@ const saveSidebarData = async () => {
     let response;
     if (sidebarId.value) {
       console.log(`Updating sidebar config ID: ${sidebarId.value}`);
-      response = await api.put(`sidebars/admin/${sidebarId.value}`, payload);
+      response = await api.put(`/api/sidebars/admin/${sidebarId.value}`, payload);
       ElMessage.success('首页侧边栏更新成功！');
     } else {
       console.log(`Creating new sidebar config for page: ${HOMEPAGE_IDENTIFIER}`);
-      response = await api.post('sidebars/admin', payload);
+      response = await api.post('/api/sidebars/admin', payload);
       sidebarId.value = response.data?.id;
       ElMessage.success('首页侧边栏创建成功！');
     }

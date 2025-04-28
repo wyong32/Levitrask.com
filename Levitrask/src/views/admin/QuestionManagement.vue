@@ -168,11 +168,12 @@ import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue';
 // --- BEGIN API Client Setup (Moved to Top) ---
 import axios from 'axios';
 
-// Create a configured Axios instance for this component
+// Create a configured Axios instance for this component (Corrected baseURL)
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api', // Use /api or your actual backend base URL
+  baseURL: import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : '', // Use correct pattern
   // timeout: 10000, // Optional: Add timeout
 });
+console.log(`[API Setup QuestionMgmt] Axios configured with baseURL: '${apiClient.defaults.baseURL || '(empty for local proxy)'}'`);
 
 // Add request interceptor for Authentication
 apiClient.interceptors.request.use(config => {
@@ -275,24 +276,10 @@ const fetchQuestions = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    // Assuming the GET /admin/questions endpoint returns the needed list structure
-    console.log('Fetching admin question list...');
-    // Ensure the API endpoint matches your backend route
-    const response = await apiClient.get('/admin/questions'); // Updated endpoint
-    console.log('API Response:', response.data);
-
-    // Process data for the table (extract default language title)
-        tableData.value = response.data.map(item => {
-      const defaultTranslation = item.translations?.find(t => t.language_code === DEFAULT_LANG) || {};
-            return {
-        db_id: item.id, // Store the numeric DB ID
-        question_id: item.question_id, // Store the slug
-        listTitle: defaultTranslation.list_title || `[No Title - ${item.question_id}]`,
-        // Store the full item data for editing if needed, or fetch details separately
-        fullData: item // Storing full data might be large, fetching details is better
-            };
-        });
-    console.log('Processed Table Data:', tableData.value);
+    // Add /api prefix and correct path
+    const response = await apiClient.get(`/api/admin/questions?lang=${DEFAULT_LANG}`);
+    tableData.value = response.data || [];
+    console.log('Fetched questions for admin list:', tableData.value);
 
   } catch (error) {
     console.error('Error fetching questions:', error);
@@ -308,7 +295,8 @@ const fetchQuestionDetails = async (dbId) => {
     console.log(`Fetching details for question DB ID: ${dbId}`);
     // **ASSUMPTION:** Backend provides GET /admin/questions/:id endpoint
     // This endpoint should return the main data + ALL translations, similar to the list endpoint but for one item.
-    const response = await apiClient.get(`/admin/questions/${dbId}`);
+    // Add /api prefix and correct path
+    const response = await apiClient.get(`/api/admin/questions/${dbId}`);
     const questionData = response.data;
     console.log(`Fetched details:`, questionData);
 
@@ -362,7 +350,7 @@ const fetchQuestionDetails = async (dbId) => {
 const createQuestion = async (payload) => {
   // **ASSUMPTION:** Backend provides POST /admin/questions
   console.log('Creating new question with payload:', payload);
-  const response = await apiClient.post('/admin/questions', payload);
+  const response = await apiClient.post('/api/admin/questions', payload);
   return response.data; // Expecting the newly created question data back
 };
 
@@ -387,7 +375,7 @@ const updateQuestion = async (dbId, formState) => {
   try {
      console.log('Updating non-translatable fields:', nonTranslatablePayload);
      // Use PUT /:id for non-translatable updates
-     const mainUpdateResponse = await apiClient.put(`/admin/questions/${dbId}`, nonTranslatablePayload);
+     const mainUpdateResponse = await apiClient.put(`/api/admin/questions/${dbId}`, nonTranslatablePayload);
      updatedData = mainUpdateResponse.data; // Get potentially updated base data
      console.log('Non-translatable fields updated successfully.');
   } catch (error) {
@@ -421,7 +409,7 @@ const updateQuestion = async (dbId, formState) => {
     };
     console.log(`Updating translation for ${langCode}:`, cleanedPayload);
     // **ASSUMPTION:** Use PUT /:id/translations/:lang for each translation
-    return apiClient.put(`/admin/questions/${dbId}/translations/${langCode}`, cleanedPayload);
+    return apiClient.put(`/api/admin/questions/${dbId}/translations/${langCode}`, cleanedPayload);
   });
 
   // Wait for all translation updates
@@ -433,7 +421,7 @@ const updateQuestion = async (dbId, formState) => {
   // If the main PUT didn't run (e.g., only translations updated), we need to fetch the final state.
    if (!updatedData) {
        console.log("Fetching final state after translation-only update...");
-       const finalStateResponse = await apiClient.get(`/admin/questions/${dbId}`);
+       const finalStateResponse = await apiClient.get(`/api/admin/questions/${dbId}`);
        updatedData = finalStateResponse.data;
    }
 
@@ -444,7 +432,7 @@ const updateQuestion = async (dbId, formState) => {
 const deleteQuestion = async (dbId) => {
    // **ASSUMPTION:** Backend provides DELETE /admin/questions/:id
    console.log(`Deleting question DB ID: ${dbId}`);
-   await apiClient.delete(`/admin/questions/${dbId}`);
+   await apiClient.delete(`/api/admin/questions/${dbId}`);
    console.log(`Question DB ID: ${dbId} deleted successfully.`);
 };
 

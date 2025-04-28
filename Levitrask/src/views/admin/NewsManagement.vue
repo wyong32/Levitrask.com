@@ -227,16 +227,32 @@ const dialogTitle = computed(() => {
     return `${isEditMode.value ? '编辑' : '创建'}新闻` + (isEditMode.value ? ` - ${langName}` : '');
 });
 
-// --- API Base URL ---
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'; // Use relative path or env variable
+// --- API Base URL & Instance (Corrected) ---
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
+const api = axios.create({ baseURL: baseUrl });
+console.log(`[API Setup NewsMgmt] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`);
+
+// Add interceptor for token (if not already globally configured)
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('admin-auth-token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn('Admin auth token not found for API request in NewsManagement.');
+    // Optionally handle missing token, e.g., redirect or throw error
+  }
+  return config;
+}, error => {
+  return Promise.reject(error);
+});
 
 // --- Methods ---
 const fetchData = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    // Fetch english for the main table list
-    const response = await axios.get(`${apiBaseUrl}/news?lang=en`); // Adjusted path
+    // Fetch english for the main table list - Use api instance and add /api prefix
+    const response = await api.get(`/api/news?lang=en`); 
     if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
       tableData.value = Object.values(response.data).map(item => ({
         ...item,
@@ -319,7 +335,7 @@ const handleEdit = async (row) => {
         // Fetch data for all languages concurrently
         const fetchPromises = supportedLanguages.map(async (lang) => {
             try {
-                 const response = await axios.get(`${apiBaseUrl}/news/${currentEditId.value}?lang=${lang.code}`); // Adjusted path
+                 const response = await api.get(`/api/news/${currentEditId.value}?lang=${lang.code}`); // Adjusted path
                  if (response.data) {
                       allLanguageData[lang.code] = {
                           slug: currentEditId.value, // Use the current slug
@@ -444,183 +460,78 @@ const switchLanguage = (newLangCode) => {
 };
 
 
-const handleDelete = (row) => {
-  if (!row || !row.id) {
-      ElMessage.error('无法删除：缺少新闻 ID (Slug)。');
-      return;
-  }
-  ElMessageBox.confirm(
-    `确定要删除新闻 "${row.listTitle || row.id}" 吗？此操作将删除所有语言的翻译且无法撤销。`,
-    '确认删除',
-    {
+const handleDelete = async (row) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除新闻 "${row.listTitle}" (ID: ${row.id}) 吗？`, '确认删除', {
       confirmButtonText: '删除',
       cancelButtonText: '取消',
-      type: 'warning',
-    }
-  ).then(async () => {
-    isSubmitting.value = true;
+      type: 'warning'
+    });
+    // User confirmed deletion
     try {
-      await axios.delete(`${apiBaseUrl}/news/${row.id}`); // Adjusted path
-      ElMessage.success('新闻删除成功');
-      await fetchData();
+      // Add /api prefix
+      await api.delete(`/api/news/${row.id}`);
+      ElMessage.success('新闻删除成功！');
+      await fetchData(); // Refresh list
     } catch (error) {
-      console.error('Error deleting news:', error);
-      ElMessage.error(`删除失败: ${error.response?.data?.message || error.message}`);
-    } finally {
-      isSubmitting.value = false;
+      console.error(`Error deleting news item ${row.id}:`, error);
+      ElMessage.error(error.response?.data?.message || '删除失败');
     }
-  }).catch(() => {
-    ElMessage.info('删除已取消');
-  });
+  } catch (e) {
+    // User cancelled
+    console.log('Deletion cancelled');
+  }
 };
 
 // --- Submit Handler ---
 const handleSubmit = async () => {
   if (!formRef.value) return;
-
-  // 1. Save current form state back to storage for the selected language
-  if (allLanguageData[selectedLanguage.value]) {
-     const currentData = allLanguageData[selectedLanguage.value];
-     // Save translatable fields
-     currentData.listTitle = newsForm.listTitle;
-     currentData.listImageAlt = newsForm.listImageAlt;
-     currentData.listDescription = newsForm.listDescription;
-     currentData.metaTitle = newsForm.metaTitle;
-     currentData.metaDescription = newsForm.metaDescription;
-     currentData.metaKeywords = newsForm.metaKeywords;
-     currentData.content = newsForm.content;
-     // Save non-translatable fields (important for create mode)
-     currentData.slug = newsForm.slug;
-     currentData.listDate = newsForm.listDate;
-     currentData.listSource = newsForm.listSource;
-     currentData.listImageSrc = newsForm.listImageSrc;
-     console.log(`Saved final form data for ${selectedLanguage.value}`);
-  } else {
-     console.error(`Cannot save form data: Storage for language ${selectedLanguage.value} is missing.`);
-     ElMessage.error(`内部错误：无法保存当前语言 (${selectedLanguage.value}) 的数据。`);
-     return;
-  }
-
-  // 2. Validate the first language's required fields for basic check
-  const baseLangCode = supportedLanguages[0]?.code || 'en';
-  const baseLangData = allLanguageData[baseLangCode];
-  if (!baseLangData || !baseLangData.slug || !baseLangData.listTitle || !baseLangData.listImageSrc || !baseLangData.listImageAlt || !baseLangData.content) {
-       ElMessage.error(`请确保基础语言 (${baseLangCode}) 的 Slug, 标题, 图片URL, 图片Alt, 内容 字段已填写。`);
-       // Optionally switch back to base language tab
-       // switchLanguage(baseLangCode);
-       return;
-  }
-   // Minimal validation on the current form (might miss errors in other langs)
-   formRef.value.validate(async (valid) => {
+  formRef.value.validate(async (valid) => {
     if (valid) {
-        isSubmitting.value = true;
-        try {
-            if (isEditMode.value) {
-                // --- UPDATE ---
-                console.log('Updating news item:', currentEditId.value);
-                const updatePromises = supportedLanguages.map(lang => {
-                    const langData = allLanguageData[lang.code];
-                    if (!langData) { // Should not happen
-                        console.warn(`Skipping update for ${lang.code}: No data in storage.`);
-                        return Promise.resolve();
-                    }
-                    // Only send update if essential translatable fields are present
-                    if (!langData.listTitle && !langData.listImageAlt && !langData.content) {
-                        console.warn(`Skipping update for ${lang.code}: Essential translatable fields are empty.`);
-                        return Promise.resolve();
-                    }
+      isSubmitting.value = true;
+      errorMessage.value = '';
 
-                    const payload = {
-                        languageCode: lang.code,
-                        // Send all fields; backend PUT handles UPSERT/update logic
-                        listDate: langData.listDate, // Send non-translatable from base lang data
-                        listSource: langData.listSource,
-                        listImageSrc: langData.listImageSrc,
-                        listTitle: langData.listTitle,
-                        listImageAlt: langData.listImageAlt,
-                        listDescription: langData.listDescription,
-                        metaTitle: langData.metaTitle,
-                        metaDescription: langData.metaDescription,
-                        metaKeywords: langData.metaKeywords,
-                        content: langData.content
-                    };
-                    console.log(`Sending PUT for ${lang.code}:`, payload);
-                    return axios.put(`${apiBaseUrl}/news/${currentEditId.value}`, payload); // Adjusted path
-                });
-                await Promise.all(updatePromises);
-                ElMessage.success('新闻更新成功 (所有语言)');
+      // Save the current language data before potentially switching
+      saveCurrentLanguageData();
 
-            } else {
-                // --- CREATE ---
-                console.log('Creating new news item...');
-                const firstLangDataToPost = allLanguageData[baseLangCode]; // Use base lang for POST
+      // Prepare payload for the backend - includes ALL language data
+      const payload = {
+        slug: newsForm.slug,
+        list_date: newsForm.listDate, // Non-translatable
+        list_source: newsForm.listSource, // Non-translatable
+        list_image_src: newsForm.listImageSrc, // Non-translatable
+        translations: { ...allLanguageData } // Send all collected language data
+      };
 
-                const postPayload = {
-                    languageCode: baseLangCode,
-                    slug: firstLangDataToPost.slug,
-                    listDate: firstLangDataToPost.listDate,
-                    listSource: firstLangDataToPost.listSource,
-                    listImageSrc: firstLangDataToPost.listImageSrc,
-                    listTitle: firstLangDataToPost.listTitle,
-                    listImageAlt: firstLangDataToPost.listImageAlt,
-                    listDescription: firstLangDataToPost.listDescription,
-                    metaTitle: firstLangDataToPost.metaTitle,
-                    metaDescription: firstLangDataToPost.metaDescription,
-                    metaKeywords: firstLangDataToPost.metaKeywords,
-                    content: firstLangDataToPost.content
-                };
-                console.log(`Sending POST for ${baseLangCode}:`, postPayload);
-                const postResponse = await axios.post(`${apiBaseUrl}/news`, postPayload); // Adjusted path
-                const createdNewsSlug = postResponse.data?.newsItem?.news_id;
-
-                if (!createdNewsSlug) {
-                    throw new Error('创建新闻后未能从响应中获取 news_id (slug)。');
-                }
-                console.log(`News created with slug: ${createdNewsSlug}`);
-
-                // PUT other languages if they have content
-                const putPromises = supportedLanguages.filter(l => l.code !== baseLangCode).map(lang => {
-                    const langData = allLanguageData[lang.code];
-                    if (!langData || (!langData.listTitle && !langData.listImageAlt && !langData.content)) {
-                        console.warn(`Skipping PUT for ${lang.code} during create: No essential data.`);
-                        return Promise.resolve();
-                    }
-                    const putPayload = {
-                        languageCode: lang.code,
-                        // Only send translatable fields for PUT after create
-                        listTitle: langData.listTitle,
-                        listImageAlt: langData.listImageAlt,
-                        listDescription: langData.listDescription,
-                        metaTitle: langData.metaTitle,
-                        metaDescription: langData.metaDescription,
-                        metaKeywords: langData.metaKeywords,
-                        content: langData.content
-                        // Non-translatable fields are set by POST
-                    };
-                    console.log(`Sending PUT for ${lang.code} (creation flow):`, putPayload);
-                    return axios.put(`${apiBaseUrl}/news/${createdNewsSlug}`, putPayload); // Adjusted path
-                });
-                await Promise.all(putPromises);
-                ElMessage.success('新闻创建成功 (所有语言)');
-            }
-
-            closeDialog();
-            await fetchData(); // Refresh table
-
-        } catch (error) {
-            console.error('Error submitting news:', error);
-            ElMessage.error(`提交失败: ${error.response?.data?.message || error.message}`);
-        } finally {
-            isSubmitting.value = false;
+      try {
+        let response;
+        if (isEditMode.value) {
+          console.log(`Updating news item (slug: ${currentEditId.value}) with payload:`, payload);
+          // Add /api prefix
+          response = await api.put(`/api/news/${currentEditId.value}`, payload);
+          ElMessage.success('新闻更新成功！');
+        } else {
+          console.log('Creating new news item with payload:', payload);
+          // Add /api prefix
+          response = await api.post('/api/news', payload);
+          ElMessage.success('新闻创建成功！');
         }
+        closeDialog();
+        await fetchData(); // Refresh the table
+      } catch (error) {
+        console.error('Error submitting news form:', error);
+        errorMessage.value = error.response?.data?.message || (isEditMode.value ? '更新失败' : '创建失败');
+        ElMessage.error(errorMessage.value);
+        // Keep dialog open
+      } finally {
+        isSubmitting.value = false;
+      }
     } else {
-        console.log('Form validation failed');
-        ElMessage.warn('请检查当前语言的表单字段是否都有效。切换到其他语言选项卡检查。');
-        return false;
+      console.log('Form validation failed');
+      return false;
     }
-  }); // End validate callback
+  });
 };
-
 
 // --- Lifecycle Hooks ---
 onMounted(() => {

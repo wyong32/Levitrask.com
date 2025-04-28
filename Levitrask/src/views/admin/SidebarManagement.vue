@@ -83,6 +83,25 @@ import axios from 'axios' // 或者你封装的 API 服务
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete } from '@element-plus/icons-vue'
 
+// --- API Setup (Standardized) ---
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
+const api = axios.create({ baseURL: baseUrl });
+console.log(`[API Setup SidebarMgmt] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`);
+
+// Add interceptor for token
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('admin-auth-token'); // Ensure this key is correct
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn('Admin auth token not found for API request in SidebarManagement.');
+    // Optionally handle missing token
+  }
+  return config;
+}, error => {
+  return Promise.reject(error);
+});
+
 // --- State ---
 const sidebarList = ref([])
 const loading = ref(false)
@@ -112,12 +131,6 @@ const formRules = reactive({
 
 // --- Helper Functions ---
 
-// 假设你有一个获取认证 Token 的方法 (例如从 localStorage 或 Pinia store)
-function getAuthToken() {
-  // !! 重要：需要替换为实际获取 Token 的逻辑 !!
-  return localStorage.getItem('authToken') || 'YOUR_FALLBACK_TOKEN_FOR_TESTING';
-}
-
 // 格式化日期时间
 function formatDateTime(isoString) {
   if (!isoString) return '-';
@@ -135,25 +148,14 @@ function truncateHtml(htmlString, maxLength) {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 }
 
-
-// --- API Calls ---
+// --- API Calls (Using api instance) ---
 
 // 获取侧边栏列表
 async function fetchSidebars() {
   loading.value = true
   try {
-    const token = getAuthToken();
-    if (!token) {
-        ElMessage.error('认证失败，请重新登录');
-        loading.value = false;
-        return;
-    }
-    const response = await axios.get('/api/sidebars/admin', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    sidebarList.value = response.data
+    const response = await api.get('/api/sidebars/admin'); // Use api instance, path already correct
+    sidebarList.value = response.data || []; // Handle null response
     console.log('Fetched sidebars:', sidebarList.value)
   } catch (error) {
     console.error('Error fetching sidebars:', error)
@@ -199,23 +201,13 @@ async function handleDelete(id) {
     )
     
     // 用户确认删除
-    loading.value = true; // 可以用表格 loading 或单独的删除 loading
-    const token = getAuthToken();
-     if (!token) {
-        ElMessage.error('认证失败，请重新登录');
-        loading.value = false;
-        return;
-    }
-    await axios.delete(`/api/sidebars/admin/${id}`, {
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
-    });
+    loading.value = true; // Can use table loading or separate delete loading
+    await api.delete(`/api/sidebars/admin/${id}`); // Use api instance, path already correct
     ElMessage.success('删除成功！');
-    await fetchSidebars(); // 重新加载列表
+    await fetchSidebars(); // Reload list
 
   } catch (error) {
-    // 如果用户点击取消，会进入 catch ('cancel')
+    // If user clicks cancel, it enters catch ('cancel')
     if (error !== 'cancel') {
       console.error('Error deleting sidebar:', error)
       ElMessage.error('删除失败: ' + (error.response?.data?.message || error.message))
@@ -232,53 +224,36 @@ async function submitForm() {
   sidebarFormRef.value.validate(async (valid) => {
     if (valid) {
       submitting.value = true;
-      const token = getAuthToken();
-      if (!token) {
-        ElMessage.error('认证失败，请重新登录');
-        submitting.value = false;
-        return;
-      }
       
-      // 将表单数据组合成 API 需要的 sidebar_content JSON 对象
+      // Prepare payload (sidebar_content JSON object)
       const payload = {
           page_identifier: formData.page_identifier,
           sidebar_content: {
-              title: formData.title || null, // 如果为空则发送 null
-              content: formData.content || null // 如果为空则发送 null
+              title: formData.title || null, // Send null if empty
+              content: formData.content || null // Send null if empty
           }
       };
-      // 移除 null 值，如果 API 不接受的话（后端需要能处理 null）
-      if (payload.sidebar_content.title === null) delete payload.sidebar_content.title;
-      if (payload.sidebar_content.content === null) delete payload.sidebar_content.content;
-      // 如果 title 和 content 都为 null，则 sidebar_content 可以是 null 或 {}
-      if (Object.keys(payload.sidebar_content).length === 0) {
-          payload.sidebar_content = null; // 或者 {}，取决于后端期望
-      }
 
       try {
-        if (isEditing.value) {
-          // 更新
-          await axios.put(`/api/sidebars/admin/${editingId.value}`, payload, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          ElMessage.success('更新成功！');
+        if (isEditing.value && editingId.value) {
+          // Update existing
+          await api.put(`/api/sidebars/admin/${editingId.value}`, payload); 
+          ElMessage.success('侧边栏配置更新成功！');
         } else {
-          // 创建
-          await axios.post('/api/sidebars/admin', payload, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          ElMessage.success('添加成功！');
+          // Create new
+          await api.post('/api/sidebars/admin', payload);
+          ElMessage.success('侧边栏配置添加成功！');
         }
-        dialogVisible.value = false; // 关闭对话框
-        await fetchSidebars(); // 重新加载列表
+        dialogVisible.value = false;
+        await fetchSidebars(); // Refresh list
       } catch (error) {
-        console.error('Error submitting sidebar:', error);
-        ElMessage.error('操作失败: ' + (error.response?.data?.message || error.message));
+        console.error('Error saving sidebar config:', error);
+        ElMessage.error('保存失败: ' + (error.response?.data?.message || error.message));
       } finally {
         submitting.value = false;
       }
     } else {
-      console.log('Form validation failed');
+      console.log('Sidebar form validation failed');
       return false;
     }
   });

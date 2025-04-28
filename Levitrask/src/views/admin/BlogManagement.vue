@@ -342,30 +342,23 @@ const dialogTitle = computed(() => {
   return `${isEditMode.value ? '编辑' : '创建'}博客` + (isEditMode.value ? ` - ${langName}` : '');
 });
 
-// --- API Client ---
-// Create an Axios instance specifically for admin requests
-const apiClient = axios.create({ baseURL: API_BASE_URL });
+// --- API Setup (Corrected) ---
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
+const api = axios.create({ baseURL: baseUrl });
+console.log(`[API Setup BlogMgmt] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`);
 
-// Add a request interceptor to include the auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    // Retrieve the token from localStorage (adjust key if needed)
-    const token = localStorage.getItem('admin-auth-token'); 
-    if (token) {
-      // If token exists, add the Authorization header
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('>>> Admin API request interceptor: Added Auth header.'); // Debug log
-    } else {
-      console.warn('>>> Admin API request interceptor: Auth token not found in localStorage.'); // Debug log
-    }
-    return config; // Return the modified config
-  },
-  (error) => {
-    // Handle request error (e.g., if config modification fails)
-    console.error('>>> Admin API request interceptor error:', error);
-    return Promise.reject(error);
+// Add interceptor for token
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('admin-auth-token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn('Admin auth token not found for API request in BlogManagement.');
   }
-);
+  return config;
+}, error => {
+  return Promise.reject(error);
+});
 
 // --- Core Logic Functions ---
 
@@ -374,20 +367,17 @@ const fetchData = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    // --- Use the Admin endpoint to get the list for the table --- 
-    console.log('Fetching admin blog list from /admin endpoint');
-    const response = await apiClient.get(`/blogs/admin`); // Call admin list endpoint
-    console.log('--- Admin Blog List API Response ---');
-    console.log(JSON.stringify(response.data, null, 2));
-
+    // Add /api prefix
+    const response = await api.get(`/api/blogs?lang=${DEFAULT_LANG}`); // Fetch default lang for list
     if (Array.isArray(response.data)) {
-        // --- MODIFIED: Map response including numeric id and slug --- 
+        // Adapt response structure if needed (assuming it matches News)
         tableData.value = response.data.map(item => {
              console.log('Processing admin item:', item);
              // Backend /admin returns: id (numeric), blog_id (slug), list_title (default lang), updated_at
              if (!item.id || !item.blog_id) { // Check both IDs
                  console.warn('Admin item found without numeric id or blog_id (slug):', item);
              }
+             // Return the object
              return {
                  db_id: item.id,         // <-- Store numeric DB ID
                  blog_id: item.blog_id,  // <-- Store slug
@@ -395,7 +385,7 @@ const fetchData = async () => {
                  // Fetch listImageSrc separately if needed, or add to admin endpoint response
                  listImageSrc: '', // Placeholder, might need adjustment
                  listImageAlt: '', // Placeholder
-             }
+             };
         });
         console.log('--- Processed Admin Table Data (with db_id and blog_id) ---');
         console.log(JSON.stringify(tableData.value, null, 2));
@@ -453,7 +443,8 @@ const handleEdit = async (row) => {
   try {
     // --- Step 1: Fetch base data + default translation using ADMIN endpoint ---
     console.log(`Fetching admin details for DB ID: ${currentEditDbId.value}`);
-    const baseResponse = await apiClient.get(`/blogs/admin/${currentEditDbId.value}`);
+    // Add /api prefix
+    const baseResponse = await api.get(`/api/blogs/admin/${currentEditDbId.value}`);
     const baseData = baseResponse.data;
     console.log('Admin Base Details Response:', baseData);
 
@@ -483,7 +474,8 @@ const handleEdit = async (row) => {
     const fetchPromises = otherLanguages.map(async (lang) => {
       try {
         console.log(`Fetching admin translation for DB ID: ${currentEditDbId.value}, lang: ${lang.code}`);
-        const response = await apiClient.get(`/blogs/admin/${currentEditDbId.value}/translations/${lang.code}`);
+        // Add /api prefix
+        const response = await api.get(`/api/blogs/admin/${currentEditDbId.value}/translations/${lang.code}`);
         if (response.data) {
            // Assign fetched data to the correct language slot
            allLanguageData[lang.code] = {
@@ -625,7 +617,8 @@ const handleDelete = (row) => {
     isSubmitting.value = true;
     try {
       // Corrected: Use Admin API endpoint with numeric ID
-      await apiClient.delete(`/blogs/admin/${row.db_id}`); 
+      // Add /api prefix
+      await api.delete(`/api/blogs/admin/${row.db_id}`); 
       ElMessage.success('博客删除成功');
       await fetchData(); // Refresh list
     } catch (error) {
@@ -666,111 +659,109 @@ const handleSubmit = async () => {
       isSubmitting.value = true;
       try {
          if (isEditMode.value) {
-          // --- EDIT --- 
-          console.log(`Updating blog with DB ID: ${currentEditDbId.value}`);
-
-          // Step 1: Update non-translatable fields + slug via PUT /admin/:id
-          const baseLangData = allLanguageData[DEFAULT_LANG]; // Assume base data is reliable here
+          // --- UPDATE ---
+          console.log(`Updating blog post (DB ID: ${currentEditDbId.value})`);
+          // Step 1: Update non-translatable data using PUT /admin/:id
           const nonTranslatablePayload = {
-             slug: baseLangData.slug, // Send the current slug (may be updated)
-             list_date: baseLangData.listDate,
-             list_image: baseLangData.listImageSrc,
-             // list_source: baseLangData.listSource, // Source might be considered translatable? Check API.
+             // Include fields like slug (maybe?), listDate, listImageSrc, listSource
+             // Make sure these come from the correct place (e.g., blogForm or base data)
+             list_date: blogForm.listDate, // Assumes blogForm holds the latest
+             list_image: blogForm.listImageSrc,
+             list_source: blogForm.listSource,
+             // Note: Slug (blog_id) typically shouldn't be changed in an update
           };
-          console.log("Sending PUT to /admin/:id for non-translatable data:", nonTranslatablePayload);
-          await apiClient.put(`/blogs/admin/${currentEditDbId.value}`, nonTranslatablePayload);
-
+          console.log("Sending PUT to /api/admin/:id for non-translatable data:", nonTranslatablePayload);
+          // Add /api prefix
+          await api.put(`/api/blogs/admin/${currentEditDbId.value}`, nonTranslatablePayload);
+ 
           // Step 2: Update each translation via PUT /admin/:id/translations/:lang
-          const translationPromises = Object.keys(allLanguageData).map(langCode => {
+          const translationUpdatePromises = supportedLanguages.map(lang => {
+            const langCode = lang.code;
             const langData = allLanguageData[langCode];
-            if (!langData) return Promise.resolve(); // Should not happen
-
-            // Prepare payload for the specific language translation
+            if (!langData) { // Should not happen
+              console.warn(`Skipping translation update for ${langCode}: No data available.`);
+              return Promise.resolve();
+            }
+ 
             const translationPayload = {
-              list_title: langData.listTitle,
-              list_description: langData.listDescription,
-              meta_title: langData.metaTitle,
-              meta_description: langData.metaDescription,
-              meta_keywords: langData.metaKeywords,
-              nav_sections: langData.navSections || [], // Ensure array
-              sidebar_data: langData.sidebarData || [], // Ensure array
-              content: langData.content,
-              list_image_alt: langData.listImageAlt,
-              list_source: langData.listSource // Include source in translation PUT
+              // Include all translatable fields from allLanguageData[langCode]
+              list_title: langData.listTitle || '',
+              list_image_alt: langData.listImageAlt || '',
+              list_description: langData.listDescription || '',
+              meta_title: langData.metaTitle || '',
+              meta_description: langData.metaDescription || '',
+              meta_keywords: langData.metaKeywords || '',
+              nav_sections: langData.navSections || [],
+              sidebar_data: langData.sidebarData || [],
+              content: langData.content || ''
             };
-
-            // Only send request if there's meaningful data or if it's the default lang (which might be getting cleared)
-            const hasMeaningfulData = translationPayload.list_title || translationPayload.content || translationPayload.list_image_alt;
-            if (!hasMeaningfulData && langCode !== DEFAULT_LANG) {
-                console.warn(`Skipping PUT for ${langCode} as no meaningful data provided.`);
-                return Promise.resolve();
-            }
-
-            console.log(`Sending PUT to /admin/:id/translations/${langCode}:`, translationPayload);
-            return apiClient.put(`/blogs/admin/${currentEditDbId.value}/translations/${langCode}`, translationPayload);
+ 
+            console.log(`Sending PUT to /api/admin/:id/translations/${langCode}:`, translationPayload);
+            // Add /api prefix
+            return api.put(`/api/blogs/admin/${currentEditDbId.value}/translations/${langCode}`, translationPayload);
           });
-
-          await Promise.all(translationPromises);
-          ElMessage.success('博客更新成功');
-
+ 
+          await Promise.all(translationUpdatePromises);
+          ElMessage.success('博客更新成功 (所有语言)！');
+ 
          } else {
-          // --- CREATE --- 
-          console.log('Creating new blog post via /admin...');
-          // Prepare payload for the single POST request
-          // Assumes backend POST /admin accepts this structure:
-          // { nonTranslatableFields..., translations: { langCode1: { ... }, langCode2: { ... } } }
-          const baseData = allLanguageData[DEFAULT_LANG] || getInitialFormState();
+            // --- CREATE ---
+            console.log('Creating new blog post...');
+            const defaultLangData = allLanguageData[DEFAULT_LANG];
+            if (!defaultLangData) throw new Error('Default language data is missing.');
+
             const createPayload = {
-            // Non-translatable fields from default lang form
-            slug: baseData.slug, 
-            list_date: baseData.listDate,
-            list_image: baseData.listImageSrc,
-            // Translations object
-            translations: {}
-          };
+                slug: blogForm.slug,
+                language_code: DEFAULT_LANG,
+                // Add all fields from defaultLangData AND non-translatable from blogForm
+                list_date: blogForm.listDate,
+                list_source: blogForm.listSource,
+                list_image: blogForm.listImageSrc, // Match backend expectation (list_image vs listImageSrc?)
+                list_title: defaultLangData.listTitle,
+                list_image_alt: defaultLangData.listImageAlt,
+                list_description: defaultLangData.listDescription,
+                meta_title: defaultLangData.metaTitle,
+                meta_description: defaultLangData.metaDescription,
+                meta_keywords: defaultLangData.metaKeywords,
+                nav_sections: defaultLangData.navSections,
+                sidebar_data: defaultLangData.sidebarData,
+                content: defaultLangData.content
+            };
+            console.log("Sending POST payload: ", JSON.stringify(createPayload, null, 2)); 
+            // Add /api prefix
+            const postResponse = await api.post(`/api/blogs/admin`, createPayload);
+            const createdBlogDbId = postResponse.data?.blog?.id; // Expecting numeric DB ID now
+            const createdBlogSlug = postResponse.data?.blog?.slug; // And the slug
 
-          Object.keys(allLanguageData).forEach(langCode => {
-            const langData = allLanguageData[langCode];
-             // Only include translation if it has some essential content
-            const hasMeaningfulData = langData.listTitle || langData.content || langData.listImageAlt;
-            if (langData && hasMeaningfulData) {
-              createPayload.translations[langCode] = {
-                  list_title: langData.listTitle,
-                  list_description: langData.listDescription,
-                  meta_title: langData.metaTitle,
-                  meta_description: langData.metaDescription,
-                  meta_keywords: langData.metaKeywords,
-                  nav_sections: langData.navSections || [],
-                  sidebar_data: langData.sidebarData || [],
-                  content: langData.content,
-                  list_image_alt: langData.listImageAlt,
-                  list_source: langData.listSource
-              };
-            } else {
-                console.warn(`Skipping language ${langCode} in create payload due to missing essential data.`);
+            if (!createdBlogDbId || !createdBlogSlug) {
+                throw new Error('Failed to get created blog DB ID or Slug from create response.');
             }
-          });
+            console.log(`Blog created with DB ID: ${createdBlogDbId}, Slug: ${createdBlogSlug}`);
 
-           // Ensure default language translation exists even if empty, API might require it
-          if (!createPayload.translations[DEFAULT_LANG] && allLanguageData[DEFAULT_LANG]) {
-              createPayload.translations[DEFAULT_LANG] = {
-                  list_title: allLanguageData[DEFAULT_LANG].listTitle || '', // Default empty
-                  list_description: allLanguageData[DEFAULT_LANG].listDescription || '',
-                  meta_title: allLanguageData[DEFAULT_LANG].metaTitle || '',
-                  meta_description: allLanguageData[DEFAULT_LANG].metaDescription || '',
-                  meta_keywords: allLanguageData[DEFAULT_LANG].metaKeywords || '',
-                  nav_sections: allLanguageData[DEFAULT_LANG].navSections || [],
-                  sidebar_data: allLanguageData[DEFAULT_LANG].sidebarData || [],
-                  content: allLanguageData[DEFAULT_LANG].content || '',
-                  list_image_alt: allLanguageData[DEFAULT_LANG].listImageAlt || '',
-                  list_source: allLanguageData[DEFAULT_LANG].listSource || ''
-              };
-              console.warn(`Including empty default language (${DEFAULT_LANG}) translation in create payload.`);
-          }
-         
-          console.log("Sending POST to /admin:", JSON.stringify(createPayload, null, 2)); // Log formatted payload
-          await apiClient.post(`/blogs/admin`, createPayload);
-          ElMessage.success('博客创建成功');
+            // PUT other languages using the NEW DB ID
+            const putPromises = supportedLanguages.filter(l => l.code !== DEFAULT_LANG).map(lang => {
+                const langData = allLanguageData[lang.code];
+                const hasContent = langData && (langData.listTitle || langData.content); // Basic check
+                if (!hasContent) return Promise.resolve();
+
+                const putPayload = {
+                    // Only translatable fields
+                    list_title: langData.listTitle || '',
+                    list_image_alt: langData.listImageAlt || '',
+                    list_description: langData.listDescription || '',
+                    meta_title: langData.metaTitle || '',
+                    meta_description: langData.metaDescription || '',
+                    meta_keywords: langData.metaKeywords || '',
+                    nav_sections: langData.navSections || [],
+                    sidebar_data: langData.sidebarData || [],
+                    content: langData.content || ''
+                };
+                console.log(`Sending PUT for ${lang.code} (create flow) to DB ID ${createdBlogDbId}`, putPayload);
+                // Add /api prefix
+                return api.put(`/api/blogs/admin/${createdBlogDbId}/translations/${lang.code}`, putPayload);
+            });
+            await Promise.all(putPromises);
+            ElMessage.success('博客创建成功！');
          }
 
          closeDialog();
