@@ -230,21 +230,33 @@ const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
 const api = axios.create({ baseURL: baseUrl });
 
 // --- Fetch Dynamic Links Function ---
-const fetchDropdownLinks = async (pageType, targetRef) => {
+const fetchDropdownLinks = async (type) => {
   isLoadingDropdowns.value = true;
-  console.log(`Fetching dropdown links for type: ${pageType}`);
+  console.log(`Fetching dropdown links for type: ${type}`);
   try {
-    const response = await api.get(`/managed-pages`, {
-      params: { 
-        type: pageType,
+    const response = await api.get(`/api/managed-pages`, {
+      params: {
+        type: type,
         lang: locale.value
-      } 
+      }
     });
-    targetRef.value = response.data || [];
-    console.log(`Fetched dropdown links for type ${pageType} (lang: ${locale.value}):`, targetRef.value);
+    if (type === 'drug') {
+      drugLinks.value = response.data || [];
+    } else if (type === 'comparison') {
+      comparisonLinks.value = response.data || [];
+    } else if (type === 'buy-online') {
+      buyOnlineLinks.value = response.data || [];
+    }
+    console.log(`Fetched dropdown links for type ${type} (lang: ${locale.value}):`, response.data);
   } catch (error) {
-    console.error(`Error fetching dropdown links for type ${pageType}:`, error);
-    targetRef.value = [];
+    console.error(`Error fetching dropdown links for type ${type}:`, error);
+    if (type === 'drug') {
+      drugLinks.value = [];
+    } else if (type === 'comparison') {
+      comparisonLinks.value = [];
+    } else if (type === 'buy-online') {
+      buyOnlineLinks.value = [];
+    }
   } finally {
     isLoadingDropdowns.value = false;
   }
@@ -342,9 +354,9 @@ onMounted(async () => {
     isLoadingDropdowns.value = true;
     try {
       await Promise.all([
-        fetchDropdownLinks('drug', drugLinks), 
-        fetchDropdownLinks('comparison', comparisonLinks), 
-        fetchDropdownLinks('buy-online', buyOnlineLinks)
+        fetchDropdownLinks('drug'), 
+        fetchDropdownLinks('comparison'), 
+        fetchDropdownLinks('buy-online')
       ]);
     } finally {
        isLoadingDropdowns.value = false;
@@ -361,9 +373,9 @@ watch(locale, (newLocale, oldLocale) => {
      // Add loading state handling if desired
      isLoadingDropdowns.value = true; // Show loading indicator
      Promise.all([
-       fetchDropdownLinks('drug', drugLinks),
-       fetchDropdownLinks('comparison', comparisonLinks),
-       fetchDropdownLinks('buy-online', buyOnlineLinks)
+       fetchDropdownLinks('drug'),
+       fetchDropdownLinks('comparison'),
+       fetchDropdownLinks('buy-online')
      ]).finally(() => {
          isLoadingDropdowns.value = false; // Hide loading indicator after all fetches complete
      });
