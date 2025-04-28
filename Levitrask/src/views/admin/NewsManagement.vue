@@ -483,6 +483,44 @@ const handleDelete = async (row) => {
   }
 };
 
+// --- 添加日志点 --- 
+console.log('[NewsManagement] Defining saveCurrentLanguageData...');
+// --- Function to save current form data ---
+const saveCurrentLanguageData = () => {
+  console.log('[NewsManagement] saveCurrentLanguageData function executed!'); // <-- 日志点
+  const lang = selectedLanguage.value;
+  if (allLanguageData[lang]) {
+    console.log(`Saving current form data for language: ${lang}`);
+    const currentData = allLanguageData[lang];
+    // Update only translatable fields
+    currentData.listTitle = newsForm.listTitle;
+    currentData.listImageAlt = newsForm.listImageAlt;
+    currentData.listDescription = newsForm.listDescription;
+    currentData.metaTitle = newsForm.metaTitle;
+    currentData.metaDescription = newsForm.metaDescription;
+    currentData.metaKeywords = newsForm.metaKeywords;
+    currentData.content = newsForm.content;
+    // Non-translatable fields are assumed consistent
+  } else {
+    console.warn(`Attempted to save data for language ${lang}, but no entry exists yet.`);
+    // Create the entry if it doesn't exist
+    allLanguageData[lang] = {
+        listTitle: newsForm.listTitle,
+        listImageAlt: newsForm.listImageAlt,
+        listDescription: newsForm.listDescription,
+        metaTitle: newsForm.metaTitle,
+        metaDescription: newsForm.metaDescription,
+        metaKeywords: newsForm.metaKeywords,
+        content: newsForm.content,
+        // Copy non-translatable from the form as well
+        slug: newsForm.slug,
+        listDate: newsForm.listDate,
+        listSource: newsForm.listSource,
+        listImageSrc: newsForm.listImageSrc
+     };
+  }
+};
+
 // --- Submit Handler ---
 const handleSubmit = async () => {
   if (!formRef.value) return;
@@ -494,14 +532,39 @@ const handleSubmit = async () => {
       // Save the current language data before potentially switching
       saveCurrentLanguageData();
 
-      // Prepare payload for the backend - includes ALL language data
+      // --- Prepare payload matching backend expectations --- 
+      const currentLang = selectedLanguage.value;
+      const currentTranslationData = allLanguageData[currentLang] || {};
+
       const payload = {
+        // Non-translatable fields (use camelCase as expected by backend)
         slug: newsForm.slug,
-        list_date: newsForm.listDate, // Non-translatable
-        list_source: newsForm.listSource, // Non-translatable
-        list_image_src: newsForm.listImageSrc, // Non-translatable
-        translations: { ...allLanguageData } // Send all collected language data
+        listDate: newsForm.listDate, 
+        listSource: newsForm.listSource,
+        listImageSrc: newsForm.listImageSrc,
+        // Translatable fields for the *current* language
+        languageCode: currentLang,
+        listTitle: currentTranslationData.listTitle || '', // Add fallback for safety
+        listImageAlt: currentTranslationData.listImageAlt || '',
+        listDescription: currentTranslationData.listDescription || '',
+        metaTitle: currentTranslationData.metaTitle || '',
+        metaDescription: currentTranslationData.metaDescription || '',
+        metaKeywords: currentTranslationData.metaKeywords || '',
+        content: currentTranslationData.content || ''
+        // Removed the nested 'translations' object
       };
+
+      // --- Validation for frontend before sending ---
+      const requiredFields = ['slug', 'languageCode', 'listTitle', 'listImageSrc', 'listImageAlt', 'listDescription', 'metaTitle', 'metaDescription', 'metaKeywords', 'content'];
+      const missingFields = requiredFields.filter(field => !payload[field]);
+
+      if (missingFields.length > 0) {
+          errorMessage.value = `前端验证失败: 缺少字段 ${missingFields.join(', ')}`;
+          ElMessage.error(errorMessage.value);
+          isSubmitting.value = false;
+          return; // Stop submission
+      }
+      // --- End Frontend Validation ---
 
       try {
         let response;

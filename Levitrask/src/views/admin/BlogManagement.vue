@@ -61,7 +61,6 @@
                  v-model="selectedLanguage" 
                  placeholder="选择语言" 
                  style="width: 100%"
-                 @change="switchLanguage" 
                  :disabled="!isEditMode && supportedLanguages.length <= 1"
                >
                  <el-option
@@ -368,7 +367,7 @@ const fetchData = async () => {
   errorMessage.value = '';
   try {
     // Add /api prefix
-    const response = await api.get(`/api/blogs?lang=${DEFAULT_LANG}`); // Fetch default lang for list
+    const response = await api.get(`/api/blogs/admin`); // CORRECTED: Use Admin endpoint
     if (Array.isArray(response.data)) {
         // Adapt response structure if needed (assuming it matches News)
         tableData.value = response.data.map(item => {
@@ -532,75 +531,6 @@ const handleEdit = async (row) => {
   }
 };
 
-// Switch Language in Form (Edit or Create) - NEW Function
-const switchLanguage = (newLangCode) => {
-  if (selectedLanguage.value === newLangCode) return;
-
-  // 1. Save current form state back to storage for the *previous* language
-  if (allLanguageData[selectedLanguage.value]) {
-    const currentData = allLanguageData[selectedLanguage.value];
-    // Save translatable fields
-    currentData.listTitle = blogForm.listTitle;
-    currentData.listImageAlt = blogForm.listImageAlt;
-    currentData.listDescription = blogForm.listDescription;
-    currentData.metaTitle = blogForm.metaTitle;
-    currentData.metaDescription = blogForm.metaDescription;
-    currentData.metaKeywords = blogForm.metaKeywords;
-    currentData.navSections = JSON.parse(JSON.stringify(blogForm.navSections || []));
-    currentData.sidebarData = JSON.parse(JSON.stringify(blogForm.sidebarData || []));
-    currentData.content = blogForm.content;
-     // Also save non-translatable fields (especially important in create mode)
-     currentData.slug = blogForm.slug;
-     currentData.listDate = blogForm.listDate;
-     currentData.listImageSrc = blogForm.listImageSrc;
-     currentData.listSource = blogForm.listSource;
-      console.log(`Saved form data for ${selectedLanguage.value} before switching.`);
-  } else {
-      console.warn(`Attempted to save data for non-existent language key: ${selectedLanguage.value}`);
-  }
-
-  // 2. Load new language data into the form
-  if (allLanguageData[newLangCode]) {
-    const newData = allLanguageData[newLangCode];
-    // Load translatable fields
-    blogForm.listTitle = newData.listTitle;
-    blogForm.listImageAlt = newData.listImageAlt;
-    blogForm.listDescription = newData.listDescription;
-    blogForm.metaTitle = newData.metaTitle;
-    blogForm.metaDescription = newData.metaDescription;
-    blogForm.metaKeywords = newData.metaKeywords;
-    blogForm.navSections = JSON.parse(JSON.stringify(newData.navSections || []));
-    blogForm.sidebarData = JSON.parse(JSON.stringify(newData.sidebarData || []));
-    blogForm.content = newData.content;
-    // Ensure non-translatable fields remain consistent (use base lang's values or current edit ID)
-    const baseData = allLanguageData[DEFAULT_LANG] || {};
-     blogForm.slug = baseData.slug || currentEditSlug.value || '';
-     blogForm.listDate = baseData.listDate || null;
-     blogForm.listImageSrc = baseData.listImageSrc || '';
-     blogForm.listSource = baseData.listSource || '';
-    console.log(`Loaded form data for ${newLangCode}`);
-  } else {
-     // Should not happen if initialized correctly, initialize defensively
-     console.warn(`Data for language ${newLangCode} not found. Initializing.`);
-     const baseData = allLanguageData[DEFAULT_LANG] || getInitialFormState();
-     allLanguageData[newLangCode] = {
-         ...baseData,
-         slug: blogForm.slug,
-         listTitle: '', listImageAlt: '', listDescription: '', metaTitle: '',
-         metaDescription: '', metaKeywords: '', navSections: [], sidebarData: [], content: ''
-     };
-     Object.assign(blogForm, allLanguageData[newLangCode]);
-  }
-
-  // 3. Update selected language state
-  selectedLanguage.value = newLangCode;
-
-  // Clear validation for potentially changed fields
-  nextTick(() => {
-    formRef.value?.clearValidate();
-  });
-};
-
 // Delete Blog Post
 const handleDelete = (row) => {
   // Corrected: Check for numeric db_id instead of slug blog_id
@@ -675,26 +605,42 @@ const handleSubmit = async () => {
           await api.put(`/api/blogs/admin/${currentEditDbId.value}`, nonTranslatablePayload);
  
           // Step 2: Update each translation via PUT /admin/:id/translations/:lang
+          // Reuse the key conversion helper from the CREATE section
+          const camelToSnake = (key) => key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+          const convertKeysToSnake = (obj) => {
+              if (typeof obj !== 'object' || obj === null) return obj;
+              if (Array.isArray(obj)) return obj.map(convertKeysToSnake); // Recursively convert arrays too if needed
+              return Object.keys(obj).reduce((acc, key) => {
+                  const snakeKey = camelToSnake(key);
+                  acc[snakeKey] = convertKeysToSnake(obj[key]); // Recursively convert nested objects
+                  // Special handling: Keep non-translatable keys as camelCase if they slipped in
+                   if (['slug', 'listDate', 'listImageSrc', 'listSource'].includes(key)) {
+                       delete acc[snakeKey];
+                       acc[key] = obj[key];
+                   }
+                  return acc;
+              }, {});
+          };
+
           const translationUpdatePromises = supportedLanguages.map(lang => {
             const langCode = lang.code;
             const langData = allLanguageData[langCode];
-            if (!langData) { // Should not happen
-              console.warn(`Skipping translation update for ${langCode}: No data available.`);
-              return Promise.resolve();
+            
+            // --- ADD CHECK: Skip update if essential data is missing for this language ---
+            // Check for title AND content as they are likely the most critical required fields based on backend error
+            if (!langData || !langData.listTitle || !langData.content || !langData.metaTitle || !langData.metaDescription || !langData.listImageAlt) {
+              console.warn(`Skipping translation update for ${langCode}: Missing required fields (title, content, meta, image alt) in local data.`);
+              return Promise.resolve(); // Resolve immediately, don't send PUT
             }
- 
-            const translationPayload = {
-              // Include all translatable fields from allLanguageData[langCode]
-              list_title: langData.listTitle || '',
-              list_image_alt: langData.listImageAlt || '',
-              list_description: langData.listDescription || '',
-              meta_title: langData.metaTitle || '',
-              meta_description: langData.metaDescription || '',
-              meta_keywords: langData.metaKeywords || '',
-              nav_sections: langData.navSections || [],
-              sidebar_data: langData.sidebarData || [],
-              content: langData.content || ''
-            };
+            // --- END CHECK ---
+
+            // Convert the language data keys to snake_case before sending
+            const translationPayload = convertKeysToSnake(langData);
+            // Remove non-translatable keys that shouldn't be in this payload
+            delete translationPayload.slug;
+            delete translationPayload.list_date;
+            delete translationPayload.list_image_src; // Backend PUT uses list_image, so remove this if present
+            delete translationPayload.list_source;
  
             console.log(`Sending PUT to /api/admin/:id/translations/${langCode}:`, translationPayload);
             // Add /api prefix
@@ -708,59 +654,60 @@ const handleSubmit = async () => {
             // --- CREATE ---
             console.log('Creating new blog post...');
             const defaultLangData = allLanguageData[DEFAULT_LANG];
+            // --- 添加调试日志 --- 
+            console.log('--- DEBUG: Data for default language BEFORE payload creation ---');
+            console.log(JSON.stringify(defaultLangData, null, 2));
+            // --- 结束调试日志 ---
             if (!defaultLangData) throw new Error('Default language data is missing.');
+
+            // --- CORRECTED Payload Structure for CREATE ---
+            // Helper function to convert camelCase keys to snake_case
+            const camelToSnake = (key) => key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+            const convertKeysToSnake = (obj) => {
+                if (typeof obj !== 'object' || obj === null) return obj;
+                if (Array.isArray(obj)) return obj.map(convertKeysToSnake); // Recursively convert arrays too if needed
+                
+                return Object.keys(obj).reduce((acc, key) => {
+                    const snakeKey = camelToSnake(key);
+                    acc[snakeKey] = convertKeysToSnake(obj[key]); // Recursively convert nested objects
+                    // Handle specific known non-translatable keys within translation object if they exist
+                    // (adjust based on actual allLanguageData structure)
+                    if (['slug', 'listDate', 'listImageSrc', 'listSource'].includes(key)) {
+                        delete acc[snakeKey]; // Remove snake_case version if it was a non-translatable camelCase key
+                        acc[key] = obj[key];    // Keep the original camelCase non-translatable key
+                    }
+                    return acc;
+                }, {});
+            };
+
+            // Convert keys in allLanguageData to snake_case for the translations part
+            const snakeCaseTranslations = Object.keys(allLanguageData).reduce((acc, langCode) => {
+                acc[langCode] = convertKeysToSnake(allLanguageData[langCode]);
+                return acc;
+            }, {});
 
             const createPayload = {
                 slug: blogForm.slug,
-                language_code: DEFAULT_LANG,
-                // Add all fields from defaultLangData AND non-translatable from blogForm
                 list_date: blogForm.listDate,
-                list_source: blogForm.listSource,
-                list_image: blogForm.listImageSrc, // Match backend expectation (list_image vs listImageSrc?)
-                list_title: defaultLangData.listTitle,
-                list_image_alt: defaultLangData.listImageAlt,
-                list_description: defaultLangData.listDescription,
-                meta_title: defaultLangData.metaTitle,
-                meta_description: defaultLangData.metaDescription,
-                meta_keywords: defaultLangData.metaKeywords,
-                nav_sections: defaultLangData.navSections,
-                sidebar_data: defaultLangData.sidebarData,
-                content: defaultLangData.content
+                list_image: blogForm.listImageSrc, // Use list_image as expected by backend
+                translations: snakeCaseTranslations // Send the converted translations object
             };
+            // --- End Corrected Payload ---
+            
             console.log("Sending POST payload: ", JSON.stringify(createPayload, null, 2)); 
             // Add /api prefix
+            // Make sure the endpoint is correct (should it be /api/blogs or /api/blogs/admin?)
+            // Based on error, it seems to be /api/blogs/admin
             const postResponse = await api.post(`/api/blogs/admin`, createPayload);
-            const createdBlogDbId = postResponse.data?.blog?.id; // Expecting numeric DB ID now
-            const createdBlogSlug = postResponse.data?.blog?.slug; // And the slug
+            const createdBlogDbId = postResponse.data?.data?.id; // Adjust based on actual backend response structure
+            const createdBlogSlug = postResponse.data?.data?.slug; // Adjust based on actual backend response structure
 
-            if (!createdBlogDbId || !createdBlogSlug) {
-                throw new Error('Failed to get created blog DB ID or Slug from create response.');
-            }
-            console.log(`Blog created with DB ID: ${createdBlogDbId}, Slug: ${createdBlogSlug}`);
+            // --- REMOVED unnecessary PUT calls for other languages during CREATE ---
+            // The backend POST /admin now handles inserting all provided translations
+            // const putPromises = supportedLanguages.filter(l => l.code !== DEFAULT_LANG).map(lang => { ... });
+            // await Promise.all(putPromises);
+            // --- End Removal ---
 
-            // PUT other languages using the NEW DB ID
-            const putPromises = supportedLanguages.filter(l => l.code !== DEFAULT_LANG).map(lang => {
-                const langData = allLanguageData[lang.code];
-                const hasContent = langData && (langData.listTitle || langData.content); // Basic check
-                if (!hasContent) return Promise.resolve();
-
-                const putPayload = {
-                    // Only translatable fields
-                    list_title: langData.listTitle || '',
-                    list_image_alt: langData.listImageAlt || '',
-                    list_description: langData.listDescription || '',
-                    meta_title: langData.metaTitle || '',
-                    meta_description: langData.metaDescription || '',
-                    meta_keywords: langData.metaKeywords || '',
-                    nav_sections: langData.navSections || [],
-                    sidebar_data: langData.sidebarData || [],
-                    content: langData.content || ''
-                };
-                console.log(`Sending PUT for ${lang.code} (create flow) to DB ID ${createdBlogDbId}`, putPayload);
-                // Add /api prefix
-                return api.put(`/api/blogs/admin/${createdBlogDbId}/translations/${lang.code}`, putPayload);
-            });
-            await Promise.all(putPromises);
             ElMessage.success('博客创建成功！');
          }
 
@@ -850,6 +797,80 @@ const removeSidebarBlock = (index) => {
 // --- Lifecycle Hooks ---
 onMounted(() => {
   fetchData(); // Fetch initial table data
+});
+
+// --- Watcher for Language Change ---
+watch(selectedLanguage, (newLangCode, oldLangCode) => {
+  console.log(`Language changed via watcher: from "${oldLangCode}" to "${newLangCode}"`);
+
+  // Guard against initial undefined old value or no actual change
+  if (oldLangCode === undefined || newLangCode === oldLangCode) {
+      console.log('Watcher triggered for initial value or no change, skipping logic.');
+    return;
+  }
+
+  // 1. Save current form state back to storage for the *previous* language (oldLangCode)
+  if (allLanguageData[oldLangCode]) {
+    const currentData = allLanguageData[oldLangCode];
+    // Save translatable fields
+    currentData.listTitle = blogForm.listTitle;
+    currentData.listImageAlt = blogForm.listImageAlt;
+    currentData.listDescription = blogForm.listDescription;
+    currentData.metaTitle = blogForm.metaTitle;
+    currentData.metaDescription = blogForm.metaDescription;
+    currentData.metaKeywords = blogForm.metaKeywords;
+    currentData.navSections = JSON.parse(JSON.stringify(blogForm.navSections || []));
+    currentData.sidebarData = JSON.parse(JSON.stringify(blogForm.sidebarData || []));
+    currentData.content = blogForm.content;
+    // Also save non-translatable fields (especially important in create mode)
+    currentData.slug = blogForm.slug;
+    currentData.listDate = blogForm.listDate;
+    currentData.listImageSrc = blogForm.listImageSrc;
+    currentData.listSource = blogForm.listSource;
+    console.log(`Saved form data for ${oldLangCode} via watcher.`);
+  } else {
+    console.warn(`Attempted to save data via watcher for non-existent language key: ${oldLangCode}`);
+  }
+
+  // 2. Load new language data (newLangCode) into the form
+  console.log(`--- Loading data for language: ${newLangCode} via watcher ---`);
+  console.log('Data found in allLanguageData:', JSON.stringify(allLanguageData[newLangCode], null, 2));
+  if (allLanguageData[newLangCode]) {
+    const newData = allLanguageData[newLangCode];
+    // Load translatable fields
+    blogForm.listTitle = newData.listTitle;
+    blogForm.listImageAlt = newData.listImageAlt;
+    blogForm.listDescription = newData.listDescription;
+    blogForm.metaTitle = newData.metaTitle;
+    blogForm.metaDescription = newData.metaDescription;
+    blogForm.metaKeywords = newData.metaKeywords;
+    blogForm.navSections = JSON.parse(JSON.stringify(newData.navSections || []));
+    blogForm.sidebarData = JSON.parse(JSON.stringify(newData.sidebarData || []));
+    blogForm.content = newData.content;
+    // Ensure non-translatable fields remain consistent (use base lang's values or current edit ID)
+    const baseData = allLanguageData[DEFAULT_LANG] || {};
+    blogForm.slug = baseData.slug || currentEditSlug.value || '';
+    blogForm.listDate = baseData.listDate || null;
+    blogForm.listImageSrc = baseData.listImageSrc || '';
+    blogForm.listSource = baseData.listSource || '';
+    console.log(`Loaded form data for ${newLangCode} via watcher.`);
+    console.log('blogForm state AFTER loading new language data via watcher:', JSON.stringify(blogForm, null, 2));
+  } else {
+    console.warn(`Data for language ${newLangCode} not found in watcher. Initializing.`);
+    const baseData = allLanguageData[DEFAULT_LANG] || getInitialFormState();
+    allLanguageData[newLangCode] = {
+        ...baseData,
+        slug: blogForm.slug, // Use current slug from form
+        listTitle: '', listImageAlt: '', listDescription: '', metaTitle: '',
+        metaDescription: '', metaKeywords: '', navSections: [], sidebarData: [], content: ''
+    };
+    Object.assign(blogForm, allLanguageData[newLangCode]);
+  }
+
+  // 3. Clear validation messages (selectedLanguage.value is already updated by v-model)
+  nextTick(() => {
+    formRef.value?.clearValidate();
+  });
 });
 
 </script>

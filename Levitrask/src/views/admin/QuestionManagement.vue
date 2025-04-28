@@ -276,11 +276,26 @@ const fetchQuestions = async () => {
   isLoading.value = true;
   errorMessage.value = '';
   try {
-    // Add /api prefix and correct path
-    const response = await apiClient.get(`/api/admin/questions?lang=${DEFAULT_LANG}`);
-    tableData.value = response.data || [];
-    console.log('Fetched questions for admin list:', tableData.value);
-
+    // Use the admin endpoint to get the full list
+    const response = await apiClient.get('/api/admin/questions');
+    // Map the response data to include db_id
+    if (Array.isArray(response.data)) {
+        tableData.value = response.data.map(item => {
+            const defaultTranslation = item.translations?.find(t => t.language_code === DEFAULT_LANG) || {};
+             return {
+                db_id: item.id, // <-- Map backend 'id' to frontend 'db_id'
+                id: item.id, // Keep original id if needed elsewhere
+                question_id: item.question_id,
+                // Extract default language title for display in the table
+                listTitle: defaultTranslation.list_title || `[No Title - ${item.question_id}]`,
+                // Include other fields if needed by the table or edit/delete
+                // fullData: item // Optional: Store the full original item
+            };
+        });
+    } else {
+        console.warn('Unexpected response format for questions list:', response.data);
+        tableData.value = [];
+    }
   } catch (error) {
     console.error('Error fetching questions:', error);
     errorMessage.value = '加载问题列表失败。 ' + (error.response?.data?.message || error.message);
@@ -299,11 +314,24 @@ const fetchQuestionDetails = async (dbId) => {
     const response = await apiClient.get(`/api/admin/questions/${dbId}`);
     const questionData = response.data;
     console.log(`Fetched details:`, questionData);
+    // --- 添加日志 1: 打印完整后端响应 ---
+    console.log('--- DEBUG: Raw questionData from API ---');
+    console.log(JSON.stringify(questionData, null, 2));
+    // --- 结束日志 1 ---
 
     // Reset form to initial state first to clear previous data
     resetForm();
-    isEditMode.value = true;
-    currentEditDbId.value = dbId; // Store numeric ID
+    isEditMode.value = true; // Set edit mode AFTER resetForm but before loading
+    currentEditDbId.value = dbId;
+
+    // --- 强制重新初始化 translations 对象 --- 
+    questionForm.translations = {}; // 清空旧引用
+    supportedLanguages.value.forEach(lang => {
+        questionForm.translations[lang.code] = getInitialTranslationState(lang.code);
+    });
+    console.log('--- DEBUG: questionForm.translations after explicit re-initialization ---');
+    console.log(JSON.stringify(questionForm.translations, null, 2));
+    // --- 结束强制初始化 ---
 
     // Populate non-translatable fields
     questionForm.id = questionData.id;
@@ -315,6 +343,12 @@ const fetchQuestionDetails = async (dbId) => {
     // Populate translations
     supportedLanguages.value.forEach(lang => {
       const translation = questionData.translations?.find(t => t.language_code === lang.code);
+      // --- 添加日志 2: 打印找到的翻译对象 (针对默认语言) ---
+      if (lang.code === DEFAULT_LANG) {
+          console.log(`--- DEBUG: Found translation object for default lang (${DEFAULT_LANG}) ---`);
+          console.log(JSON.stringify(translation, null, 2));
+      }
+      // --- 结束日志 2 ---
       if (translation) {
         // Ensure nested structures exist before assigning
         questionForm.translations[lang.code] = {
@@ -335,6 +369,11 @@ const fetchQuestionDetails = async (dbId) => {
         console.warn(`No translation found for ${lang.code}, initialized.`);
       }
     });
+
+    // --- 添加日志 3: 打印填充后的默认语言表单状态 ---
+    console.log(`--- DEBUG: questionForm.translations[${DEFAULT_LANG}] AFTER population ---`);
+    console.log(JSON.stringify(questionForm.translations[DEFAULT_LANG], null, 2));
+    // --- 结束日志 3 ---
 
     activeLangTab.value = DEFAULT_LANG; // Reset tab to default
     isDialogVisible.value = true;
@@ -568,8 +607,20 @@ const handleSubmit = async () => {
 };
 
 const resetForm = () => {
-    // Reset reactive form state
-    Object.assign(questionForm, getInitialFormState());
+    // Reset reactive form state more thoroughly
+    const initialState = getInitialFormState();
+    questionForm.id = initialState.id;
+    questionForm.question_id = initialState.question_id;
+    // Explicitly reset the translations object and its nested arrays
+    questionForm.translations = {}; // Create a new object reference
+    supportedLanguages.value.forEach(lang => {
+        questionForm.translations[lang.code] = {
+            ...getInitialTranslationState(lang.code), // Get defaults
+            navSections: [], // Ensure arrays are reset
+            sidebarData: []  // Ensure arrays are reset
+        };
+    });
+
     // Reset specific edit mode states
     isEditMode.value = false;
     currentEditDbId.value = null;
