@@ -274,7 +274,7 @@ const blockForm = reactive({
 const formRules = reactive({
   block_id: [
     { required: true, message: '区块 ID 不能为空', trigger: 'blur' },
-    { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'ID 只能包含小写字母、数字和连字符', trigger: 'blur' }
+    { pattern: /^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/, message: 'ID 只能包含字母、数字和连字符', trigger: 'blur' }
   ],
   // Translation rules will be applied per tab
 });
@@ -470,13 +470,15 @@ const handleEditBlock = (block) => {
 };
 
 const handleDeleteBlock = async (row) => {
+  console.log("[Debug Delete] handleDeleteBlock called with row:", JSON.stringify(row)); // 添加日志
   try {
     await ElMessageBox.confirm(
-      `确定要删除区块 "${row.nav_title}" (ID: ${row.block_id}) 吗？`,
+      `确定要删除区块 "${row.nav_title || row.block_id}" (DB ID: ${row.id}) 吗？`, // Use block_id as fallback for title
       '确认删除',
       { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' }
     );
     try {
+      console.log(`[Debug Delete] Calling API to delete ID: ${row.id}`); // 添加日志
       // Add /api prefix
       await api.delete(`/api/admin/homepage/homepage-blocks/${row.id}`);
       ElMessage.success('区块删除成功！');
@@ -488,6 +490,8 @@ const handleDeleteBlock = async (row) => {
   } catch (e) {
     if (e !== 'cancel') {
        console.error("Delete confirmation error:", e);
+    } else {
+       ElMessage.info('删除已取消'); // Inform user about cancellation
     }
   }
 };

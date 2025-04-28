@@ -111,9 +111,10 @@ adminQuestionsRouter.post('/', authenticateAdmin, async (req, res) => {
     // Example: const { question_id, category, is_active, translations } = req.body;
     console.log(`[API Admin Questions] POST / - Creating new question. ID: ${question_id}`);
 
-    // --- Validation ---
-    if (!question_id || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(question_id)) {
-        return res.status(400).json({ message: 'Valid Question ID (slug) is required.' });
+    // --- 1. Validate Input --- 
+    // Validate question_id format (ALLOWS UPPERCASE)
+    if (!question_id || !/^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/.test(question_id.trim())) {
+      return res.status(400).json({ message: 'Valid Question ID (slug) format required (letters, numbers, hyphens).' });
     }
     if (!Array.isArray(translations) || translations.length === 0) {
         return res.status(400).json({ message: 'At least one translation is required.' });
@@ -226,8 +227,10 @@ adminQuestionsRouter.put('/:id(\\d+)', authenticateAdmin, async (req, res) => {
     if (isNaN(mainDbId)) {
         return res.status(400).json({ message: 'Invalid DB ID format.' });
     }
-    // Validate question_id if it's being updated
-    if (question_id && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(question_id)) {
+    // Validate incoming data
+    // Validate question_id format if it's being updated (ALLOWS UPPERCASE)
+    // Note: Usually, slugs are not updated after creation. Consider if this validation is needed.
+    if (question_id !== undefined && question_id !== null && !/^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/.test(question_id.trim())) {
         return res.status(400).json({ message: 'Valid Question ID (slug) format required if provided.' });
     }
     // Validate other fields if necessary

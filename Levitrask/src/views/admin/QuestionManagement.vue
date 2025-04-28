@@ -109,10 +109,8 @@
                      </el-form-item>
                 <el-form-item 
                   :label="`区块 ${index + 1} 内容 (HTML)`" 
-                  :prop="`translations.${lang.code}.sidebarData.${index}.content`" 
-                  :rules="formRules.sidebarBlockContent"
                 >
-                  <el-input type="textarea" v-model="block.content" :rows="5" placeholder="输入侧边栏区块的 HTML 内容" />
+                  <el-input type="textarea" v-model="block.content" :rows="5" placeholder="输入侧边栏区块的 HTML 内容 (当前绑定可能不正确)" />
                      </el-form-item>
                      <div class="dynamic-list-actions">
                   <el-button type="danger" @click="removeSidebarBlock(index)" :icon="Delete" circle />
@@ -251,7 +249,7 @@ const activeLangTab = ref(DEFAULT_LANG);
 const formRules = reactive({
   question_id: [
       { required: true, message: '请输入 URL Slug (路径)', trigger: 'blur' },
-      { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Slug 只能包含小写字母、数字和连字符 (-)', trigger: 'blur' }
+      { pattern: /^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$/, message: 'Slug 只能包含字母、数字和连字符 (-)', trigger: 'blur' }
   ],
   // Use a function for dynamic validation message based on active tab? Or apply required only to default lang.
   defaultListTitle: [{ required: true, message: `请输入 ${DEFAULT_LANG} 列表标题`, trigger: 'blur' }],
@@ -308,24 +306,33 @@ const fetchQuestionDetails = async (dbId) => {
   isLoadingDetails.value = true;
   try {
     console.log(`Fetching details for question DB ID: ${dbId}`);
-    // **ASSUMPTION:** Backend provides GET /admin/questions/:id endpoint
-    // This endpoint should return the main data + ALL translations, similar to the list endpoint but for one item.
-    // Add /api prefix and correct path
+    
+    // --- Add Log: Before Reset ---
+    console.log('[Debug Edit] Before resetForm, questionForm state:', JSON.stringify(questionForm, null, 2));
+    // --- End Log ---
+
+    // Reset form to initial state first to clear previous data
+    resetForm(); // This now includes logs inside it
+
+    // --- Add Log: After Reset ---
+    console.log('[Debug Edit] After resetForm, questionForm state:', JSON.stringify(questionForm, null, 2));
+    // --- End Log ---
+
+    isEditMode.value = true; // Set edit mode AFTER resetForm but before loading
+    currentEditDbId.value = dbId;
+
+    // Fetch data (assuming API endpoint exists)
     const response = await apiClient.get(`/api/admin/questions/${dbId}`);
     const questionData = response.data;
-    console.log(`Fetched details:`, questionData);
+    console.log(`[Debug Edit] Fetched details:`, questionData);
     // --- 添加日志 1: 打印完整后端响应 ---
     console.log('--- DEBUG: Raw questionData from API ---');
     console.log(JSON.stringify(questionData, null, 2));
     // --- 结束日志 1 ---
 
-    // Reset form to initial state first to clear previous data
-    resetForm();
-    isEditMode.value = true; // Set edit mode AFTER resetForm but before loading
-    currentEditDbId.value = dbId;
-
     // --- 强制重新初始化 translations 对象 --- 
-    questionForm.translations = {}; // 清空旧引用
+    // This might be redundant if resetForm works correctly, but keep for now
+    questionForm.translations = {}; 
     supportedLanguages.value.forEach(lang => {
         questionForm.translations[lang.code] = getInitialTranslationState(lang.code);
     });
@@ -336,9 +343,6 @@ const fetchQuestionDetails = async (dbId) => {
     // Populate non-translatable fields
     questionForm.id = questionData.id;
     questionForm.question_id = questionData.question_id;
-    // Populate other non-translatable fields from questionData if they exist in the form state
-    // questionForm.category = questionData.category;
-    // questionForm.is_active = questionData.is_active;
 
     // Populate translations
     supportedLanguages.value.forEach(lang => {
@@ -350,30 +354,25 @@ const fetchQuestionDetails = async (dbId) => {
       }
       // --- 结束日志 2 ---
       if (translation) {
-        // Ensure nested structures exist before assigning
         questionForm.translations[lang.code] = {
-          ...getInitialTranslationState(lang.code), // Start with defaults
-          // Assign basic fields directly from translation object
+          ...getInitialTranslationState(lang.code),
           list_title: translation.list_title || '',
           meta_title: translation.meta_title || '',
           meta_description: translation.meta_description || '',
           meta_keywords: translation.meta_keywords || '',
           content: translation.content || '',
-          // CHANGE: Access snake_case from API response for JSON fields
           navSections: cloneDeep(translation.nav_sections || []),
-          sidebarData: cloneDeep(translation.sidebar_data || []) // Expecting array, default to []
+          sidebarData: cloneDeep(translation.sidebar_data || []) 
         };
       } else {
-        // If a translation for a supported language is missing, initialize it
         questionForm.translations[lang.code] = getInitialTranslationState(lang.code);
         console.warn(`No translation found for ${lang.code}, initialized.`);
       }
     });
 
-    // --- 添加日志 3: 打印填充后的默认语言表单状态 ---
-    console.log(`--- DEBUG: questionForm.translations[${DEFAULT_LANG}] AFTER population ---`);
-    console.log(JSON.stringify(questionForm.translations[DEFAULT_LANG], null, 2));
-    // --- 结束日志 3 ---
+    // --- Add Log: After Population, Before Dialog Opens ---
+    console.log('[Debug Edit] After population, before dialog open, questionForm state:', JSON.stringify(questionForm, null, 2));
+    // --- End Log ---
 
     activeLangTab.value = DEFAULT_LANG; // Reset tab to default
     isDialogVisible.value = true;
@@ -400,32 +399,33 @@ const updateQuestion = async (dbId, formState) => {
   console.log(`Updating question DB ID: ${dbId}`);
   let updatedData = null;
 
-  // 1. Update non-translatable fields (IF NEEDED - slug is disabled in edit mode usually)
-  // Only include fields that are actually part of the main table and potentially changed
+  // 1. Prepare non-translatable payload (only include fields meant to be updated)
   const nonTranslatablePayload = {
-     question_id: formState.question_id, // Slug is usually fixed after creation
-     // Add other non-translatable fields if they exist and are editable
+     // REMOVE question_id: formState.question_id, 
+     // Add other non-translatable fields here IF they exist AND are meant to be editable in the form
+     // Example (if you had category field):
      // category: formState.category,
-     // is_active: formState.is_active,
   };
-  // Check if non-translatable fields actually need updating (optional, depends on backend robustness)
-  // For now, let's assume we *might* update the main table (e.g., if slug *was* editable)
-  // If slug is ALWAYS disabled in edit, this PUT might be skippable unless other fields exist.
-  try {
-     console.log('Updating non-translatable fields:', nonTranslatablePayload);
-     // Use PUT /:id for non-translatable updates
-     const mainUpdateResponse = await apiClient.put(`/api/admin/questions/${dbId}`, nonTranslatablePayload);
-     updatedData = mainUpdateResponse.data; // Get potentially updated base data
-     console.log('Non-translatable fields updated successfully.');
-  } catch (error) {
-      console.error('Error updating non-translatable fields:', error);
-      // If slug conflict (409) or other error, re-throw to stop the process
-       if (error.response && error.response.status === 409) {
-          throw new Error(`Slug "${nonTranslatablePayload.question_id}" already exists.`);
-       }
-       throw new Error('Failed to update base question details.');
+  
+  // Only make the PUT request to update non-translatable fields if the payload is not empty
+  if (Object.keys(nonTranslatablePayload).length > 0) { 
+    try {
+       console.log('Updating non-translatable fields:', nonTranslatablePayload);
+       const mainUpdateResponse = await apiClient.put(`/api/admin/questions/${dbId}`, nonTranslatablePayload);
+       updatedData = mainUpdateResponse.data; 
+       console.log('Non-translatable fields updated successfully.');
+    } catch (error) {
+        console.error('Error updating non-translatable fields:', error);
+        // Handle specific errors like 409 conflict if necessary, otherwise rethrow generic
+         if (error.response && error.response.status === 409) {
+            // Example: Handle potential unique constraint violation if a modifiable field has one
+            throw new Error(`Update failed due to a conflict (e.g., unique constraint).`);
+         }
+         throw new Error('Failed to update base question details.');
+    }
+  } else {
+    console.log("No non-translatable fields to update, skipping main PUT request.");
   }
-
 
   // 2. Update translations for each language
   const translationPromises = supportedLanguages.value.map(lang => {
@@ -607,31 +607,27 @@ const handleSubmit = async () => {
 };
 
 const resetForm = () => {
-    // Reset reactive form state more thoroughly
+    console.log('[Debug Reset] Entering resetForm...');
     const initialState = getInitialFormState();
-    questionForm.id = initialState.id;
-    questionForm.question_id = initialState.question_id;
-    // Explicitly reset the translations object and its nested arrays
-    questionForm.translations = {}; // Create a new object reference
-    supportedLanguages.value.forEach(lang => {
-        questionForm.translations[lang.code] = {
-            ...getInitialTranslationState(lang.code), // Get defaults
-            navSections: [], // Ensure arrays are reset
-            sidebarData: []  // Ensure arrays are reset
-        };
-    });
+    // Use Object.assign to completely replace the content of the reactive object
+    Object.assign(questionForm, initialState);
+    console.log('[Debug Reset] After Object.assign with initial state, questionForm:', JSON.stringify(questionForm, null, 2)); // Log after replacing
 
     // Reset specific edit mode states
     isEditMode.value = false;
     currentEditDbId.value = null;
     activeLangTab.value = DEFAULT_LANG;
-    // Reset validation state
+    
+    // Reset validation state in nextTick
     nextTick(() => {
         if (formRef.value) {
             formRef.value.clearValidate();
-            formRef.value.resetFields(); // May reset based on initial props, use Object.assign for safety
+            // Restore resetFields() call
+            formRef.value.resetFields(); 
+            console.log('[Debug Reset] Validation cleared and fields reset in nextTick.');
         }
     });
+    console.log('[Debug Reset] Exiting resetForm.');
 };
 
 const closeDialog = () => {
