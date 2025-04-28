@@ -15,88 +15,88 @@
 
       <!-- 常规导航 (桌面端显示) -->
       <nav class="main-nav desktop-nav">
-        <!-- 使用 v-if 检查 i18n 是否准备好 -->
         <template v-if="$i18n.availableLocales.length > 0">
-          <!-- Levitra 链接 -->
-          <router-link :to="{ name: 'home', params: { lang: locale.value } }">{{ $t('navigation.home') }}</router-link>
+          <!-- Add wrapper div with key -->
+          <div :key="locale.value" class="nav-content-wrapper">
+            <router-link :to="{ name: 'home', params: { lang: locale.value } }">{{ $t('navigation.home') }}</router-link>
 
-          <!-- 第一个下拉菜单：Drugs in this Class (DYNAMIC) -->
-          <div class="nav-item dropdown-container" @mouseenter="isBlogDropdownOpen = true" @mouseleave="isBlogDropdownOpen = false">
-            <a class="dropdown-trigger" :class="{ 'active-dropdown': isDrugActive }">{{ $t('navigation.dropdownDrugs') }} <span class="arrow" :class="{ rotated: isBlogDropdownOpen }">▼</span></a>
-            <transition name="fade">
-              <div class="dropdown-menu" v-show="isBlogDropdownOpen">
-                <!-- Dynamic links using v-for -->
-                <router-link
-                  v-for="page in drugLinks"
-                  :key="page.page_identifier"
-                  :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
-                  class="dropdown-item">
-                  {{ page.list_title }}
-                </router-link>
-                <!-- Show message if no links are loaded -->
-                <span v-if="!isLoadingDropdowns && drugLinks.length === 0" class="dropdown-item disabled">No pages found</span>
-                <span v-if="isLoadingDropdowns" class="dropdown-item disabled">Loading...</span>
-              </div>
-            </transition>
+            <!-- 第一个下拉菜单：Drugs in this Class (DYNAMIC) -->
+            <div class="nav-item dropdown-container" @mouseenter="isBlogDropdownOpen = true" @mouseleave="isBlogDropdownOpen = false">
+              <a class="dropdown-trigger" :class="{ 'active-dropdown': isDrugActive }">{{ $t('navigation.dropdownDrugs') }} <span class="arrow" :class="{ rotated: isBlogDropdownOpen }">▼</span></a>
+              <transition name="fade">
+                <div class="dropdown-menu" v-show="isBlogDropdownOpen">
+                  <!-- Dynamic links using v-for -->
+                  <router-link
+                    v-for="page in drugLinks"
+                    :key="page.page_identifier"
+                    :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                    class="dropdown-item">
+                    {{ page.list_title }}
+                  </router-link>
+                  <!-- Show message if no links are loaded -->
+                  <span v-if="!isLoadingDropdowns && drugLinks.length === 0" class="dropdown-item disabled">No pages found</span>
+                  <span v-if="isLoadingDropdowns" class="dropdown-item disabled">Loading...</span>
+                </div>
+              </transition>
+            </div>
+
+            <!-- 第二个下拉菜单：药物比较 (DYNAMIC) -->
+            <div class="nav-item dropdown-container" @mouseenter="isComparisonDropdownOpen = true" @mouseleave="isComparisonDropdownOpen = false">
+              <a class="dropdown-trigger" :class="{ 'active-dropdown': isComparisonActive }">{{ $t('navigation.dropdownCompare') }} <span class="arrow" :class="{ rotated: isComparisonDropdownOpen }">▼</span></a>
+              <transition name="fade">
+                <div class="dropdown-menu" v-show="isComparisonDropdownOpen">
+                  <!-- Dynamic links -->
+                  <router-link
+                    v-for="page in comparisonLinks"
+                    :key="page.page_identifier"
+                    :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                    class="dropdown-item">
+                    {{ page.list_title }}
+                  </router-link>
+                  <span v-if="!isLoadingDropdowns && comparisonLinks.length === 0" class="dropdown-item disabled">No pages found</span>
+                  <span v-if="isLoadingDropdowns" class="dropdown-item disabled">Loading...</span>
+                </div>
+              </transition>
+            </div>
+
+            <!-- 其他常规链接 (使用翻译) -->
+            <router-link :to="{ name: 'news', params: { lang: locale.value } }">{{ $t('navigation.news') }}</router-link>
+            <router-link :to="{ name: 'blog', params: { lang: locale.value } }">{{ $t('navigation.blog') }}</router-link>
+
+            <!-- Online Dropdown (DYNAMIC) -->
+            <div class="nav-item dropdown-container" @mouseenter="isOnlineDropdownOpen = true" @mouseleave="isOnlineDropdownOpen = false">
+              <a class="dropdown-trigger" :class="{ 'active-dropdown': isOnlineActive }">{{ $t('navigation.dropdownOnline') }} <span class="arrow" :class="{ rotated: isOnlineDropdownOpen }">▼</span></a>
+              <transition name="fade">
+                <div class="dropdown-menu" v-show="isOnlineDropdownOpen">
+                  <!-- Dynamic links -->
+                   <router-link
+                     v-for="page in buyOnlineLinks"
+                     :key="page.page_identifier"
+                     :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                     class="dropdown-item">
+                     {{ page.list_title }}
+                   </router-link>
+                   <span v-if="!isLoadingDropdowns && buyOnlineLinks.length === 0" class="dropdown-item disabled">No pages found</span>
+                   <span v-if="isLoadingDropdowns" class="dropdown-item disabled">Loading...</span>
+                </div>
+              </transition>
+            </div>
+
+            <!-- 语言切换下拉菜单 -->
+            <el-dropdown trigger="click" @command="changeLanguage" class="language-dropdown">
+               <span class="el-dropdown-link">
+                  {{ currentLanguageName }} <el-icon class="el-icon--right"><arrow-down /></el-icon>
+               </span>
+               <template #dropdown>
+                 <el-dropdown-menu>
+                   <el-dropdown-item v-for="lang in availableLanguages" :key="lang.code" :command="lang.code" :disabled="locale === lang.code">
+                      {{ lang.name }}
+                   </el-dropdown-item>
+                 </el-dropdown-menu>
+               </template>
+             </el-dropdown>
           </div>
-
-          <!-- 第二个下拉菜单：药物比较 (DYNAMIC) -->
-          <div class="nav-item dropdown-container" @mouseenter="isComparisonDropdownOpen = true" @mouseleave="isComparisonDropdownOpen = false">
-            <a class="dropdown-trigger" :class="{ 'active-dropdown': isComparisonActive }">{{ $t('navigation.dropdownCompare') }} <span class="arrow" :class="{ rotated: isComparisonDropdownOpen }">▼</span></a>
-            <transition name="fade">
-              <div class="dropdown-menu" v-show="isComparisonDropdownOpen">
-                <!-- Dynamic links -->
-                <router-link
-                  v-for="page in comparisonLinks"
-                  :key="page.page_identifier"
-                  :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
-                  class="dropdown-item">
-                  {{ page.list_title }}
-                </router-link>
-                <span v-if="!isLoadingDropdowns && comparisonLinks.length === 0" class="dropdown-item disabled">No pages found</span>
-                <span v-if="isLoadingDropdowns" class="dropdown-item disabled">Loading...</span>
-              </div>
-            </transition>
-          </div>
-
-          <!-- 其他常规链接 (使用翻译) -->
-          <router-link :to="{ name: 'news', params: { lang: locale.value } }">{{ $t('navigation.news') }}</router-link>
-          <router-link :to="{ name: 'blog', params: { lang: locale.value } }">{{ $t('navigation.blog') }}</router-link>
-
-          <!-- Online Dropdown (DYNAMIC) -->
-          <div class="nav-item dropdown-container" @mouseenter="isOnlineDropdownOpen = true" @mouseleave="isOnlineDropdownOpen = false">
-            <a class="dropdown-trigger" :class="{ 'active-dropdown': isOnlineActive }">{{ $t('navigation.dropdownOnline') }} <span class="arrow" :class="{ rotated: isOnlineDropdownOpen }">▼</span></a>
-            <transition name="fade">
-              <div class="dropdown-menu" v-show="isOnlineDropdownOpen">
-                <!-- Dynamic links -->
-                 <router-link
-                   v-for="page in buyOnlineLinks"
-                   :key="page.page_identifier"
-                   :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
-                   class="dropdown-item">
-                   {{ page.list_title }}
-                 </router-link>
-                 <span v-if="!isLoadingDropdowns && buyOnlineLinks.length === 0" class="dropdown-item disabled">No pages found</span>
-                 <span v-if="isLoadingDropdowns" class="dropdown-item disabled">Loading...</span>
-              </div>
-            </transition>
-          </div>
-
-          <!-- 语言切换下拉菜单 -->
-          <el-dropdown trigger="click" @command="changeLanguage" class="language-dropdown">
-             <span class="el-dropdown-link">
-                {{ currentLanguageName }} <el-icon class="el-icon--right"><arrow-down /></el-icon>
-             </span>
-             <template #dropdown>
-               <el-dropdown-menu>
-                 <el-dropdown-item v-for="lang in availableLanguages" :key="lang.code" :command="lang.code" :disabled="locale === lang.code">
-                    {{ lang.name }}
-                 </el-dropdown-item>
-               </el-dropdown-menu>
-             </template>
-           </el-dropdown>
         </template>
-        <!-- 可以添加一个加载状态或占位符 -->
         <span v-else class="nav-loading-placeholder">Loading...</span>
       </nav>
 
@@ -104,69 +104,72 @@
       <transition name="slide-fade">
         <nav v-if="isMobileMenuOpen" class="mobile-nav">
           <template v-if="$i18n.availableLocales.length > 0">
-            <router-link :to="{ name: 'home', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.home') }}</router-link>
+            <!-- Add wrapper div with key -->
+            <div :key="locale.value" class="nav-content-wrapper">
+              <router-link :to="{ name: 'home', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.home') }}</router-link>
 
-            <!-- 移动端下拉菜单：Drugs in this Class (DYNAMIC) -->
-            <div class="mobile-nav-section">
-              <button @click="toggleMobileSubmenu('drugs')" class="mobile-submenu-trigger">
-                 {{ $t('navigation.dropdownDrugs') }}
-                <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'drugs' }">▼</span>
-              </button>
-              <div v-if="mobileSubmenuOpen === 'drugs'" class="mobile-submenu">
-                 <!-- Dynamic links using v-for -->
-                 <router-link
-                   v-for="page in drugLinks"
-                   :key="page.page_identifier"
-                   :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
-                   @click="closeMobileMenu">
-                   {{ page.list_title }}
-                 </router-link>
-                 <!-- Show message if no links are loaded -->
-                 <span v-if="!isLoadingDropdowns && drugLinks.length === 0" class="mobile-submenu-item disabled">No pages found</span>
-                 <span v-if="isLoadingDropdowns" class="mobile-submenu-item disabled">Loading...</span>
+              <!-- 移动端下拉菜单：Drugs in this Class (DYNAMIC) -->
+              <div class="mobile-nav-section">
+                <button @click="toggleMobileSubmenu('drugs')" class="mobile-submenu-trigger">
+                   {{ $t('navigation.dropdownDrugs') }}
+                  <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'drugs' }">▼</span>
+                </button>
+                <div v-if="mobileSubmenuOpen === 'drugs'" class="mobile-submenu">
+                   <!-- Dynamic links using v-for -->
+                   <router-link
+                     v-for="page in drugLinks"
+                     :key="page.page_identifier"
+                     :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                     @click="closeMobileMenu">
+                     {{ page.list_title }}
+                   </router-link>
+                   <!-- Show message if no links are loaded -->
+                   <span v-if="!isLoadingDropdowns && drugLinks.length === 0" class="mobile-submenu-item disabled">No pages found</span>
+                   <span v-if="isLoadingDropdowns" class="mobile-submenu-item disabled">Loading...</span>
+                </div>
               </div>
-            </div>
 
-            <!-- 移动端下拉菜单：Drug Comparison (DYNAMIC) -->
-            <div class="mobile-nav-section">
-              <button @click="toggleMobileSubmenu('compare')" class="mobile-submenu-trigger">
-                {{ $t('navigation.dropdownCompare') }}
-                <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'compare' }">▼</span>
-              </button>
-              <div v-if="mobileSubmenuOpen === 'compare'" class="mobile-submenu">
-                 <!-- Dynamic links -->
-                 <router-link
-                   v-for="page in comparisonLinks"
-                   :key="page.page_identifier"
-                   :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
-                   @click="closeMobileMenu">
-                   {{ page.list_title }}
-                 </router-link>
-                 <span v-if="!isLoadingDropdowns && comparisonLinks.length === 0" class="mobile-submenu-item disabled">No pages found</span>
-                 <span v-if="isLoadingDropdowns" class="mobile-submenu-item disabled">Loading...</span>
+              <!-- 移动端下拉菜单：Drug Comparison (DYNAMIC) -->
+              <div class="mobile-nav-section">
+                <button @click="toggleMobileSubmenu('compare')" class="mobile-submenu-trigger">
+                  {{ $t('navigation.dropdownCompare') }}
+                  <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'compare' }">▼</span>
+                </button>
+                <div v-if="mobileSubmenuOpen === 'compare'" class="mobile-submenu">
+                   <!-- Dynamic links -->
+                   <router-link
+                     v-for="page in comparisonLinks"
+                     :key="page.page_identifier"
+                     :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                     @click="closeMobileMenu">
+                     {{ page.list_title }}
+                   </router-link>
+                   <span v-if="!isLoadingDropdowns && comparisonLinks.length === 0" class="mobile-submenu-item disabled">No pages found</span>
+                   <span v-if="isLoadingDropdowns" class="mobile-submenu-item disabled">Loading...</span>
+                </div>
               </div>
-            </div>
 
-            <router-link :to="{ name: 'news', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.news') }}</router-link>
-            <router-link :to="{ name: 'blog', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.blog') }}</router-link>
+              <router-link :to="{ name: 'news', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.news') }}</router-link>
+              <router-link :to="{ name: 'blog', params: { lang: locale.value } }" @click="closeMobileMenu">{{ $t('navigation.blog') }}</router-link>
 
-            <!-- Mobile Online Submenu (DYNAMIC) -->
-            <div class="mobile-nav-section">
-              <button @click="toggleMobileSubmenu('online')" class="mobile-submenu-trigger">
-                {{ $t('navigation.dropdownOnline') }}
-                <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'online' }">▼</span>
-              </button>
-              <div v-if="mobileSubmenuOpen === 'online'" class="mobile-submenu">
-                 <!-- Dynamic links -->
-                  <router-link
-                    v-for="page in buyOnlineLinks"
-                    :key="page.page_identifier"
-                    :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
-                    @click="closeMobileMenu">
-                    {{ page.list_title }}
-                  </router-link>
-                 <span v-if="!isLoadingDropdowns && buyOnlineLinks.length === 0" class="mobile-submenu-item disabled">No pages found</span>
-                 <span v-if="isLoadingDropdowns" class="mobile-submenu-item disabled">Loading...</span>
+              <!-- Mobile Online Submenu (DYNAMIC) -->
+              <div class="mobile-nav-section">
+                <button @click="toggleMobileSubmenu('online')" class="mobile-submenu-trigger">
+                  {{ $t('navigation.dropdownOnline') }}
+                  <span class="arrow" :class="{ rotated: mobileSubmenuOpen === 'online' }">▼</span>
+                </button>
+                <div v-if="mobileSubmenuOpen === 'online'" class="mobile-submenu">
+                   <!-- Dynamic links -->
+                    <router-link
+                      v-for="page in buyOnlineLinks"
+                      :key="page.page_identifier"
+                      :to="{ name: 'managed-page-detail', params: { lang: locale.value, identifier: page.page_identifier } }"
+                      @click="closeMobileMenu">
+                      {{ page.list_title }}
+                    </router-link>
+                   <span v-if="!isLoadingDropdowns && buyOnlineLinks.length === 0" class="mobile-submenu-item disabled">No pages found</span>
+                   <span v-if="isLoadingDropdowns" class="mobile-submenu-item disabled">Loading...</span>
+                </div>
               </div>
             </div>
           </template>
@@ -698,5 +701,17 @@ watch(locale, (newLocale, oldLocale) => {
     display: flex;
     align-items: center;
     height: 100%; /* Match nav height */
+}
+
+.nav-content-wrapper {
+  /* This class is mainly for the key binding, 
+     ensure it doesn't break layout. Flex might be needed 
+     if the parent relied on direct children being flex items. */
+  display: contents; /* Try to make the wrapper transparent to flex layout */
+  /* Or, if display: contents; doesn't work reliably or breaks layout: */
+  /* display: flex; */
+  /* align-items: center; */
+  /* height: 100%; */
+  /* You might need to adjust parent styles if using flex here */
 }
 </style> 
