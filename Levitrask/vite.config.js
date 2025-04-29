@@ -10,7 +10,7 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 import sitemap from 'vite-plugin-sitemap'
 import axios from 'axios' // 导入 axios
 
-// --- 获取路由文件内容 --- // (修改)
+// --- 使用正则表达式提取静态路由路径 (REVISED) --- //
 const routerPath = path.resolve(__dirname, 'src/router/index.js')
 let routerContent = ''
 try {
@@ -19,21 +19,38 @@ try {
   console.error('[Sitemap] Error reading router file:', error)
 }
 
-// --- 使用正则表达式提取静态路由路径 --- // (修改)
-const regexString = "path:\\\\s*\'((?:\\\\/[^\\\\s:\']*)?)\\\/g"; // Define as string
-const staticPathRegex = new RegExp(regexString); // Create RegExp object
-let staticRoutes = []
-let match
+// Regex to find 'path: "..."' or 'path: '...'' or path: ''
+// It captures the path value inside the quotes (or empty for '')
+// It avoids capturing paths containing ':' (dynamic routes)
+const staticPathRegex = /path:\s*(?:(?:"([^"\n:]*)")|(?:\'([^\'\n:]*)\'))/g;
+const languages = ['en', 'zh']; // Define supported languages
+let baseStaticRoutes = new Set(); // Use Set for automatic deduplication
+let match;
+
 while ((match = staticPathRegex.exec(routerContent)) !== null) {
-  // 确保捕获到的是有效的、非空的路径
-  if (typeof match[1] === 'string' && !match[1].includes(':')) {
-    staticRoutes.push(match[1])
+  // match[1] is for double quotes, match[2] is for single quotes
+  const pathValue = match[1] !== undefined ? match[1] : match[2];
+  // Ensure it's a string and doesn't contain ':' (already handled by regex but double-check)
+  if (typeof pathValue === 'string') {
+      baseStaticRoutes.add(pathValue); // Add the base path (e.g., '', 'blog', 'news')
   }
 }
-// 去重 (移除显式添加根路径的逻辑，依赖正则捕获和 Set)
-staticRoutes = [...new Set(staticRoutes)].filter(route => route !== '') // 确保移除空路径并去重
-if (!staticRoutes.includes('/')) staticRoutes.push('/'); // 确保根路径存在
-console.log(`[Sitemap] Found static routes via regex: ${staticRoutes.join(', ')}`)
+
+// Generate language-prefixed routes
+let staticRoutesWithLang = [];
+baseStaticRoutes.forEach(basePath => {
+    languages.forEach(lang => {
+        // Handle the root path ('') and other paths
+        const fullPath = basePath ? `/${lang}/${basePath}` : `/${lang}`; 
+        staticRoutesWithLang.push(fullPath);
+    });
+});
+
+// Add the absolute root path '/' if needed (e.g., for fallback or redirection)
+// staticRoutesWithLang.push('/'); // Optional: Only add if your app actually serves content at '/'
+
+// Final static routes list (already unique due to Set and generation logic)
+console.log(`[Sitemap] Found static routes with lang prefix: ${staticRoutesWithLang.join(', ')}`);
 
 // --- 从导入的数据对象生成动态路由 --- // (修改)
 // const generateRoutesFromData = (dataObject, routePrefix) => { ... }
@@ -49,8 +66,8 @@ console.log(`[Sitemap] Found static routes via regex: ${staticRoutes.join(', ')}
 // Wrap the export in an async IIFE to allow top-level await
 export default (async () => { // <--- Start async IIFE
 
-  // --- 异步函数：从 API 获取新闻路由 ---
-  async function getNewsRoutes(apiBaseUrl) { // <--- Pass API URL
+  // --- 异步函数：从 API 获取新闻路由 (REVISED TO RETURN ONLY SLUGS) ---
+  async function getNewsRoutes(apiBaseUrl) {
     if (!apiBaseUrl) {
       console.warn('[Sitemap] VITE_API_BASE_URL is not set. Cannot fetch dynamic news routes.')
       return []
@@ -60,12 +77,18 @@ export default (async () => { // <--- Start async IIFE
     try {
       const response = await axios.get(apiUrl, { timeout: 8000 })
       const newsData = response.data
-      if (typeof newsData === 'object' && newsData !== null) {
-        const routes = Object.keys(newsData).map(key => `/news/${key}`)
-        console.log(`[Sitemap] Successfully fetched ${routes.length} dynamic news routes.`)
-        return routes
+      if (Array.isArray(newsData)) {
+        // Return only the slugs, assuming item.slug exists
+        const slugs = newsData.map(item => item?.slug).filter(Boolean);
+        console.log(`[Sitemap] Successfully fetched ${slugs.length} dynamic news slugs from array.`)
+        return slugs
+      } else if (typeof newsData === 'object' && newsData !== null) {
+        // Fallback: If API returns object, keys are slugs
+        const slugs = Object.keys(newsData);
+        console.log(`[Sitemap] Successfully fetched ${slugs.length} dynamic news slugs from object keys.`)
+        return slugs
       } else {
-        console.warn('[Sitemap] Fetched news data is not a valid object from API.')
+        console.warn('[Sitemap] Fetched news data is not a valid array or object from API.')
         return []
       }
     } catch (error) {
@@ -75,44 +98,57 @@ export default (async () => { // <--- Start async IIFE
     }
   }
 
-  // --- 异步函数：从 API 获取博客路由 ---
-  async function getBlogRoutes(apiBaseUrl) { // <--- Pass API URL
+  // --- 异步函数：从 API 获取博客路由 (REVISED TO RETURN ONLY SLUGS) ---
+  async function getBlogRoutes(apiBaseUrl) {
     if (!apiBaseUrl) return []
     const apiUrl = `${apiBaseUrl}/api/blogs`
     console.log(`[Sitemap] Fetching blog routes from: ${apiUrl}`)
     try {
       const response = await axios.get(apiUrl, { timeout: 8000 })
       const blogsData = response.data
-      if (typeof blogsData === 'object' && blogsData !== null) {
-        const routes = Object.keys(blogsData).map(key => `/blog/${key}`)
-        console.log(`[Sitemap] Successfully fetched ${routes.length} dynamic blog routes.`)
-        return routes
+      if (Array.isArray(blogsData)) {
+        const slugs = blogsData.map(item => item?.slug).filter(Boolean);
+        console.log(`[Sitemap] Successfully fetched ${slugs.length} dynamic blog slugs from array.`)
+        return slugs
+      } else if (typeof blogsData === 'object' && blogsData !== null) {
+        const slugs = Object.keys(blogsData);
+        console.log(`[Sitemap] Successfully fetched ${slugs.length} dynamic blog slugs from object keys.`)
+        return slugs
       } else {
+        console.warn('[Sitemap] Fetched blog data is not a valid array or object from API.')
         return []
       }
     } catch (error) {
       console.error(`[Sitemap] Failed to fetch blog routes from ${apiUrl}:`, error.message)
+      console.warn('[Sitemap] Proceeding without dynamic blog routes.')
       return []
     }
   }
 
-    // --- 异步函数：从 API 获取问答路由 ---
-    async function getQuestionRoutes(apiBaseUrl) { // <--- Pass API URL
+    // --- 异步函数：从 API 获取问答路由 (REVISED TO RETURN ONLY IDS) ---
+    async function getQuestionRoutes(apiBaseUrl) {
       if (!apiBaseUrl) return []
       const apiUrl = `${apiBaseUrl}/api/questions`
       console.log(`[Sitemap] Fetching question routes from: ${apiUrl}`)
       try {
         const response = await axios.get(apiUrl, { timeout: 8000 })
         const questionsData = response.data
-        if (typeof questionsData === 'object' && questionsData !== null) {
-          const routes = Object.keys(questionsData).map(key => `/questions/${key}`)
-          console.log(`[Sitemap] Successfully fetched ${routes.length} dynamic question routes.`)
-          return routes
+        if (Array.isArray(questionsData)) {
+           // Assuming questions use 'id'
+          const ids = questionsData.map(item => item?.id).filter(Boolean);
+          console.log(`[Sitemap] Successfully fetched ${ids.length} dynamic question ids from array.`)
+          return ids
+        } else if (typeof questionsData === 'object' && questionsData !== null) {
+          const ids = Object.keys(questionsData);
+          console.log(`[Sitemap] Successfully fetched ${ids.length} dynamic question ids from object keys.`)
+          return ids
         } else {
+          console.warn('[Sitemap] Fetched question data is not a valid array or object from API.')
           return []
         }
       } catch (error) {
         console.error(`[Sitemap] Failed to fetch question routes from ${apiUrl}:`, error.message)
+        console.warn('[Sitemap] Proceeding without dynamic question routes.')
         return []
       }
     }
@@ -129,19 +165,28 @@ export default (async () => { // <--- Start async IIFE
   console.log(`[Sitemap] Using API_BASE_URL: ${API_BASE_URL}`)
   console.log(`[Sitemap] Using HOSTNAME: ${HOSTNAME}`)
 
-  // --- Fetch dynamic routes BEFORE defining the config ---
-  console.log('[Sitemap] Starting dynamic route fetching...')
-  const [newsRoutes, blogRoutes, questionRoutes] = await Promise.all([
-    getNewsRoutes(API_BASE_URL), // Pass the loaded API URL
-    getBlogRoutes(API_BASE_URL), // Pass the loaded API URL
-    getQuestionRoutes(API_BASE_URL) // Pass the loaded API URL
-  ])
+  // --- Fetch dynamic routes BEFORE defining the config (MODIFIED: Add language prefix) ---
+  console.log('[Sitemap] Starting dynamic route fetching...');
+  const [newsSlugs, blogSlugs, questionSlugs] = await Promise.all([
+    getNewsRoutes(API_BASE_URL), // These now return arrays of slugs/ids
+    getBlogRoutes(API_BASE_URL),
+    getQuestionRoutes(API_BASE_URL)
+  ]);
 
-  // Combine static and all fetched dynamic routes
-  const allDynamicRoutes = [...staticRoutes, ...newsRoutes, ...blogRoutes, ...questionRoutes]
-  const uniqueRoutes = [...new Set(allDynamicRoutes)] // Calculate unique routes
-  console.log(`[Sitemap] Total unique routes for sitemap: ${uniqueRoutes.length}`)
+  // Generate dynamic routes with language prefixes
+  let dynamicRoutesWithLang = [];
+  languages.forEach(lang => {
+      newsSlugs.forEach(slug => dynamicRoutesWithLang.push(`/${lang}/news/${slug}`));
+      blogSlugs.forEach(slug => dynamicRoutesWithLang.push(`/${lang}/blog/${slug}`));
+      questionSlugs.forEach(id => dynamicRoutesWithLang.push(`/${lang}/questions/${id}`));
+  });
 
+  console.log(`[Sitemap] Generated dynamic routes with lang prefix: ${dynamicRoutesWithLang.length} entries`);
+
+  // Combine static (already prefixed) and dynamic (prefixed) routes
+  const allRoutes = [...staticRoutesWithLang, ...dynamicRoutesWithLang];
+  const uniqueRoutes = [...new Set(allRoutes)]; // Final deduplication
+  console.log(`[Sitemap] Total unique routes for sitemap: ${uniqueRoutes.length}`);
 
   // Return the defineConfig result inside the async IIFE
   return defineConfig({ // <--- Return the actual config object

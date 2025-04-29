@@ -107,15 +107,18 @@ async function fetchBlogPost(lang, slug) {
     const response = await axios.get(detailApiUrl); 
     const fetchedData = response.data;
 
-    // Check if data is valid (API should return 404 if not found, but double-check)
-    if (fetchedData && fetchedData.slug) { 
+    // Check if data is valid
+    if (fetchedData && fetchedData.slug) {
       blogPost.value = fetchedData;
-      console.log('+++ BlogDetails: Received blogPost data:');
-      console.log(JSON.stringify(blogPost.value, null, 2));
-      
+
+      // --- DEBUGGING START ---
+      console.log('+++ BlogDetails: Received full blogPost data:', JSON.stringify(blogPost.value, null, 2));
+      console.log('+++ BlogDetails: Checking sidebar_data:', blogPost.value.sidebar_data);
+      // --- DEBUGGING END ---
+
       updateMetaTags(blogPost.value);
       console.log('Blog post data loaded:', blogPost.value);
-      await nextTick(); 
+      await nextTick();
       setupContentClickListener();
     } else {
       console.warn(`API returned OK but data is missing or invalid for blog slug '${slug}' in lang '${lang}':`, fetchedData);
