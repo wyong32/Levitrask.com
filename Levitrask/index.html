@@ -1,21 +1,78 @@
 <!doctype html>
-<html lang="">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Levitrask</title>
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-N6VVHRSS1J"></script>
+    <!-- 性能优化 -->
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+
+    <!-- DNS预解析 -->
+    <link rel="dns-prefetch" href="//www.google-analytics.com">
+
+    <!-- 移除图片预加载 - 避免预加载未使用的资源警告 -->
+
+    <!-- 基本meta信息 -->
+    <link rel="icon" href="/favicon.ico" />
+    <title>Levitrask - Levitra Information & ED Treatment Guide</title>
+    <meta name="description" content="Comprehensive information about Levitra (vardenafil) for ED treatment. Dosage, side effects, comparisons with Viagra and Cialis.">
+    <meta name="keywords" content="Levitra, vardenafil, ED treatment, erectile dysfunction, Viagra comparison, Cialis comparison">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Levitrask - Levitra Information & ED Treatment Guide">
+    <meta property="og:description" content="Comprehensive information about Levitra (vardenafil) for ED treatment.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://levitrask.com/">
+    <meta property="og:image" content="https://levitrask.com/images/og-image.jpg">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Levitrask - Levitra Information">
+    <meta name="twitter:description" content="Comprehensive information about Levitra (vardenafil) for ED treatment.">
+    <meta name="twitter:image" content="https://levitrask.com/images/og-image.jpg">
+
+    <!-- 性能和安全 -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="theme-color" content="#007bff">
+    <meta name="msapplication-TileColor" content="#007bff">
+
+    <!-- 内联关键CSS -->
+    <style>
+      /* 关键渲染路径CSS */
+      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+      html{line-height:1.15;-webkit-text-size-adjust:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,'Noto Sans',sans-serif,'Apple Color Emoji','Segoe UI Emoji','Segoe UI Symbol','Noto Color Emoji'}
+      body{margin:0;font-family:inherit;font-size:16px;line-height:1.6;color:#333;background-color:#fff;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+      #app{min-height:100vh;display:flex;flex-direction:column}
+      .app-loading{display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:100vh;background-color:#f8f9fa}
+      .loading-spinner{width:40px;height:40px;border:4px solid #e9ecef;border-top:4px solid #007bff;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:16px}
+      @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+      .page-header{background-color:#fff;border-bottom:1px solid #e9ecef;position:sticky;top:0;z-index:1000;box-shadow:0 2px 4px rgba(0,0,0,0.1)}
+      .homepage-layout{display:flex;gap:20px;padding:20px;max-width:1200px;margin:0 auto;flex:1}
+      .sidebar-left{width:20%;max-width:250px;min-width:180px;position:sticky;top:90px;height:calc(100vh - 110px);overflow-y:auto;z-index:10}
+      .homepage-main-content{width:70%;flex-grow:1;min-width:0}
+      .sidebar-right{width:25%;max-width:300px;min-width:200px}
+      img{max-width:100%;height:auto;transition:opacity 0.3s ease}
+      img[loading="lazy"]{opacity:0}
+      img.image-loaded{opacity:1}
+      @media (max-width:768px){.homepage-layout{flex-direction:column;padding:10px}.sidebar-left,.sidebar-right{width:100%;max-width:none;position:static;height:auto}.homepage-main-content{width:100%}}
+    </style>
+
+    <!-- 延迟加载Google Analytics -->
     <script>
-      window.dataLayer = window.dataLayer || []
-      function gtag() {
-        dataLayer.push(arguments)
-      }
-      gtag('js', new Date())
+      // 延迟加载GA以提高性能
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.googletagmanager.com/gtag/js?id=G-N6VVHRSS1J','gtag');
 
-      gtag('config', 'G-N6VVHRSS1J')
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-N6VVHRSS1J');
+        }, 2000); // 2秒后加载
+      });
     </script>
   </head>
   <body>

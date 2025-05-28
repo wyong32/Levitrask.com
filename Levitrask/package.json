@@ -34,7 +34,11 @@
     "globals": "^16.0.0",
     "jsdom": "^26.0.0",
     "prettier": "3.5.3",
+    "sharp": "^0.34.2",
     "vite": "^6.2.4",
+    "vite-bundle-analyzer": "^0.22.0",
+    "vite-plugin-pwa": "^1.0.0",
+    "vite-plugin-robots": "^1.0.5",
     "vite-plugin-sitemap": "^0.7.1",
     "vite-plugin-vue-devtools": "^7.7.2",
     "vitest": "^3.1.1"

@@ -3,3 +3,36 @@
   margin: 0;
   box-sizing: border-box;
 }
+
+/* 系统字体栈 - 无需加载外部字体 */
+html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: inherit;
+  font-size: 16px;
+  color: #333;
+  background-color: #fff;
+}
+
+/* 优化字体渲染 */
+h1, h2, h3, h4, h5, h6 {
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* 确保所有文本元素使用系统字体 */
+input, textarea, select, button {
+  font-family: inherit;
+}
+
+/* 代码字体 */
+code, pre, kbd, samp {
+  font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+}

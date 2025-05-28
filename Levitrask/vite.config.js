@@ -219,10 +219,55 @@ export default (async () => { // <--- Start async IIFE
           changeOrigin: true,
         }
       }
-    }
-    // Add build options if necessary, e.g., for sourcemaps
-    // build: {
-    //   sourcemap: true,
-    // }
+    },
+    // 基本的构建优化
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vue-vendor': ['vue', 'vue-router', 'pinia'],
+            'element-vendor': ['element-plus'],
+            'utils-vendor': ['axios', 'vue-i18n'],
+          },
+          // 优化资源文件名
+          chunkFileNames: 'js/[name]-[hash].js',
+          entryFileNames: 'js/[name]-[hash].js',
+          assetFileNames: (assetInfo) => {
+            const fileName = assetInfo.names?.[0] || 'asset'
+            const info = fileName.split('.')
+            const ext = info[info.length - 1]
+            if (/\.(png|jpe?g|gif|svg|webp|avif)(\?.*)?$/i.test(fileName)) {
+              return `images/[name]-[hash].${ext}`
+            }
+            if (ext === 'css') {
+              return `css/[name]-[hash].${ext}`
+            }
+            return `assets/[name]-[hash].${ext}`
+          },
+        },
+        // 外部化大型依赖（可选）
+        external: (id) => {
+          // 可以将某些大型库外部化，通过CDN加载
+          return false // 暂时不外部化任何依赖
+        }
+      },
+      minify: 'esbuild', // 使用esbuild进行更快的压缩
+      cssCodeSplit: true,
+      // 启用gzip压缩
+      reportCompressedSize: true,
+      // 设置chunk大小警告
+      chunkSizeWarningLimit: 500,
+      // 移除console和debugger
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
+    },
+    // 优化依赖预构建
+    optimizeDeps: {
+      include: ['vue', 'vue-router', 'pinia', 'vue-i18n', 'axios', 'dayjs', 'element-plus'],
+    },
   });
 })(); // <--- End and execute async IIFE
