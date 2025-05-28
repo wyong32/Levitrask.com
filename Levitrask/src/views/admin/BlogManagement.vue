@@ -11,11 +11,11 @@
       <el-table-column prop="blog_id" label="Slug" width="200" />
       <el-table-column label="列表图片" width="100">
         <template #default="scope">
-          <img 
-              v-if="scope.row.listImageSrc" 
-              :src="scope.row.listImageSrc" 
-              :alt="scope.row.listImageAlt || '列表图片'" 
-              style="width: 60px; height: auto; object-fit: contain;" 
+          <img
+              v-if="scope.row.listImageSrc"
+              :src="scope.row.listImageSrc"
+              :alt="scope.row.listImageAlt || '列表图片'"
+              style="width: 60px; height: auto; object-fit: contain;"
           />
           <span v-else>N/A</span>
         </template>
@@ -30,25 +30,25 @@
     </el-table>
 
     <!-- Create/Edit Blog Dialog -->
-    <el-dialog 
-      v-model="isDialogVisible" 
-      :title="dialogTitle" 
-      width="80%"  
-      top="5vh" 
+    <el-dialog
+      v-model="isDialogVisible"
+      :title="dialogTitle"
+      width="80%"
+      top="5vh"
       :close-on-click-modal="false"
       @closed="resetForm"
     >
       <div v-if="isLoadingDetails" class="loading-area">加载详情中...</div>
-      <el-form 
+      <el-form
         v-else
-        ref="formRef" 
-        :model="blogForm" 
-        :rules="formRules" 
+        ref="formRef"
+        :model="blogForm"
+        :rules="formRules"
         label-width="120px"
         label-position="top"
       >
         <!-- Row 1: Slug and Language -->
-        <el-row :gutter="20"> 
+        <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="URL Slug (路径)" prop="slug">
               <el-input v-model="blogForm.slug" placeholder="例如: my-first-blog-post" :disabled="isEditMode" />
@@ -57,9 +57,9 @@
           </el-col>
           <el-col :span="12">
              <el-form-item label="编辑语言 (Language)" prop="languageCode">
-               <el-select 
-                 v-model="selectedLanguage" 
-                 placeholder="选择语言" 
+               <el-select
+                 v-model="selectedLanguage"
+                 placeholder="选择语言"
                  style="width: 100%"
                  :disabled="!isEditMode && supportedLanguages.length <= 1"
                >
@@ -76,7 +76,7 @@
              </el-form-item>
           </el-col>
         </el-row>
-        
+
         <!-- Row 2: List Title and List Date -->
         <el-row :gutter="20">
            <el-col :span="12">
@@ -103,7 +103,7 @@
         <el-row :gutter="20">
           <el-col :span="12">
              <el-form-item label="列表图片 URL (List Image URL)" prop="listImageSrc">
-               <el-input v-model="blogForm.listImageSrc" placeholder="请输入图片的完整 URL"></el-input> 
+               <el-input v-model="blogForm.listImageSrc" placeholder="请输入图片的完整 URL"></el-input>
              </el-form-item>
           </el-col>
            <el-col :span="12">
@@ -119,12 +119,12 @@
         <el-form-item label="列表来源/作者 (List Source)" prop="listSource">
            <el-input v-model="blogForm.listSource" :disabled="isEditMode" />
         </el-form-item>
-        
+
         <!-- Row 5: List Description (Full Width - Translatable) -->
         <el-form-item label="列表描述 (List Description)" prop="listDescription">
            <el-input type="textarea" v-model="blogForm.listDescription" :rows="3" />
         </el-form-item>
-        
+
         <el-divider>SEO Meta 信息 (当前语言: {{ selectedLanguage }})</el-divider>
 
         <el-form-item label="Meta 标题 (Meta Title)" prop="metaTitle">
@@ -141,18 +141,18 @@
         <div v-for="(section, index) in blogForm.navSections" :key="index" class="dynamic-list-item">
            <el-row :gutter="10">
               <el-col :span="10">
-                 <el-form-item 
-                    :label="`导航项 ${index + 1} ID`" 
-                    :prop="`navSections.${index}.id`" 
+                 <el-form-item
+                    :label="`导航项 ${index + 1} ID`"
+                    :prop="`navSections.${index}.id`"
                     :rules="formRules.navSectionId"
                   >
                     <el-input v-model="section.id" placeholder="对应内容 section 标签的 ID" />
                  </el-form-item>
               </el-col>
               <el-col :span="10">
-                 <el-form-item 
-                    :label="`导航项 ${index + 1} 标题`" 
-                    :prop="`navSections.${index}.title`" 
+                 <el-form-item
+                    :label="`导航项 ${index + 1} 标题`"
+                    :prop="`navSections.${index}.title`"
                     :rules="formRules.navSectionTitle"
                  >
                     <el-input v-model="section.title" placeholder="显示在导航中的文本" />
@@ -163,10 +163,10 @@
               </el-col>
            </el-row>
         </div>
-        <el-button 
-          @click="addNavSection" 
-          type="success" 
-          plain 
+        <el-button
+          @click="addNavSection"
+          type="success"
+          plain
           :icon="Plus"
           style="margin-bottom: 10px;"
         >
@@ -178,39 +178,39 @@
         <div v-for="(block, index) in blogForm.sidebarData" :key="`sidebar-${index}`" class="dynamic-list-item sidebar-block-item">
            <el-row :gutter="10">
               <el-col :span="20"> <!-- Span adjusted for title/content -->
-                 <el-form-item 
-                    :label="`区块 ${index + 1} 标题 (可选)`" 
-                    :prop="`sidebarData.${index}.title`" 
-                    :rules="formRules.sidebarBlockTitle"  Optional rule 
+                 <el-form-item
+                    :label="`区块 ${index + 1} 标题 (可选)`"
+                    :prop="`sidebarData.${index}.title`"
+                    :rules="formRules.sidebarBlockTitle"  Optional rule
                   >
                     <el-input v-model="block.title" placeholder="侧边栏区块的标题" />
                  </el-form-item>
-                 <el-form-item 
-                    :label="`区块 ${index + 1} 内容 (HTML)`" 
-                    :prop="`sidebarData.${index}.html_content`" 
-                    :rules="formRules.sidebarBlockContent"  Required rule 
+                 <el-form-item
+                    :label="`区块 ${index + 1} 内容 (HTML)`"
+                    :prop="`sidebarData.${index}.html_content`"
+                    :rules="formRules.sidebarBlockContent"  Required rule
                   >
-                    <el-input 
-                      type="textarea" 
-                      v-model="block.html_content" 
-                      :rows="5" 
+                    <el-input
+                      type="textarea"
+                      v-model="block.html_content"
+                      :rows="5"
                       placeholder="输入侧边栏区块的 HTML 内容"
                     />
                  </el-form-item>
                  <!-- Optional: Input for display_order if implemented -->
-                 <!-- 
-                 <el-form-item 
-                    label="显示顺序" 
+                 <!--
+                 <el-form-item
+                    label="显示顺序"
                     :prop="`sidebarData.${index}.display_order`"
                  >
                     <el-input-number v-model="block.display_order" :min="1" />
-                 </el-form-item> 
+                 </el-form-item>
                  -->
               </el-col>
               <el-col :span="4" class="dynamic-list-actions sidebar-block-actions">
                  <el-button type="danger" @click="removeSidebarBlock(index)" :icon="Delete" circle />
                  <!-- Optional: Add Up/Down buttons for ordering -->
-                 <!-- 
+                 <!--
                  <el-button @click="moveSidebarBlock(index, -1)" :disabled="index === 0" :icon="ArrowUpBold" circle plain/>
                  <el-button @click="moveSidebarBlock(index, 1)" :disabled="index === blogForm.sidebarData.length - 1" :icon="ArrowDownBold" circle plain/>
                   -->
@@ -218,11 +218,11 @@
            </el-row>
            <el-divider v-if="index < blogForm.sidebarData.length - 1" style="margin-top: 0; margin-bottom: 15px;" />
         </div>
-        <el-button 
-          @click="addSidebarBlock" 
+        <el-button
+          @click="addSidebarBlock"
           type="primary"
-          plain 
-          :icon="Plus" 
+          plain
+          :icon="Plus"
           style="margin-bottom: 10px;"
         >
           添加侧边栏区块
@@ -234,10 +234,10 @@
            <div class="form-hint" style="margin-bottom: 5px;">
              请确保使用 `<section id="..."></section>` 包裹主要内容块，并且 `id` 与上面定义的左侧导航 ID 对应。
            </div>
-           <el-input 
-             type="textarea" 
-             v-model="blogForm.content" 
-             :rows="20" 
+           <el-input
+             type="textarea"
+             v-model="blogForm.content"
+             :rows="20"
              placeholder="在此处输入或粘贴 HTML 源码"
            />
         </el-form-item>
@@ -273,7 +273,7 @@ const isLoadingDetails = ref(false); // Separate loading state for dialog detail
 const errorMessage = ref('');
 const isSubmitting = ref(false);
 const isDialogVisible = ref(false);
-const isEditMode = ref(false); 
+const isEditMode = ref(false);
 const currentEditDbId = ref(null); // Stores the blog_id (slug) being edited
 const currentEditSlug = ref(null); // Stores the blog_id (slug) being edited
 const selectedLanguage = ref(DEFAULT_LANG); // Language currently shown in the form
@@ -293,7 +293,7 @@ const getInitialFormState = () => ({
   listSource: '',      // Non-translatable - Moved from translation
   // Translatable fields
   listTitle: '',
-  listImageAlt: '', 
+  listImageAlt: '',
   listDescription: '',
   metaTitle: '',
   metaDescription: '',
@@ -342,7 +342,7 @@ const dialogTitle = computed(() => {
 });
 
 // --- API Setup (Corrected) ---
-const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : '';
 const api = axios.create({ baseURL: baseUrl });
 console.log(`[API Setup BlogMgmt] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`);
 
@@ -425,7 +425,7 @@ const openCreateDialog = () => {
 
 // Open Dialog for Editing - Modified to fetch all languages using Admin API
 const handleEdit = async (row) => {
-  // --- Use db_id (numeric) and blog_id (slug) from the row --- 
+  // --- Use db_id (numeric) and blog_id (slug) from the row ---
   if (!row || row.db_id === undefined || !row.blog_id) {
     ElMessage.error('无法编辑：缺少博客数字 ID 或 Slug。');
       return;
@@ -468,7 +468,7 @@ const handleEdit = async (row) => {
       content: baseData.translation?.content || ''
     };
 
-    // --- Step 2: Fetch other translations using ADMIN endpoint --- 
+    // --- Step 2: Fetch other translations using ADMIN endpoint ---
     const otherLanguages = supportedLanguages.filter(l => l.code !== DEFAULT_LANG);
     const fetchPromises = otherLanguages.map(async (lang) => {
       try {
@@ -524,7 +524,7 @@ const handleEdit = async (row) => {
   } catch (error) {
     console.error('Error fetching blog details for editing via Admin API:', error);
     errorMessage.value = `加载编辑数据失败: ${error.response?.data?.message || error.message}`;
-      closeDialog(); 
+      closeDialog();
     ElMessage.error(errorMessage.value);
   } finally {
       isLoadingDetails.value = false;
@@ -534,7 +534,7 @@ const handleEdit = async (row) => {
 // Delete Blog Post
 const handleDelete = (row) => {
   // Corrected: Check for numeric db_id instead of slug blog_id
-  if (!row || row.db_id === undefined || row.db_id === null) { 
+  if (!row || row.db_id === undefined || row.db_id === null) {
     ElMessage.error('无法删除：缺少博客数字 ID (db_id)。');
     return;
   }
@@ -548,7 +548,7 @@ const handleDelete = (row) => {
     try {
       // Corrected: Use Admin API endpoint with numeric ID
       // Add /api prefix
-      await api.delete(`/api/blogs/admin/${row.db_id}`); 
+      await api.delete(`/api/blogs/admin/${row.db_id}`);
       ElMessage.success('博客删除成功');
       await fetchData(); // Refresh list
     } catch (error) {
@@ -603,7 +603,7 @@ const handleSubmit = async () => {
           console.log("Sending PUT to /api/admin/:id for non-translatable data:", nonTranslatablePayload);
           // Add /api prefix
           await api.put(`/api/blogs/admin/${currentEditDbId.value}`, nonTranslatablePayload);
- 
+
           // Step 2: Update each translation via PUT /admin/:id/translations/:lang
           // Reuse the key conversion helper from the CREATE section
           const camelToSnake = (key) => key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
@@ -625,7 +625,7 @@ const handleSubmit = async () => {
           const translationUpdatePromises = supportedLanguages.map(lang => {
             const langCode = lang.code;
             const langData = allLanguageData[langCode];
-            
+
             // --- ADD CHECK: Skip update if essential data is missing for this language ---
             // Check for title AND content as they are likely the most critical required fields based on backend error
             if (!langData || !langData.listTitle || !langData.content || !langData.metaTitle || !langData.metaDescription || !langData.listImageAlt) {
@@ -641,23 +641,18 @@ const handleSubmit = async () => {
             delete translationPayload.list_date;
             delete translationPayload.list_image_src; // Backend PUT uses list_image, so remove this if present
             delete translationPayload.list_source;
- 
+
             console.log(`Sending PUT to /api/admin/:id/translations/${langCode}:`, translationPayload);
             // Add /api prefix
             return api.put(`/api/blogs/admin/${currentEditDbId.value}/translations/${langCode}`, translationPayload);
           });
- 
+
           await Promise.all(translationUpdatePromises);
           ElMessage.success('博客更新成功 (所有语言)！');
- 
+
          } else {
             // --- CREATE ---
-            console.log('Creating new blog post...');
             const defaultLangData = allLanguageData[DEFAULT_LANG];
-            // --- 添加调试日志 --- 
-            console.log('--- DEBUG: Data for default language BEFORE payload creation ---');
-            console.log(JSON.stringify(defaultLangData, null, 2));
-            // --- 结束调试日志 ---
             if (!defaultLangData) throw new Error('Default language data is missing.');
 
             // --- CORRECTED Payload Structure for CREATE ---
@@ -666,7 +661,7 @@ const handleSubmit = async () => {
             const convertKeysToSnake = (obj) => {
                 if (typeof obj !== 'object' || obj === null) return obj;
                 if (Array.isArray(obj)) return obj.map(convertKeysToSnake); // Recursively convert arrays too if needed
-                
+
                 return Object.keys(obj).reduce((acc, key) => {
                     const snakeKey = camelToSnake(key);
                     acc[snakeKey] = convertKeysToSnake(obj[key]); // Recursively convert nested objects
@@ -693,8 +688,8 @@ const handleSubmit = async () => {
                 translations: snakeCaseTranslations // Send the converted translations object
             };
             // --- End Corrected Payload ---
-            
-            console.log("Sending POST payload: ", JSON.stringify(createPayload, null, 2)); 
+
+            console.log("Sending POST payload: ", JSON.stringify(createPayload, null, 2));
             // Add /api prefix
             // Make sure the endpoint is correct (should it be /api/blogs or /api/blogs/admin?)
             // Based on error, it seems to be /api/blogs/admin
@@ -714,7 +709,7 @@ const handleSubmit = async () => {
          closeDialog();
         await fetchData(); // Refresh table
 
-       } catch (error) { 
+       } catch (error) {
         console.error('Error submitting blog:', error);
         // Enhanced error logging
         let errorMessage = '提交失败';
@@ -952,4 +947,4 @@ watch(selectedLanguage, (newLangCode, oldLangCode) => {
    max-width: 100%;
    height: auto;
 }
-</style> 
+</style>

@@ -6,14 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:analyze": "npm run build && node scripts/analyze-build.js",
     "preview": "vite preview",
     "test:unit": "vitest",
+    "test:performance": "npm run build && npm run preview",
     "lint": "eslint . --fix",
     "format": "prettier --write src/"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "axios": "^1.8.4",
+    "dayjs": "^1.11.13",
     "element-plus": "^2.9.8",
     "pinia": "^3.0.1",
     "swiper": "^11.2.6",

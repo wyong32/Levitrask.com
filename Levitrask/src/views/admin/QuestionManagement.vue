@@ -19,18 +19,18 @@
     </el-table>
 
     <!-- Create/Edit Question Dialog -->
-    <el-dialog 
-      v-model="isDialogVisible" 
-      :title="dialogTitle" 
-      width="80%" 
+    <el-dialog
+      v-model="isDialogVisible"
+      :title="dialogTitle"
+      width="80%"
       top="5vh"
       :close-on-click-modal="false"
       @close="resetForm"
     >
-      <el-form 
-        ref="formRef" 
-        :model="questionForm" 
-        :rules="formRules" 
+      <el-form
+        ref="formRef"
+        :model="questionForm"
+        :rules="formRules"
         label-width="120px"
         label-position="top"
       >
@@ -40,9 +40,9 @@
         </el-form-item>
 
         <!-- Language Tabs for Translatable Fields -->
-        <el-tabs 
-          v-model="activeLangTab" 
-          @click.stop 
+        <el-tabs
+          v-model="activeLangTab"
+          @click.stop
         >
           <el-tab-pane
             v-for="lang in supportedLanguages"
@@ -56,7 +56,7 @@
                <el-form-item
                   :label="`列表标题 (${lang.name})`"
                   :prop="`translations.${lang.code}.list_title`"
-                  :rules="lang.code === DEFAULT_LANG ? formRules.defaultListTitle : []" 
+                  :rules="lang.code === DEFAULT_LANG ? formRules.defaultListTitle : []"
                 >
                   <el-input v-model="questionForm.translations[lang.code].list_title" />
             </el-form-item>
@@ -76,16 +76,16 @@
         <!-- Left Navigation Sections -->
               <el-divider>左侧导航 (Nav Sections - {{ lang.name }})</el-divider>
               <div v-for="(section, index) in questionForm.translations[lang.code].navSections" :key="`${lang.code}-nav-${index}`" class="dynamic-list-item">
-                <el-form-item 
-                  :label="`导航项 ${index + 1} ID`" 
-                  :prop="`translations.${lang.code}.navSections.${index}.id`" 
+                <el-form-item
+                  :label="`导航项 ${index + 1} ID`"
+                  :prop="`translations.${lang.code}.navSections.${index}.id`"
                   :rules="formRules.navSectionId"
                 >
                   <el-input v-model="section.id" placeholder="对应内容 section 标签的 ID" />
                 </el-form-item>
-                <el-form-item 
-                  :label="`导航项 ${index + 1} 标题`" 
-                  :prop="`translations.${lang.code}.navSections.${index}.title`" 
+                <el-form-item
+                  :label="`导航项 ${index + 1} 标题`"
+                  :prop="`translations.${lang.code}.navSections.${index}.title`"
                   :rules="formRules.navSectionTitle"
                 >
                   <el-input v-model="section.title" placeholder="显示在导航中的文本" />
@@ -101,14 +101,14 @@
               <el-divider>右侧边栏内容 (Sidebar Data - {{ lang.name }})</el-divider>
               <div v-for="(block, index) in questionForm.translations[lang.code].sidebarData" :key="`${lang.code}-sidebar-${index}`" class="dynamic-list-item sidebar-block-item">
                 <h4>区块 {{ index + 1 }}</h4>
-                <el-form-item 
-                  :label="`区块 ${index + 1} 标题 (可选)`" 
-                  :prop="`translations.${lang.code}.sidebarData.${index}.title`" 
+                <el-form-item
+                  :label="`区块 ${index + 1} 标题 (可选)`"
+                  :prop="`translations.${lang.code}.sidebarData.${index}.title`"
                   >
                   <el-input v-model="block.title" placeholder="侧边栏区块的标题" />
                      </el-form-item>
-                <el-form-item 
-                  :label="`区块 ${index + 1} 内容 (HTML)`" 
+                <el-form-item
+                  :label="`区块 ${index + 1} 内容 (HTML)`"
                 >
                   <el-input type="textarea" v-model="block.content" :rows="5" placeholder="输入侧边栏区块的 HTML 内容 (当前绑定可能不正确)" />
                      </el-form-item>
@@ -125,15 +125,15 @@
                <el-form-item
                  :label="`内容 (Content - HTML Source - ${lang.name})`"
                  :prop="`translations.${lang.code}.content`"
-                 :rules="lang.code === DEFAULT_LANG ? formRules.defaultContent : []" 
+                 :rules="lang.code === DEFAULT_LANG ? formRules.defaultContent : []"
                 >
            <div class="form-hint" style="margin-bottom: 5px;">
              请确保使用 `<section id="..."></section>` 包裹主要内容块，并且 `id` 与上面定义的左侧导航 ID 对应。
            </div>
-           <el-input 
-             type="textarea" 
+           <el-input
+             type="textarea"
                    v-model="questionForm.translations[lang.code].content"
-             :rows="20" 
+             :rows="20"
              placeholder="在此处输入或粘贴 HTML 源码"
            />
         </el-form-item>
@@ -201,13 +201,13 @@ const supportedLanguages = ref([
 ]);
 const DEFAULT_LANG = 'en';
 
-// --- State --- 
+// --- State ---
 const tableData = ref([]);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const isSubmitting = ref(false);
 const isDialogVisible = ref(false);
-const isEditMode = ref(false); 
+const isEditMode = ref(false);
 const currentEditDbId = ref(null); // Numeric DB ID
 const isLoadingDetails = ref(false); // Added for loading state in dialog
 
@@ -242,7 +242,7 @@ const getInitialFormState = () => {
 };
 
 const questionForm = reactive(getInitialFormState());
-const formRef = ref(null); 
+const formRef = ref(null);
 const activeLangTab = ref(DEFAULT_LANG);
 
 // --- Form Validation Rules ---
@@ -266,7 +266,7 @@ const formRules = reactive({
   sidebarBlockContent: [{ required: true, message: '请输入侧边栏区块内容', trigger: 'blur' }],
 });
 
-// --- Computed --- 
+// --- Computed ---
 const dialogTitle = computed(() => isEditMode.value ? '编辑问题' : '创建问题');
 
 // --- API Calls ---
@@ -306,7 +306,7 @@ const fetchQuestionDetails = async (dbId) => {
   isLoadingDetails.value = true;
   try {
     console.log(`Fetching details for question DB ID: ${dbId}`);
-    
+
     // --- Add Log: Before Reset ---
     console.log('[Debug Edit] Before resetForm, questionForm state:', JSON.stringify(questionForm, null, 2));
     // --- End Log ---
@@ -324,15 +324,10 @@ const fetchQuestionDetails = async (dbId) => {
     // Fetch data (assuming API endpoint exists)
     const response = await apiClient.get(`/api/admin/questions/${dbId}`);
     const questionData = response.data;
-    console.log(`[Debug Edit] Fetched details:`, questionData);
-    // --- 添加日志 1: 打印完整后端响应 ---
-    console.log('--- DEBUG: Raw questionData from API ---');
-    console.log(JSON.stringify(questionData, null, 2));
-    // --- 结束日志 1 ---
 
-    // --- 强制重新初始化 translations 对象 --- 
+    // --- 强制重新初始化 translations 对象 ---
     // This might be redundant if resetForm works correctly, but keep for now
-    questionForm.translations = {}; 
+    questionForm.translations = {};
     supportedLanguages.value.forEach(lang => {
         questionForm.translations[lang.code] = getInitialTranslationState(lang.code);
     });
@@ -362,7 +357,7 @@ const fetchQuestionDetails = async (dbId) => {
           meta_keywords: translation.meta_keywords || '',
           content: translation.content || '',
           navSections: cloneDeep(translation.nav_sections || []),
-          sidebarData: cloneDeep(translation.sidebar_data || []) 
+          sidebarData: cloneDeep(translation.sidebar_data || [])
         };
       } else {
         questionForm.translations[lang.code] = getInitialTranslationState(lang.code);
@@ -401,18 +396,18 @@ const updateQuestion = async (dbId, formState) => {
 
   // 1. Prepare non-translatable payload (only include fields meant to be updated)
   const nonTranslatablePayload = {
-     // REMOVE question_id: formState.question_id, 
+     // REMOVE question_id: formState.question_id,
      // Add other non-translatable fields here IF they exist AND are meant to be editable in the form
      // Example (if you had category field):
      // category: formState.category,
   };
-  
+
   // Only make the PUT request to update non-translatable fields if the payload is not empty
-  if (Object.keys(nonTranslatablePayload).length > 0) { 
+  if (Object.keys(nonTranslatablePayload).length > 0) {
     try {
        console.log('Updating non-translatable fields:', nonTranslatablePayload);
        const mainUpdateResponse = await apiClient.put(`/api/admin/questions/${dbId}`, nonTranslatablePayload);
-       updatedData = mainUpdateResponse.data; 
+       updatedData = mainUpdateResponse.data;
        console.log('Non-translatable fields updated successfully.');
     } catch (error) {
         console.error('Error updating non-translatable fields:', error);
@@ -541,7 +536,7 @@ const handleSubmit = async () => {
     // Prepare payload - structure might differ slightly for create vs update
     // Create expects a single object with non-translatable fields + a translations array
     // Update involves separate calls
-    
+
     const formToSend = cloneDeep(questionForm); // Work with a copy
 
     if (isEditMode.value) {
@@ -617,13 +612,13 @@ const resetForm = () => {
     isEditMode.value = false;
     currentEditDbId.value = null;
     activeLangTab.value = DEFAULT_LANG;
-    
+
     // Reset validation state in nextTick
     nextTick(() => {
         if (formRef.value) {
             formRef.value.clearValidate();
             // Restore resetFields() call
-            formRef.value.resetFields(); 
+            formRef.value.resetFields();
             console.log('[Debug Reset] Validation cleared and fields reset in nextTick.');
         }
     });
@@ -712,9 +707,9 @@ watch(activeLangTab, (newLang, oldLang) => {
 
 .dynamic-list-actions {
   /* Adjust vertical alignment if needed */
-  /* display: flex; 
-  align-items: center; 
-  height: 100%; */ 
+  /* display: flex;
+  align-items: center;
+  height: 100%; */
   position: absolute; /* Position delete button */
   top: 10px;
   right: 10px;
@@ -743,4 +738,4 @@ watch(activeLangTab, (newLang, oldLang) => {
   margin-top: -5px; /* Adjust as needed */
   margin-bottom: 10px;
 }
-</style> 
+</style>

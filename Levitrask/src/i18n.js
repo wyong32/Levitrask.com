@@ -6,7 +6,7 @@ import zh_CN from './locales/zh.json' // 重命名导入以清晰
 import ru from './locales/ru.json' // 1. 导入俄语文件 (你需要创建这个文件)
 
 // 支持的语言列表
-export const supportedLocales = ['en', 'zh-CN', 'ru'];
+const supportedLocales = ['en', 'zh-CN', 'ru'];
 
 // 获取初始语言：优先 localStorage，否则默认英文
 function getStartingLocale() {
@@ -63,3 +63,4 @@ try {
 }
 
 export default i18n;
+export { supportedLocales };

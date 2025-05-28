@@ -10,9 +10,9 @@ import { smartPreloadManager } from './utils/smartPreload'
 
 
 // --- Element Plus ---
-import ElementPlus from 'element-plus'          // 引入 Element Plus
-import 'element-plus/dist/index.css'         // 引入 Element Plus 样式
-import * as ElementPlusIconsVue from '@element-plus/icons-vue' // 引入所有图标 (可选, 如果按需引入则不同)
+import ElementPlus from 'element-plus'
+import 'element-plus/dist/index.css'
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 // 创建应用实例
 const app = createApp(App)
@@ -21,9 +21,9 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(i18n) // 先安装 i18n
 app.use(ElementPlus) // 注册 Element Plus
-app.use(router) // 最后安装 router
+app.use(router) // 安装 router
 
-// 全局注册所有图标 (如果使用上面的 import *)
+// 全局注册所有图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
@@ -31,11 +31,10 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 
 // 简化的应用初始化
+
 async function initApp() {
   try {
     // console.log('[App Init] Starting application initialization...')
-
-
 
     // 确保 i18n 实例可用
     if (!i18n || !i18n.global) {
@@ -54,6 +53,7 @@ async function initApp() {
     // 初始化智能预加载
     smartPreloadManager.init()
     // console.log('[App Init] Smart preload manager initialized')
+
   } catch (error) {
     console.error('[App Init] Application initialization failed:', error)
     // 即使出错也尝试挂载应用，避免永久白屏

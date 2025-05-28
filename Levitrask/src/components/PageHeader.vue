@@ -177,7 +177,7 @@ import { useI18n } from 'vue-i18n'
 import { ArrowDown } from '@element-plus/icons-vue'
 import axios from 'axios'
 
-// --- i18n --- 
+// --- i18n ---
 const { locale, t } = useI18n();
 
 const route = useRoute();
@@ -206,7 +206,7 @@ const changeLanguage = (langCode) => {
     // console.log(`Navigating from ${currentLang} to ${langCode} for route: ${currentRoute.name}`);
     // 使用 router.push 进行导航，替换 lang 参数
     router.push({
-      name: currentRoute.name, 
+      name: currentRoute.name,
       params: { ...currentRoute.params, lang: langCode }, // 保留现有参数，更新 lang
       query: currentRoute.query, // 保留查询参数
       hash: currentRoute.hash // 保留哈希
@@ -216,7 +216,7 @@ const changeLanguage = (langCode) => {
     });
     // 注意：不再需要手动设置 locale 或 localStorage，导航守卫会处理
     // locale.value = langCode;
-    // localStorage.setItem('user-locale', langCode); 
+    // localStorage.setItem('user-locale', langCode);
   }
 };
 
@@ -228,7 +228,7 @@ const isLoadingDropdowns = ref(false);
 
 // --- API Setup ---
 // Correct baseURL setup: Use environment variable for production, leave empty for local dev (Vite proxy handles /api)
-const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : '';
 const api = axios.create({ baseURL: baseUrl });
 // console.log(`[API Setup] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`); // Add log for debugging
 
@@ -238,11 +238,11 @@ const fetchDropdownLinks = async (pageType, targetRef) => {
   // console.log(`Fetching dropdown links for type: ${pageType}`);
   try {
     // Always include /api in the path
-    const response = await api.get(`/api/managed-pages`, { 
-      params: { 
+    const response = await api.get(`/api/managed-pages`, {
+      params: {
         type: pageType,
         lang: locale.value
-      } 
+      }
     });
     targetRef.value = response.data || [];
     // console.log(`Fetched dropdown links for type ${pageType} (lang: ${locale.value}):`, targetRef.value);
@@ -279,7 +279,7 @@ const isComparisonActive = computed(() => {
   const isLegacyComparisonRoute = comparisonRouteNames.includes(route.name);
 
   // Check if the current route is a managed page detail AND its identifier is in the comparisonLinks array
-  const isManagedComparisonPage = 
+  const isManagedComparisonPage =
     route.name === 'managed-page-detail' &&
     comparisonLinks.value.some(link => link.page_identifier === route.params.identifier);
 
@@ -289,10 +289,10 @@ const isComparisonActive = computed(() => {
 // 计算属性：判断"药物"下拉菜单是否应处于活动状态 (Renamed from isBlogActive for clarity)
 const isDrugActive = computed(() => { // Renamed from isBlogActive
   // Check specific legacy drug routes if they exist (e.g., routes ending in -blog)
-  const legacyDrugRoutes = route.name?.endsWith('-blog'); 
+  const legacyDrugRoutes = route.name?.endsWith('-blog');
 
   // Check if the current route is a managed page detail AND its identifier is in the drugLinks array
-  const isManagedDrugPage = 
+  const isManagedDrugPage =
     route.name === 'managed-page-detail' &&
     drugLinks.value.some(link => link.page_identifier === route.params.identifier);
 
@@ -303,15 +303,15 @@ const isDrugActive = computed(() => { // Renamed from isBlogActive
 const isOnlineActive = computed(() => {
   // Check specific online routes if they exist
   const onlineRouteNames = [
-      'buy-levitra-online', 
-      'buy-viagra-online', 
-      'buy-cialis-online', 
+      'buy-levitra-online',
+      'buy-viagra-online',
+      'buy-cialis-online',
       'buy-stendra-online'
   ];
   const isLegacyOnlineRoute = onlineRouteNames.includes(route.name);
 
   // Check if the current route is a managed page detail AND its identifier is in the buyOnlineLinks array
-  const isManagedOnlinePage = 
+  const isManagedOnlinePage =
     route.name === 'managed-page-detail' &&
     buyOnlineLinks.value.some(link => link.page_identifier === route.params.identifier);
 
@@ -346,8 +346,8 @@ onMounted(async () => {
     isLoadingDropdowns.value = true;
     try {
       await Promise.all([
-        fetchDropdownLinks('drug', drugLinks), 
-        fetchDropdownLinks('comparison', comparisonLinks), 
+        fetchDropdownLinks('drug', drugLinks),
+        fetchDropdownLinks('comparison', comparisonLinks),
         fetchDropdownLinks('buy-online', buyOnlineLinks)
       ]);
     } finally {
@@ -488,9 +488,9 @@ watch(locale, (newLocale, oldLocale) => {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1); /* Adjusted shadow */
   padding: 0; /* Remove padding, rely on item padding */
   min-width: 200px; /* Increased width */
-  z-index: 1001;
+  z-index: 9999; /* 大幅提高z-index确保在所有内容之上 */
   display: block;
-  overflow: hidden; /* Ensure border-radius clips items */
+  overflow: visible; /* 允许下拉菜单内容显示 */
   text-align: center;
 }
 
@@ -573,7 +573,7 @@ watch(locale, (newLocale, oldLocale) => {
   border-top: 1px solid #dee2e6;
   border-bottom: 1px solid #dee2e6;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-  z-index: 999;
+  z-index: 9998; /* 提高z-index，但略低于下拉菜单 */
   display: flex;
   flex-direction: column;
 }
@@ -674,4 +674,4 @@ watch(locale, (newLocale, oldLocale) => {
     cursor: default;
     pointer-events: none; /* Prevent clicks */
 }
-</style> 
+</style>

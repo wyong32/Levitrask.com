@@ -225,9 +225,16 @@ export default (async () => { // <--- Start async IIFE
       rollupOptions: {
         output: {
           manualChunks: {
+            // Vue 核心库单独打包
             'vue-vendor': ['vue', 'vue-router', 'pinia'],
-            'element-vendor': ['element-plus'],
-            'utils-vendor': ['axios', 'vue-i18n'],
+            // i18n 相关单独打包
+            'i18n-vendor': ['vue-i18n'],
+            // Element Plus 单独打包
+            'element-vendor': ['element-plus', '@element-plus/icons-vue'],
+            // Swiper 单独打包
+            'swiper-vendor': ['swiper'],
+            // HTTP 相关单独打包
+            'http-vendor': ['axios'],
           },
           // 优化资源文件名
           chunkFileNames: 'js/[name]-[hash].js',
@@ -251,23 +258,32 @@ export default (async () => { // <--- Start async IIFE
           return false // 暂时不外部化任何依赖
         }
       },
-      minify: 'esbuild', // 使用esbuild进行更快的压缩
+      // 启用压缩（使用默认的 esbuild）
+      minify: true,
+      // 启用 CSS 代码分割
       cssCodeSplit: true,
-      // 启用gzip压缩
+      // 设置 chunk 大小警告限制
+      chunkSizeWarningLimit: 1000,
+      // 启用压缩报告
       reportCompressedSize: true,
-      // 设置chunk大小警告
-      chunkSizeWarningLimit: 500,
-      // 移除console和debugger
+      // 移除console和debugger（生产环境）
       terserOptions: {
         compress: {
           drop_console: true,
           drop_debugger: true,
+          pure_funcs: ['console.log', 'console.info', 'console.debug'],
+        },
+        mangle: {
+          safari10: true,
         },
       },
     },
     // 优化依赖预构建
     optimizeDeps: {
-      include: ['vue', 'vue-router', 'pinia', 'vue-i18n', 'axios', 'dayjs', 'element-plus'],
+      include: ['vue', 'vue-router', 'pinia', 'vue-i18n', 'axios', 'element-plus', 'dayjs'],
+      exclude: [
+        'swiper', // Swiper 按需加载，不预构建
+      ],
     },
   });
 })(); // <--- End and execute async IIFE

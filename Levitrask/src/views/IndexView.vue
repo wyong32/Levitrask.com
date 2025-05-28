@@ -326,13 +326,15 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
 </script>
 
 <style scoped>
-/* Layout for Homepage */
+/* Layout for Homepage - 防止布局偏移优化 */
 .homepage-layout {
   display: flex;
   gap: 20px; /* Space between sidebars and main content */
   padding: 20px;
   max-width: 1200px; /* Or your desired max width */
   margin: 0 auto; /* Center the layout */
+  contain: layout style; /* 防止布局偏移 */
+  transform: translateZ(0); /* 启用硬件加速 */
 }
 
 /* Left Sidebar */
@@ -345,7 +347,7 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
   top: 90px; /* Adjust based on header height or desired gap */
   height: calc(100vh - 110px); /* Adjust height based on top offset and footer */
   overflow-y: auto; /* Allow sidebar itself to scroll if content is long */
-  z-index: 10; /* Ensure sidebar stays on top */
+  z-index: 5; /* 降低z-index，避免遮挡下拉菜单 */
 }
 
 .sidebar-left-placeholder {
@@ -436,14 +438,27 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
     border-radius: 4px;
 }
 
-/* Styling for dynamic blocks */
-.content-block {
+/* Styling for dynamic blocks - 防止布局偏移 */
+.content-block-wrapper {
   margin-bottom: 2rem;
+  contain: layout style; /* 防止布局偏移 */
+}
+
+.content-block {
   /* Add scroll-margin-top if using sticky SideNav */
   scroll-margin-top: 80px; /* Adjust to match sticky top + gap */
+  contain: layout style; /* 防止布局偏移 */
+  transform: translateZ(0); /* 启用硬件加速 */
 }
+
 .content-block:last-child .el-divider {
   display: none; /* Hide divider after the last block */
+}
+
+/* 侧边栏块优化 */
+.sidebar-block-wrapper {
+  margin-bottom: 1rem;
+  contain: layout style;
 }
 
 /* Styling for Swiper */
@@ -479,16 +494,10 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
 }
 
 
-/* CORRECTED selector to match JS and HTML & ensure overflow applies */
-/* Using :deep() might help penetrate scoped style boundary if needed */
-/* Target both possible class names */
 :deep(.related-generics-swiper),
 :deep(.swiperrelated-generics-swiper) {
   width: 100%;
-  overflow: hidden !important; /* Add !important as a test, remove if possible */
-  /* margin-left: auto; */ /* Added by swiper */
-  /* margin-right: auto; */ /* Added by swiper */
-  /* position: relative; */ /* Added by swiper */
+  overflow: hidden !important;
 }
 
 :deep(.swiper-slide) {
@@ -496,8 +505,6 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
   justify-content: center;
   align-items: stretch;
   box-sizing: border-box;
-  /* Optional: Add min-height if slides have variable height */
-  /* min-height: 150px; */
 }
 
 :deep(.related-generic-item) {
@@ -579,7 +586,7 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
 :deep(.swiper-button-prev:after),
 :deep(.swiper-button-next:after) {
     font-family: swiper-icons;
-    font-size: 24px; /* Adjust size */
+    font-size: 24px;
     font-weight: bold;
     text-transform: none !important;
     letter-spacing: 0;

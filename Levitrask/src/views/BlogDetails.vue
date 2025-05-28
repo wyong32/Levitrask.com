@@ -28,7 +28,7 @@
             <!-- Main content area -->
             <div class="post-body" ref="postBodyRef" v-html="blogPost.content"></div>
           </article>
-          
+
           <aside class="post-sidebar drug-sidebar-component">
             <!-- DrugSidebar Component -->
             <DrugSidebar
@@ -63,7 +63,7 @@ import DrugSidebar from '../components/DrugSidebar.vue'
 // Define props to receive lang and slug from router
 const props = defineProps({
   lang: String,
-  slug: String, 
+  slug: String,
 })
 
 const route = useRoute()
@@ -82,7 +82,7 @@ const buildApiUrl = (path) => {
     return apiBaseUrl ? `${apiBaseUrl}${ensuredPath}` : ensuredPath;
 }
 
-// --- Fetch Blog Post Data (REVISED URL Construction) --- 
+// --- Fetch Blog Post Data (REVISED URL Construction) ---
 async function fetchBlogPost(lang, slug) {
   if (!lang || !slug) {
     error.value = 'Language or slug parameter is missing.';
@@ -101,23 +101,17 @@ async function fetchBlogPost(lang, slug) {
 
   try {
     // Use the public detail API endpoint: /api/blogs/:lang/blog/:slug
-    const detailApiUrl = buildApiUrl(`/api/blogs/${lang}/blog/${slug}`); 
+    const detailApiUrl = buildApiUrl(`/api/blogs/${lang}/blog/${slug}`);
     console.log(`Fetching blog detail from: ${detailApiUrl}`);
-    
-    const response = await axios.get(detailApiUrl); 
+
+    const response = await axios.get(detailApiUrl);
     const fetchedData = response.data;
 
     // Check if data is valid
     if (fetchedData && fetchedData.slug) {
       blogPost.value = fetchedData;
 
-      // --- DEBUGGING START ---
-      console.log('+++ BlogDetails: Received full blogPost data:', JSON.stringify(blogPost.value, null, 2));
-      console.log('+++ BlogDetails: Checking sidebar_data:', blogPost.value.sidebar_data);
-      // --- DEBUGGING END ---
-
       updateMetaTags(blogPost.value);
-      console.log('Blog post data loaded:', blogPost.value);
       await nextTick();
       setupContentClickListener();
     } else {
@@ -136,13 +130,13 @@ async function fetchBlogPost(lang, slug) {
     } else {
         error.value = err.response?.data?.message || err.message || 'Failed to load blog post details.';
     }
-    updateMetaTags(); 
+    updateMetaTags();
   } finally {
     isLoading.value = false
   }
 }
 
-// --- Meta Tag Management (UPDATED) --- 
+// --- Meta Tag Management (UPDATED) ---
 const updateMetaTags = (post = null) => {
   const title = post?.meta_title || (error.value ? 'Error Loading Blog Post' : 'Blog Post | Levitrask.com');
   const description = post?.meta_description || (error.value || 'Blog post not found.');
@@ -171,19 +165,19 @@ const setMetaTag = (nameOrProperty, content, isProperty = false) => {
 };
 
 // Helper for canonical (if needed)
-// const setCanonicalUrl = (url) => { ... }; 
+// const setCanonicalUrl = (url) => { ... };
 
-// --- Content Click Handler (Remains the same conceptually) --- 
+// --- Content Click Handler (Remains the same conceptually) ---
 const handleContentClick = (event) => {
   const target = event.target.closest('a'); // Check closest anchor tag
-  if (target && target.closest('.post-body')) { 
+  if (target && target.closest('.post-body')) {
     let href = target.getAttribute('href');
-    
+
     // Basic check for internal links (starts with / but not //)
     if (href && href.startsWith('/') && !href.startsWith('//')) {
       event.preventDefault();
 
-      // --- Check if link ALREADY has language prefix --- 
+      // --- Check if link ALREADY has language prefix ---
       const langParam = props.lang; // Get current language from route
       const hasLangPrefix = href.startsWith(`/${langParam}/`) || href === `/${langParam}`;
 
@@ -192,12 +186,12 @@ const handleContentClick = (event) => {
           // Ensure we don't double-slash if href is just '/'
           href = href === '/' ? `/${langParam}` : `/${langParam}${href}`;
       }
-      
+
       // Navigate using router.push
       if (href !== route.fullPath) { // Avoid navigating to the same page
         router.push(href);
       }
-    } 
+    }
     // External links or non-navigational links will behave normally
   }
 };
@@ -225,29 +219,29 @@ const getImageSrc = (imageValue) => {
   const placeholder = '/images/placeholder-blog.png'; // Ensure placeholder exists
 
   if (!imageValue) {
-    return placeholder; 
+    return placeholder;
   }
   const trimmedValue = imageValue.trim();
 
   if (trimmedValue.startsWith('data:image')) {
-    return trimmedValue; 
+    return trimmedValue;
   }
   if (trimmedValue.startsWith('/')) {
     // Assuming relative paths are served correctly by the frontend deployment
     return trimmedValue;
   }
   if (trimmedValue.startsWith('http')) {
-    return trimmedValue; 
+    return trimmedValue;
   }
   // Assume Base64 if other checks fail and length is reasonable
-  if (trimmedValue.length > 50) { 
+  if (trimmedValue.length > 50) {
       return `data:image/png;base64,${trimmedValue}`; // Assuming PNG
   }
   console.warn(`Unrecognized image format in BlogDetails for value: ${trimmedValue}, using placeholder.`);
   return placeholder;
 }
 
-// --- Lifecycle and Watchers (UPDATED) --- 
+// --- Lifecycle and Watchers (UPDATED) ---
 
 // Watch for changes in props.lang or props.slug
 watch(
@@ -258,7 +252,7 @@ watch(
     const oldSlug = oldValues ? oldValues[1] : undefined;
 
     // Fetch if props are valid AND (
-    //  it's the initial run (oldValues is undefined) 
+    //  it's the initial run (oldValues is undefined)
     //  OR lang/slug has actually changed)
     if (newLang && newSlug && (oldValues === undefined || newLang !== oldLang || newSlug !== oldSlug)) {
         console.log(`Route changed or initial load. Fetching blog for lang: ${newLang}, slug: ${newSlug}`);
@@ -274,7 +268,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  removeContentClickListener(); 
+  removeContentClickListener();
 })
 
 </script>

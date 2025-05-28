@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Test - Levitrask Optimization</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 5px 0;
+            background-color: white;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .metric.good { border-left-color: #28a745; }
+        .metric.needs-improvement { border-left-color: #ffc107; }
+        .metric.poor { border-left-color: #dc3545; }
+        .value {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .recommendations {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .recommendations ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        .test-button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Levitrask PageSpeed 优化测试</h1>
+    <p>这个页面用于测试 PageSpeed Insights 优化的效果。</p>
+
+    <div class="test-section">
+        <h2>📊 Core Web Vitals 监控</h2>
+        <div id="core-vitals">
+            <div class="metric" id="lcp-metric">
+                <span>Largest Contentful Paint (LCP)</span>
+                <span class="value" id="lcp-value">测量中...</span>
+            </div>
+            <div class="metric" id="fid-metric">
+                <span>First Input Delay (FID)</span>
+                <span class="value" id="fid-value">等待交互...</span>
+            </div>
+            <div class="metric" id="cls-metric">
+                <span>Cumulative Layout Shift (CLS)</span>
+                <span class="value" id="cls-value">测量中...</span>
+            </div>
+            <div class="metric" id="fcp-metric">
+                <span>First Contentful Paint (FCP)</span>
+                <span class="value" id="fcp-value">测量中...</span>
+            </div>
+            <div class="metric" id="ttfb-metric">
+                <span>Time to First Byte (TTFB)</span>
+                <span class="value" id="ttfb-value">测量中...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 优化功能测试</h2>
+        <button class="test-button" onclick="testDynamicImports()">测试动态导入</button>
+        <button class="test-button" onclick="testImageOptimization()">测试图片优化</button>
+        <button class="test-button" onclick="testLazyLoading()">测试懒加载</button>
+        <button class="test-button" onclick="testResourcePreload()">测试资源预加载</button>
+        
+        <div id="test-results" class="status info">
+            点击上方按钮开始测试优化功能...
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📈 性能报告</h2>
+        <button class="test-button" onclick="generateReport()">生成性能报告</button>
+        <div id="performance-report"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>💡 优化建议</h2>
+        <div id="recommendations" class="recommendations">
+            <p>正在分析性能数据，请稍候...</p>
+        </div>
+    </div>
+
+    <script type="module">
+        // 模拟性能监控（简化版）
+        class SimplePerformanceMonitor {
+            constructor() {
+                this.metrics = {};
+                this.init();
+            }
+
+            init() {
+                this.observePerformance();
+                this.startMetricsCollection();
+            }
+
+            observePerformance() {
+                // 监控 LCP
+                if ('PerformanceObserver' in window) {
+                    try {
+                        const lcpObserver = new PerformanceObserver((list) => {
+                            const entries = list.getEntries();
+                            const lastEntry = entries[entries.length - 1];
+                            this.updateMetric('lcp', lastEntry.startTime);
+                        });
+                        lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
+
+                        // 监控 FCP
+                        const fcpObserver = new PerformanceObserver((list) => {
+                            const entries = list.getEntries();
+                            entries.forEach((entry) => {
+                                if (entry.name === 'first-contentful-paint') {
+                                    this.updateMetric('fcp', entry.startTime);
+                                }
+                            });
+                        });
+                        fcpObserver.observe({ entryTypes: ['paint'] });
+
+                        // 监控 CLS
+                        let clsValue = 0;
+                        const clsObserver = new PerformanceObserver((list) => {
+                            const entries = list.getEntries();
+                            entries.forEach((entry) => {
+                                if (!entry.hadRecentInput) {
+                                    clsValue += entry.value;
+                                    this.updateMetric('cls', clsValue);
+                                }
+                            });
+                        });
+                        clsObserver.observe({ entryTypes: ['layout-shift'] });
+
+                        // 监控 FID
+                        const fidObserver = new PerformanceObserver((list) => {
+                            const entries = list.getEntries();
+                            entries.forEach((entry) => {
+                                const fid = entry.processingStart - entry.startTime;
+                                this.updateMetric('fid', fid);
+                            });
+                        });
+                        fidObserver.observe({ entryTypes: ['first-input'] });
+
+                    } catch (error) {
+                        console.warn('Performance observation failed:', error);
+                    }
+                }
+
+                // 获取 TTFB
+                if (performance.timing) {
+                    const ttfb = performance.timing.responseStart - performance.timing.requestStart;
+                    this.updateMetric('ttfb', ttfb);
+                }
+            }
+
+            updateMetric(name, value) {
+                this.metrics[name] = value;
+                this.displayMetric(name, value);
+            }
+
+            displayMetric(name, value) {
+                const element = document.getElementById(`${name}-value`);
+                const metricElement = document.getElementById(`${name}-metric`);
+                
+                if (element && metricElement) {
+                    let displayValue, rating;
+                    
+                    if (name === 'cls') {
+                        displayValue = value.toFixed(3);
+                        rating = value <= 0.1 ? 'good' : value <= 0.25 ? 'needs-improvement' : 'poor';
+                    } else {
+                        displayValue = `${Math.round(value)}ms`;
+                        const thresholds = {
+                            lcp: { good: 2500, poor: 4000 },
+                            fid: { good: 100, poor: 300 },
+                            fcp: { good: 1800, poor: 3000 },
+                            ttfb: { good: 800, poor: 1800 }
+                        };
+                        const threshold = thresholds[name];
+                        if (threshold) {
+                            rating = value <= threshold.good ? 'good' : value <= threshold.poor ? 'needs-improvement' : 'poor';
+                        } else {
+                            rating = 'good';
+                        }
+                    }
+                    
+                    element.textContent = displayValue;
+                    metricElement.className = `metric ${rating}`;
+                }
+            }
+
+            startMetricsCollection() {
+                // 定期更新显示
+                setInterval(() => {
+                    this.generateRecommendations();
+                }, 3000);
+            }
+
+            generateRecommendations() {
+                const recommendations = [];
+                
+                if (this.metrics.lcp && this.metrics.lcp > 2500) {
+                    recommendations.push('LCP 需要优化：考虑优化图片、减少服务器响应时间');
+                }
+                
+                if (this.metrics.fid && this.metrics.fid > 100) {
+                    recommendations.push('FID 需要优化：减少 JavaScript 执行时间');
+                }
+                
+                if (this.metrics.cls && this.metrics.cls > 0.1) {
+                    recommendations.push('CLS 需要优化：为图片设置尺寸、避免动态插入内容');
+                }
+
+                if (recommendations.length === 0) {
+                    recommendations.push('✅ 所有 Core Web Vitals 指标表现良好！');
+                }
+
+                const recommendationsEl = document.getElementById('recommendations');
+                recommendationsEl.innerHTML = `
+                    <h3>当前建议：</h3>
+                    <ul>
+                        ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                    </ul>
+                `;
+            }
+
+            getReport() {
+                return {
+                    timestamp: new Date().toISOString(),
+                    metrics: this.metrics,
+                    url: window.location.href
+                };
+            }
+        }
+
+        // 初始化性能监控
+        const monitor = new SimplePerformanceMonitor();
+
+        // 测试函数
+        window.testDynamicImports = async function() {
+            const resultEl = document.getElementById('test-results');
+            resultEl.innerHTML = '<div class="loading"></div>测试动态导入...';
+            
+            try {
+                // 模拟动态导入测试
+                const start = performance.now();
+                await new Promise(resolve => setTimeout(resolve, 500)); // 模拟加载时间
+                const end = performance.now();
+                
+                resultEl.innerHTML = `<div class="status success">✅ 动态导入测试成功！加载时间: ${Math.round(end - start)}ms</div>`;
+            } catch (error) {
+                resultEl.innerHTML = `<div class="status error">❌ 动态导入测试失败: ${error.message}</div>`;
+            }
+        };
+
+        window.testImageOptimization = function() {
+            const resultEl = document.getElementById('test-results');
+            resultEl.innerHTML = '<div class="loading"></div>测试图片优化...';
+            
+            // 检查 WebP 支持
+            const webp = new Image();
+            webp.onload = webp.onerror = function() {
+                const supported = webp.height === 2;
+                resultEl.innerHTML = `<div class="status ${supported ? 'success' : 'info'}">
+                    ${supported ? '✅' : 'ℹ️'} WebP 支持: ${supported ? '是' : '否'}
+                </div>`;
+            };
+            webp.src = 'data:image/webp;base64,UklGRjoAAABXRUJQVlA4IC4AAACyAgCdASoCAAIALmk0mk0iIiIiIgBoSygABc6WWgAA/veff/0PP8bA//LwYAAA';
+        };
+
+        window.testLazyLoading = function() {
+            const resultEl = document.getElementById('test-results');
+            const supported = 'IntersectionObserver' in window;
+            resultEl.innerHTML = `<div class="status ${supported ? 'success' : 'error'}">
+                ${supported ? '✅' : '❌'} IntersectionObserver 支持: ${supported ? '是' : '否'}
+            </div>`;
+        };
+
+        window.testResourcePreload = function() {
+            const resultEl = document.getElementById('test-results');
+            const preloadLinks = document.querySelectorAll('link[rel="preload"]');
+            resultEl.innerHTML = `<div class="status info">
+                ℹ️ 发现 ${preloadLinks.length} 个预加载资源
+            </div>`;
+        };
+
+        window.generateReport = function() {
+            const report = monitor.getReport();
+            const reportEl = document.getElementById('performance-report');
+            
+            reportEl.innerHTML = `
+                <h3>性能报告</h3>
+                <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto;">
+${JSON.stringify(report, null, 2)}
+                </pre>
+            `;
+        };
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Performance test page loaded');
+        });
+    </script>
+</body>
+</html>

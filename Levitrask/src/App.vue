@@ -49,9 +49,10 @@ onMounted(async () => {
 
 <style scoped>
 .app-wrapper {
-  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  contain: layout style; /* 防止布局偏移 */
 }
 
 .app-loading {
@@ -82,5 +83,37 @@ onMounted(async () => {
   color: #6c757d;
   font-size: 16px;
   margin: 0;
+}
+
+/* 全局样式，确保所有图片都有占位符和固定尺寸 */
+:deep(img) {
+  background-color: #f0f0f0; /* 图片加载前的背景色 */
+  transition: opacity 0.3s ease; /* 平滑过渡效果 */
+  transform: translateZ(0); /* 启用GPU加速 */
+  backface-visibility: hidden; /* 防止闪烁 */
+  will-change: transform; /* 提示浏览器这个元素会变化 */
+  image-rendering: -webkit-optimize-contrast; /* 提高图片渲染质量 */
+}
+
+/* 防止布局偏移的全局样式 */
+:deep(.homepage-layout),
+:deep(.content-block),
+:deep(.sidebar-block) {
+  contain: layout style; /* 防止布局偏移 */
+}
+
+:deep(.main-content-area) {
+  flex: 1; /* Allow main content to grow and push footer down */
+  min-height: 800px; /* 设置最小高度，防止内容加载时的布局偏移 */
+  width: 100%; /* 确保宽度固定 */
+  box-sizing: border-box; /* 确保padding不影响总宽度 */
+  contain: layout style; /* 防止布局偏移 */
+  transform: translateZ(0); /* 启用硬件加速 */
+}
+
+@media (max-width: 767px) {
+  :deep(.main-content-area) {
+    min-height: 600px; /* 移动端减少最小高度 */
+  }
 }
 </style>

@@ -1,1 +1,6 @@
 @import './base.css';
+
+/* 确保下拉菜单在页眉的层叠上下文中有最高优先级 */
+.page-header .dropdown-menu {
+  z-index: 9999 !important;
+}
