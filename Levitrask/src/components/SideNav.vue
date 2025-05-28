@@ -61,7 +61,7 @@ function setupIntersectionObserver() {
   disconnectObserver(); // 先断开旧的
 
   if (!props.sections || props.sections.length === 0) {
-    console.log('[SideNav] No sections provided to observe.');
+    // console.log('[SideNav] No sections provided to observe.');
     return;
   }
 
@@ -91,7 +91,7 @@ function setupIntersectionObserver() {
   }
 
   currentObservedElements = sectionsToObserve;
-  console.log('[SideNav] Setting up IntersectionObserver for elements:', currentObservedElements);
+  // console.log('[SideNav] Setting up IntersectionObserver for elements:', currentObservedElements);
 
   const options = {
     root: null, // 视口
@@ -131,7 +131,7 @@ function setupIntersectionObserver() {
 // --- 断开观察者 --- 
 function disconnectObserver() {
     if (observer) {
-        // console.log('[SideNav] Disconnecting existing IntersectionObserver.');
+        // // console.log('[SideNav] Disconnecting existing IntersectionObserver.');
         currentObservedElements.forEach(el => observer.unobserve(el));
         observer.disconnect();
         observer = null;

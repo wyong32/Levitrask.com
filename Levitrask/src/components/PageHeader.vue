@@ -198,12 +198,12 @@ const currentLanguageName = computed(() => {
 
 // 切换语言的方法
 const changeLanguage = (langCode) => {
-  console.log(`Attempting to change language to: ${langCode}`);
+  // console.log(`Attempting to change language to: ${langCode}`);
   const currentRoute = route; // Get current route information
   const currentLang = locale.value;
 
   if (langCode !== currentLang) {
-    console.log(`Navigating from ${currentLang} to ${langCode} for route: ${currentRoute.name}`);
+    // console.log(`Navigating from ${currentLang} to ${langCode} for route: ${currentRoute.name}`);
     // 使用 router.push 进行导航，替换 lang 参数
     router.push({
       name: currentRoute.name, 
@@ -230,12 +230,12 @@ const isLoadingDropdowns = ref(false);
 // Correct baseURL setup: Use environment variable for production, leave empty for local dev (Vite proxy handles /api)
 const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
 const api = axios.create({ baseURL: baseUrl });
-console.log(`[API Setup] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`); // Add log for debugging
+// console.log(`[API Setup] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`); // Add log for debugging
 
 // --- Fetch Dynamic Links Function ---
 const fetchDropdownLinks = async (pageType, targetRef) => {
   isLoadingDropdowns.value = true;
-  console.log(`Fetching dropdown links for type: ${pageType}`);
+  // console.log(`Fetching dropdown links for type: ${pageType}`);
   try {
     // Always include /api in the path
     const response = await api.get(`/api/managed-pages`, { 
@@ -245,7 +245,7 @@ const fetchDropdownLinks = async (pageType, targetRef) => {
       } 
     });
     targetRef.value = response.data || [];
-    console.log(`Fetched dropdown links for type ${pageType} (lang: ${locale.value}):`, targetRef.value);
+    // console.log(`Fetched dropdown links for type ${pageType} (lang: ${locale.value}):`, targetRef.value);
   } catch (error) {
     console.error(`Error fetching dropdown links for type ${pageType}:`, error);
     targetRef.value = [];
@@ -360,7 +360,7 @@ onMounted(async () => {
 watch(locale, (newLocale, oldLocale) => {
   // Prevent refetching if locale didn't actually change
   if (newLocale && newLocale !== oldLocale) {
-     console.log(`Locale changed in header from ${oldLocale} to ${newLocale}, refetching dropdowns...`);
+     // console.log(`Locale changed in header from ${oldLocale} to ${newLocale}, refetching dropdowns...`);
      // Refetch all dropdown data when locale changes
      // Add loading state handling if desired
      isLoadingDropdowns.value = true; // Show loading indicator

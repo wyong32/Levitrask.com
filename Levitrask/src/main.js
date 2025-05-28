@@ -33,7 +33,7 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 // 简化的应用初始化
 async function initApp() {
   try {
-    console.log('[App Init] Starting application initialization...')
+    // console.log('[App Init] Starting application initialization...')
 
 
 
@@ -41,26 +41,26 @@ async function initApp() {
     if (!i18n || !i18n.global) {
       throw new Error('i18n instance is not properly initialized')
     }
-    console.log('[App Init] i18n is ready with locale:', i18n.global.locale.value)
+    // console.log('[App Init] i18n is ready with locale:', i18n.global.locale.value)
 
     // 等待 router 准备就绪
     await router.isReady()
-    console.log('[App Init] Router is ready')
+    // console.log('[App Init] Router is ready')
 
     // 挂载应用
     app.mount('#app')
-    console.log('[App Init] Application mounted successfully')
+    // console.log('[App Init] Application mounted successfully')
 
     // 初始化智能预加载
     smartPreloadManager.init()
-    console.log('[App Init] Smart preload manager initialized')
+    // console.log('[App Init] Smart preload manager initialized')
   } catch (error) {
     console.error('[App Init] Application initialization failed:', error)
     // 即使出错也尝试挂载应用，避免永久白屏
     setTimeout(() => {
       try {
         app.mount('#app')
-        console.log('[App Init] Application mounted after error recovery')
+        // console.log('[App Init] Application mounted after error recovery')
       } catch (mountError) {
         console.error('[App Init] Failed to mount application:', mountError)
       }

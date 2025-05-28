@@ -9,7 +9,7 @@ const route = useRoute()
 const { locale } = useI18n()
 
 onMounted(async () => {
-  console.log('[App] App component mounted, initializing...')
+  // console.log('[App] App component mounted, initializing...')
 
   try {
     // 短暂延迟确保所有初始化完成
@@ -19,12 +19,12 @@ onMounted(async () => {
     const routeLang = route.params.lang
     if (routeLang && ['en', 'zh-CN', 'ru'].includes(routeLang)) {
       if (locale.value !== routeLang) {
-        console.log('[App] Syncing locale:', routeLang)
+        // console.log('[App] Syncing locale:', routeLang)
         locale.value = routeLang
       }
     }
 
-    console.log('[App] App initialization complete')
+    // console.log('[App] App initialization complete')
     isAppReady.value = true
   } catch (error) {
     console.error('[App] App initialization failed:', error)

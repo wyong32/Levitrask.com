@@ -112,20 +112,20 @@ const fetchHomepageBlocks = async (lang, retryCount = 0) => { // Accept lang par
   homepageBlocks.value = []; // Clear previous blocks
 
   try {
-    console.log(`Fetching homepage blocks for language: ${lang} (attempt ${retryCount + 1})`);
+    // console.log(`Fetching homepage blocks for language: ${lang} (attempt ${retryCount + 1})`);
     // Use the new public endpoint and pass the language
     const response = await api.get(buildApiUrl('/api/homepage-blocks'), {
         params: { lang: lang }, // Pass lang as query parameter
         timeout: 10000 // 10 second timeout
     })
     homepageBlocks.value = response.data || []
-    console.log('Fetched homepage blocks:', homepageBlocks.value)
+    // console.log('Fetched homepage blocks:', homepageBlocks.value)
   } catch (err) {
     console.error('Error fetching homepage blocks:', err)
 
     // 重试逻辑
     if (retryCount < 2) {
-      console.log(`Retrying homepage blocks fetch in 1 second... (attempt ${retryCount + 2})`)
+      // console.log(`Retrying homepage blocks fetch in 1 second... (attempt ${retryCount + 2})`)
       setTimeout(() => {
         fetchHomepageBlocks(lang, retryCount + 1)
       }, 1000)
@@ -156,9 +156,9 @@ const fetchSidebarBlocks = async (lang) => { // Accept lang parameter
     const content = response.data;
     if (content && Array.isArray(content)) {
        sidebarBlocks.value = content;
-       console.log(`Fetched sidebar blocks for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}):`, sidebarBlocks.value);
+       // console.log(`Fetched sidebar blocks for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}):`, sidebarBlocks.value);
     } else if (content && typeof content === 'object' && Object.keys(content).length === 0) {
-        console.log(`No sidebar content returned for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}).`);
+        // console.log(`No sidebar content returned for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}).`);
         sidebarBlocks.value = [];
     } else if (content) {
         console.warn(`Received unexpected sidebar content format for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}):`, content);
@@ -169,7 +169,7 @@ const fetchSidebarBlocks = async (lang) => { // Accept lang parameter
 
   } catch (error) {
       if (error.response && error.response.status === 404) {
-          console.log(`Sidebar content not found for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}).`);
+          // console.log(`Sidebar content not found for page '${HOMEPAGE_IDENTIFIER}' (lang: ${lang}).`);
           sidebarBlocks.value = [];
       } else {
          console.error("Error fetching sidebar blocks:", error);
@@ -235,7 +235,7 @@ const initializeSwiper = () => {
   if (swiperInstance.value) {
     swiperInstance.value.destroy(true, true)
     swiperInstance.value = null
-    console.log('Previous Swiper instance destroyed.')
+    // console.log('Previous Swiper instance destroyed.')
   }
 
   // *** MODIFIED SELECTOR to find either class name ***
@@ -263,29 +263,29 @@ const initializeSwiper = () => {
         observer: true,
         observeParents: true,
       })
-      console.log(`Swiper initialized/re-initialized on element matching selector: "${swiperContainerSelector}".`)
+      // console.log(`Swiper initialized/re-initialized on element matching selector: "${swiperContainerSelector}".`)
     } catch (swiperError) {
       console.error('Failed to initialize Swiper:', swiperError)
     }
   } else {
-    console.log(`Swiper container matching "${swiperContainerSelector}" not found or empty, skipping initialization.`)
+    // console.log(`Swiper container matching "${swiperContainerSelector}" not found or empty, skipping initialization.`)
   }
 }
 
 // --- Lifecycle Hook and Watcher ---
 onMounted(async () => {
-  console.log('[IndexView] Component mounted, initializing...');
+  // console.log('[IndexView] Component mounted, initializing...');
 
   // 等待路由准备就绪
   await nextTick();
 
   const currentLang = route.params.lang || 'en';
-  console.log(`[IndexView] Mounted. Route language: ${currentLang}`);
+  // console.log(`[IndexView] Mounted. Route language: ${currentLang}`);
 
   // 验证语言参数
   const supportedLangs = ['en', 'zh-CN', 'ru'];
   const validLang = supportedLangs.includes(currentLang) ? currentLang : 'en';
-  console.log(`[IndexView] Using validated language: ${validLang}`);
+  // console.log(`[IndexView] Using validated language: ${validLang}`);
 
   // 获取数据
   fetchHomepageBlocks(validLang);
@@ -294,7 +294,7 @@ onMounted(async () => {
 
 // Watch for language changes in the route params
 watch(() => route.params.lang, async (newLang, oldLang) => {
-  console.log(`[IndexView] Language watcher triggered. New: ${newLang}, Old: ${oldLang}`);
+  // console.log(`[IndexView] Language watcher triggered. New: ${newLang}, Old: ${oldLang}`);
 
   const langToFetch = newLang || 'en';
   const supportedLangs = ['en', 'zh-CN', 'ru'];
@@ -304,7 +304,7 @@ watch(() => route.params.lang, async (newLang, oldLang) => {
   const validOldLang = supportedLangs.includes(oldLang) ? oldLang : 'en';
 
   if (validLangToFetch !== validOldLang) {
-    console.log(`[IndexView] Language changed from ${oldLang || 'initial'} to ${validLangToFetch}. Refetching content.`);
+    // console.log(`[IndexView] Language changed from ${oldLang || 'initial'} to ${validLangToFetch}. Refetching content.`);
 
     // 等待一个tick确保路由和i18n都已更新
     await nextTick();
@@ -317,7 +317,7 @@ watch(() => route.params.lang, async (newLang, oldLang) => {
 // Watch for swiperHtmlContent changes to re-initialize Swiper
 watch(swiperHtmlContent, (newHtml, oldHtml) => {
   if (newHtml !== oldHtml) {
-    console.log('[IndexView] Swiper HTML content changed, re-initializing Swiper...');
+    // console.log('[IndexView] Swiper HTML content changed, re-initializing Swiper...');
     nextTick(() => {
       initializeSwiper();
     });

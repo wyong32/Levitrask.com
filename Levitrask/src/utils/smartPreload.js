@@ -4,6 +4,58 @@
  */
 
 /**
+ * Polyfill for Element.matches() method
+ * @param {Element} element - The element to check
+ * @param {string} selector - The CSS selector to match
+ * @returns {boolean} - Whether the element matches the selector
+ */
+function matchesPolyfill(element, selector) {
+  if (!element || element.nodeType !== 1) return false
+
+  // 检查原生支持的方法
+  const nativeMatches = element.matches ||
+                       element.webkitMatchesSelector ||
+                       element.mozMatchesSelector ||
+                       element.msMatchesSelector
+
+  if (nativeMatches) {
+    return nativeMatches.call(element, selector)
+  }
+
+  // 最后的回退方案
+  const parent = element.parentNode
+  if (!parent) return false
+
+  const matches = parent.querySelectorAll(selector)
+  return Array.prototype.indexOf.call(matches, element) !== -1
+}
+
+/**
+ * Polyfill for Element.closest() method
+ * @param {Element} element - The element to start from
+ * @param {string} selector - The CSS selector to match
+ * @returns {Element|null} - The closest matching element or null
+ */
+function closestPolyfill(element, selector) {
+  if (!element || element.nodeType !== 1) return null
+
+  // 如果原生支持 closest，直接使用
+  if (typeof element.closest === 'function') {
+    return element.closest(selector)
+  }
+
+  // Polyfill implementation
+  let current = element
+  while (current && current.nodeType === 1) {
+    if (matchesPolyfill(current, selector)) {
+      return current
+    }
+    current = current.parentElement
+  }
+  return null
+}
+
+/**
  * 预加载关键CSS
  * @param {string} href - CSS文件路径
  * @param {number} delay - 延迟时间（毫秒）
@@ -56,11 +108,11 @@ export function smartPreloadImage(src, options = {}) {
     link.rel = 'preload'
     link.as = 'image'
     link.href = src
-    
+
     if (priority === 'high') {
       link.fetchPriority = 'high'
     }
-    
+
     document.head.appendChild(link)
   }
 
@@ -87,7 +139,7 @@ export function preloadNextPage(route) {
   }
 
   const nextRoutes = routePreloadMap[route] || []
-  
+
   nextRoutes.forEach(nextRoute => {
     const link = document.createElement('link')
     link.rel = 'prefetch'
@@ -108,18 +160,23 @@ export function preloadOnHover(selector, resource) {
 
   const handleMouseEnter = () => {
     if (preloaded) return
-    
+
     const link = document.createElement('link')
     link.rel = 'prefetch'
     link.href = resource
     document.head.appendChild(link)
-    
+
     preloaded = true
   }
 
   // 使用事件委托
   document.addEventListener('mouseenter', (e) => {
-    if (e.target.matches(selector)) {
+    // 安全检查：确保 e.target 是一个元素节点
+    if (!e.target || e.target.nodeType !== 1) {
+      return
+    }
+
+    if (matchesPolyfill(e.target, selector)) {
       handleMouseEnter()
     }
   }, true)
@@ -132,18 +189,18 @@ export function shouldPreload() {
   // 检查网络连接
   if (typeof navigator !== 'undefined' && navigator.connection) {
     const connection = navigator.connection
-    
+
     // 如果是慢速网络，不预加载
     if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
       return false
     }
-    
+
     // 如果用户设置了数据节省模式
     if (connection.saveData) {
       return false
     }
   }
-  
+
   // 检查设备内存（如果支持）
   if (typeof navigator !== 'undefined' && navigator.deviceMemory) {
     // 如果设备内存小于2GB，减少预加载
@@ -151,7 +208,7 @@ export function shouldPreload() {
       return false
     }
   }
-  
+
   return true
 }
 
@@ -190,7 +247,7 @@ export class SmartPreloadManager {
           if (entry.isIntersecting) {
             const element = entry.target
             const preloadSrc = element.dataset.preload
-            
+
             if (preloadSrc && !this.preloadedResources.has(preloadSrc)) {
               this.preloadResource(preloadSrc)
               this.preloadedResources.add(preloadSrc)
@@ -210,7 +267,12 @@ export class SmartPreloadManager {
    */
   setupHoverPreload() {
     document.addEventListener('mouseenter', (e) => {
-      const link = e.target.closest('a[href]')
+      // 安全检查：确保 e.target 是一个元素节点
+      if (!e.target || e.target.nodeType !== 1) {
+        return
+      }
+
+      const link = closestPolyfill(e.target, 'a[href]')
       if (link && this.enabled) {
         const href = link.getAttribute('href')
         if (href && !this.preloadedResources.has(href)) {

@@ -442,11 +442,11 @@ const router = createRouter({
 
 // Navigation Guard for Language Handling and Meta Tags
 router.beforeEach((to, from, next) => {
-  console.log('[Router] Guard entered. Path:', to.path, 'Params:', to.params);
+  // console.log('[Router] Guard entered. Path:', to.path, 'Params:', to.params);
 
   // Skip ALL processing for admin routes
   if (to.path.startsWith('/admin')) {
-    console.log('[Router] Skipping admin route:', to.path);
+    // console.log('[Router] Skipping admin route:', to.path);
     document.title = to.meta.title || 'Admin Panel';
     next();
     return;
@@ -454,11 +454,11 @@ router.beforeEach((to, from, next) => {
 
   // --- Frontend Locale Logic ---
   const lang = to.params.lang;
-  console.log('[Router] Extracted lang from params:', lang);
+  // console.log('[Router] Extracted lang from params:', lang);
 
   // 检查语言参数是否有效
   if (!lang || !supportedLocales.includes(lang)) {
-     console.log('[Router] Invalid or missing lang in params. Checking localStorage...');
+     // console.log('[Router] Invalid or missing lang in params. Checking localStorage...');
 
      let userLocale = null;
      try {
@@ -467,36 +467,36 @@ router.beforeEach((to, from, next) => {
        console.warn('[Router] localStorage not available:', e);
      }
 
-     console.log('[Router] localStorage locale:', userLocale);
+     // console.log('[Router] localStorage locale:', userLocale);
      const targetLocale = (userLocale && supportedLocales.includes(userLocale)) ? userLocale : 'en';
-     console.log('[Router] Determined target locale for redirect:', targetLocale);
+     // console.log('[Router] Determined target locale for redirect:', targetLocale);
 
      // 构建重定向路径
      const intendedPath = to.fullPath === '/' ? '' : to.fullPath;
-     console.log('[Router] Intended path:', intendedPath);
+     // console.log('[Router] Intended path:', intendedPath);
 
      if (!intendedPath.startsWith(`/${targetLocale}`)) {
        const redirectPath = `/${targetLocale}${intendedPath}`;
-       console.log('[Router] Redirecting to:', redirectPath);
+       // console.log('[Router] Redirecting to:', redirectPath);
        next(redirectPath);
        return;
      } else {
-        console.log('[Router] Already has correct locale, proceeding...');
+        // console.log('[Router] Already has correct locale, proceeding...');
         next();
         return;
      }
   }
 
-  console.log('[Router] Valid lang found:', lang);
+  // console.log('[Router] Valid lang found:', lang);
 
   // --- 简化的语言设置逻辑 ---
   if (i18n && i18n.global) {
     const currentLocale = i18n.global.locale.value;
-    console.log('[Router] Current i18n locale:', currentLocale, 'Target lang:', lang);
+    // console.log('[Router] Current i18n locale:', currentLocale, 'Target lang:', lang);
 
     // 只在语言真正不同时才更新
     if (currentLocale !== lang) {
-      console.log('[Router] Updating i18n locale from', currentLocale, 'to', lang);
+      // console.log('[Router] Updating i18n locale from', currentLocale, 'to', lang);
       i18n.global.locale.value = lang;
 
       try {
@@ -505,7 +505,7 @@ router.beforeEach((to, from, next) => {
         console.warn('[Router] Failed to save locale to localStorage:', e);
       }
 
-      console.log('[Router] i18n locale updated successfully');
+      // console.log('[Router] i18n locale updated successfully');
     }
   } else {
     console.error('[Router] i18n instance is not available!');
