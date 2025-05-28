@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, RouterView } from 'vue-router'
 import { nextTick } from 'vue'
-import i18n from '../i18n' // 导入 i18n 实例
+import i18n, { supportedLocales } from '../i18n' // 导入 i18n 实例和支持的语言列表
+
 // Removed direct imports, using lazy loading below
 
 // --- Import Admin Components (Lazy Loading) ---
@@ -61,7 +62,7 @@ const publicRoutes = [
   {
     path: '', // 对应 /en 或 /zh (改回空字符串)
     name: 'home', // 路由名称保持唯一，但现在会带 lang 参数
-    component: () => import('../views/IndexView.vue'), 
+    component: () => import('../views/IndexView.vue'),
     meta: {
       title: 'Levitra:Dosage, Side Effects-levitra online-Levitrask.com',
       description:
@@ -274,8 +275,8 @@ const publicRoutes = [
   },
   {
     path: ':identifier',
-    name: 'managed-page-detail',    
-    component: () => import('../views/ManagedPageDetail.vue'), 
+    name: 'managed-page-detail',
+    component: () => import('../views/ManagedPageDetail.vue'),
     props: false,
     meta: {
       // Default meta tags (组件会覆盖)
@@ -289,14 +290,14 @@ const publicRoutes = [
 // --- Define Admin routes (Restore Nested Structure) ---
 const adminRoutes = [
   {
-    path: 'login', 
+    path: 'login',
     name: 'admin-login',
     component: AdminLogin,
     meta: { title: 'Admin Login' }
   },
   {
     // Path is now just 'dashboard' relative to '/admin'
-    path: 'dashboard', 
+    path: 'dashboard',
     name: 'admin-dashboard', // Optional name for the layout route itself
     component: AdminDashboard, // This component should have a <router-view>
     beforeEnter: requireAdminAuth, // Apply guard to dashboard and all children
@@ -333,10 +334,10 @@ const adminRoutes = [
         path: 'sidebars',
         name: 'admin-sidebars',
         component: SidebarManagement,
-        meta: { 
+        meta: {
           title: 'Sidebar Management | Admin Panel',
           requiresAuth: true
-        } 
+        }
       },
       {
         path: 'drug-page-management',
@@ -375,8 +376,7 @@ const adminRoutes = [
   }
 ];
 
-// --- 支持的语言列表 (建议定义一次) ---
-const supportedLocales = ['en', 'zh-CN', 'ru']; // <--- 0. 添加 'ru' 到支持列表
+// 支持的语言列表已从 i18n.js 导入
 
 // --- Combine routes and language prefix ---
 const langPrefixedRoutes = [
@@ -397,11 +397,11 @@ const routes = [
     redirect: () => {
         const savedLocale = localStorage.getItem('user-locale');
         // <--- 3. 更新根路径重定向逻辑
-        if (savedLocale && supportedLocales.includes(savedLocale)) { 
+        if (savedLocale && supportedLocales.includes(savedLocale)) {
             return `/${savedLocale}`;
         }
         // Otherwise, always default to English
-        return '/en'; 
+        return '/en';
     }
   },
   {
@@ -410,8 +410,17 @@ const routes = [
     component: RouterView, // Top-level wrapper for /admin routes
     children: adminRoutes // Use the nested adminRoutes definition
   },
-   // Add a catch-all 404 route if needed
-   // { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('../views/NotFound.vue') }
+   // Add a catch-all 404 route
+   {
+     path: '/:pathMatch(.*)*',
+     name: 'NotFound',
+     component: () => import('../views/NotFound.vue'),
+     meta: {
+       title: '404 - Page Not Found | Levitrask',
+       description: 'The page you are looking for does not exist.',
+       keywords: '404, not found, error'
+     }
+   }
 ];
 
 const router = createRouter({
@@ -433,82 +442,86 @@ const router = createRouter({
 
 // Navigation Guard for Language Handling and Meta Tags
 router.beforeEach((to, from, next) => {
-  console.log('[Debug Router] Guard entered. Path:', to.path, 'Params:', to.params);
+  console.log('[Router] Guard entered. Path:', to.path, 'Params:', to.params);
 
   // Skip ALL processing for admin routes
   if (to.path.startsWith('/admin')) {
-    console.log('[Debug Router] Skipping admin route:', to.path);
-    document.title = to.meta.title || 'Admin Panel'; 
+    console.log('[Router] Skipping admin route:', to.path);
+    document.title = to.meta.title || 'Admin Panel';
     next();
     return;
   }
 
-  // --- Frontend Locale Logic --- 
+  // --- Frontend Locale Logic ---
   const lang = to.params.lang;
-  console.log('[Debug Router] Extracted lang from params:', lang);
+  console.log('[Router] Extracted lang from params:', lang);
 
-  // <--- 2. 更新 beforeEach 中的语言验证
-  if (!lang || typeof lang !== 'string' || !supportedLocales.includes(lang)) { 
-     console.log('[Debug Router] Invalid or missing lang in params. Checking localStorage...');
-     const userLocale = localStorage.getItem('user-locale');
-     console.log('[Debug Router] localStorage locale:', userLocale);
-     const targetLocale = (userLocale && supportedLocales.includes(userLocale)) ? userLocale : 'en'; 
-     console.log('[Debug Router] Determined target locale for redirect:', targetLocale);
+  // 检查语言参数是否有效
+  if (!lang || !supportedLocales.includes(lang)) {
+     console.log('[Router] Invalid or missing lang in params. Checking localStorage...');
+
+     let userLocale = null;
+     try {
+       userLocale = localStorage.getItem('user-locale');
+     } catch (e) {
+       console.warn('[Router] localStorage not available:', e);
+     }
+
+     console.log('[Router] localStorage locale:', userLocale);
+     const targetLocale = (userLocale && supportedLocales.includes(userLocale)) ? userLocale : 'en';
+     console.log('[Router] Determined target locale for redirect:', targetLocale);
+
+     // 构建重定向路径
      const intendedPath = to.fullPath === '/' ? '' : to.fullPath;
+     console.log('[Router] Intended path:', intendedPath);
+
      if (!intendedPath.startsWith(`/${targetLocale}`)) {
        const redirectPath = `/${targetLocale}${intendedPath}`;
-       console.log('[Debug Router] Redirecting to:', redirectPath);
+       console.log('[Router] Redirecting to:', redirectPath);
        next(redirectPath);
+       return;
      } else {
-        console.log('[Debug Router] Already has correct locale or non-prefixed path, calling next().');
-        next(); 
-     } 
-     return;
+        console.log('[Router] Already has correct locale, proceeding...');
+        next();
+        return;
+     }
   }
 
-  console.log('[Debug Router] Valid lang found:', lang);
-  
-  // --- MODIFIED PART: Always set locale and use nextTick --- 
-  const currentLocale = i18n && i18n.global ? i18n.global.locale.value : null;
-  console.log('[Debug Router] Comparing route lang:', lang, 'with current i18n locale:', currentLocale);
+  console.log('[Router] Valid lang found:', lang);
 
+  // --- 简化的语言设置逻辑 ---
   if (i18n && i18n.global) {
-      // Always attempt to set locale, even if it matches
+    const currentLocale = i18n.global.locale.value;
+    console.log('[Router] Current i18n locale:', currentLocale, 'Target lang:', lang);
+
+    // 只在语言真正不同时才更新
+    if (currentLocale !== lang) {
+      console.log('[Router] Updating i18n locale from', currentLocale, 'to', lang);
+      i18n.global.locale.value = lang;
+
       try {
-          console.log('[Debug Router] Attempting to set i18n locale and localStorage (even if same)...');
-          i18n.global.locale.value = lang;
-          localStorage.setItem('user-locale', lang);
-          console.log('[Debug Router] Successfully set i18n locale to:', i18n.global.locale.value, 'and localStorage.');
-
-          console.log('[Debug Router] Calling next() inside nextTick after setting locale.');
-          // Use nextTick to delay navigation continuation
-          nextTick(() => {
-              next(); 
-          });
-          return; // Ensure next() is not called again outside nextTick
-
+        localStorage.setItem('user-locale', lang);
       } catch (e) {
-          console.error('[Debug Router] Error setting locale in beforeEach:', e);
-          // Fall through to default next() call in case of error
+        console.warn('[Router] Failed to save locale to localStorage:', e);
       }
-  } else {
-      console.error('[Debug Router] i18n instance is not available in beforeEach guard!');
-      // Fall through to default next() call if i18n is missing
-  }
-  // --- END OF MODIFIED PART ---
 
-  console.log('[Debug Router] Calling next() directly (fallback or error case).');
-  next(); 
+      console.log('[Router] i18n locale updated successfully');
+    }
+  } else {
+    console.error('[Router] i18n instance is not available!');
+  }
+
+  next();
 });
 
 // --- Meta Tag Update Guard (MODIFIED) ---
-router.afterEach((to, from) => {
+router.afterEach((to) => {
   // Skip meta tag updates for admin routes (handled in beforeEach or manually)
   if (to.path.startsWith('/admin')) {
     return;
   }
-  
-  // --- Frontend Meta Tag Logic --- 
+
+  // --- Frontend Meta Tag Logic ---
   nextTick(() => {
     const nearestWithTitle = to.matched.slice().reverse().find(r => r.meta && r.meta.title);
     const nearestWithMeta = to.matched.slice().reverse().find(r => r.meta && (r.meta.description || r.meta.keywords));
@@ -523,11 +536,11 @@ router.afterEach((to, from) => {
     setMetaTag('name', 'description', description);
     setMetaTag('name', 'keywords', keywords);
     // Open Graph Tags
-    setMetaTag('property', 'og:title', document.title); 
+    setMetaTag('property', 'og:title', document.title);
     setMetaTag('property', 'og:description', description);
-    setMetaTag('property', 'og:image', window.location.origin + ogImage); 
+    setMetaTag('property', 'og:image', window.location.origin + ogImage);
     setMetaTag('property', 'og:url', canonicalUrl);
-    setMetaTag('property', 'og:type', 'website'); 
+    setMetaTag('property', 'og:type', 'website');
     // Twitter Card Tags
     setMetaTag('name', 'twitter:card', 'summary_large_image');
     setMetaTag('name', 'twitter:title', document.title);

@@ -23,7 +23,7 @@ try {
 // It captures the path value inside the quotes (or empty for '')
 // It avoids capturing paths containing ':' (dynamic routes)
 const staticPathRegex = /path:\s*(?:(?:"([^"\n:]*)")|(?:\'([^\'\n:]*)\'))/g;
-const languages = ['en', 'zh']; // Define supported languages
+const languages = ['en', 'zh-CN', 'ru']; // Define supported languages
 let baseStaticRoutes = new Set(); // Use Set for automatic deduplication
 let match;
 
@@ -41,7 +41,7 @@ let staticRoutesWithLang = [];
 baseStaticRoutes.forEach(basePath => {
     languages.forEach(lang => {
         // Handle the root path ('') and other paths
-        const fullPath = basePath ? `/${lang}/${basePath}` : `/${lang}`; 
+        const fullPath = basePath ? `/${lang}/${basePath}` : `/${lang}`;
         staticRoutesWithLang.push(fullPath);
     });
 });

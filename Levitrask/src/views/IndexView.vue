@@ -77,6 +77,7 @@ import PageHeader from '../components/PageHeader.vue'
 import PageFooter from '../components/PageFooter.vue'
 import SideNav from '../components/SideNav.vue' // Import SideNav
 
+
 // --- Swiper Imports ---
 import Swiper from 'swiper'
 import { Navigation } from 'swiper/modules'
@@ -95,7 +96,7 @@ const sidebarError = ref(null);
 const HOMEPAGE_IDENTIFIER = 'home'; // Identifier for homepage sidebar
 
 const route = useRoute(); // Get route object
-const { t, locale } = useI18n(); // Initialize useI18n
+const { t } = useI18n(); // Initialize useI18n
 
 // --- API Setup ---
 const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
@@ -105,20 +106,32 @@ const api = axios.create({ baseURL: baseUrl }) // Use a base URL if defined
 const buildApiUrl = (path) => `${baseUrl}${path}`; // Ensure it uses baseUrl
 
 // --- Fetch Homepage Blocks ---
-const fetchHomepageBlocks = async (lang) => { // Accept lang parameter
+const fetchHomepageBlocks = async (lang, retryCount = 0) => { // Accept lang parameter and retry count
   isLoading.value = true
   error.value = null
   homepageBlocks.value = []; // Clear previous blocks
+
   try {
-    console.log(`Fetching homepage blocks for language: ${lang}`); // Log language
+    console.log(`Fetching homepage blocks for language: ${lang} (attempt ${retryCount + 1})`);
     // Use the new public endpoint and pass the language
     const response = await api.get(buildApiUrl('/api/homepage-blocks'), {
-        params: { lang: lang } // Pass lang as query parameter
+        params: { lang: lang }, // Pass lang as query parameter
+        timeout: 10000 // 10 second timeout
     })
     homepageBlocks.value = response.data || []
     console.log('Fetched homepage blocks:', homepageBlocks.value)
   } catch (err) {
     console.error('Error fetching homepage blocks:', err)
+
+    // 重试逻辑
+    if (retryCount < 2) {
+      console.log(`Retrying homepage blocks fetch in 1 second... (attempt ${retryCount + 2})`)
+      setTimeout(() => {
+        fetchHomepageBlocks(lang, retryCount + 1)
+      }, 1000)
+      return
+    }
+
     error.value = err.response?.data?.message || 'Failed to load homepage content.'
   } finally {
     isLoading.value = false
@@ -247,8 +260,8 @@ const initializeSwiper = () => {
           640: { slidesPerView: 2, spaceBetween: 15 },
           1024: { slidesPerView: 3, spaceBetween: 20 },
         },
-        observer: true, 
-        observeParents: true, 
+        observer: true,
+        observeParents: true,
       })
       console.log(`Swiper initialized/re-initialized on element matching selector: "${swiperContainerSelector}".`)
     } catch (swiperError) {
@@ -260,23 +273,45 @@ const initializeSwiper = () => {
 }
 
 // --- Lifecycle Hook and Watcher ---
-onMounted(() => {
-  const currentLang = route.params.lang || 'en'; // Get initial language
-  console.log(`[IndexView] Mounted. Initial language: ${currentLang}`);
-  fetchHomepageBlocks(currentLang); // Fetch main blocks
-  fetchSidebarBlocks(currentLang); // Fetch sidebar blocks on mount
+onMounted(async () => {
+  console.log('[IndexView] Component mounted, initializing...');
+
+  // 等待路由准备就绪
+  await nextTick();
+
+  const currentLang = route.params.lang || 'en';
+  console.log(`[IndexView] Mounted. Route language: ${currentLang}`);
+
+  // 验证语言参数
+  const supportedLangs = ['en', 'zh-CN', 'ru'];
+  const validLang = supportedLangs.includes(currentLang) ? currentLang : 'en';
+  console.log(`[IndexView] Using validated language: ${validLang}`);
+
+  // 获取数据
+  fetchHomepageBlocks(validLang);
+  fetchSidebarBlocks(validLang);
 })
 
 // Watch for language changes in the route params
-watch(() => route.params.lang, (newLang, oldLang) => {
-  const langToFetch = newLang || 'en'; // Use newLang or default to 'en'
-  if (langToFetch !== (oldLang || 'en')) { // Check if language actually changed
-    console.log(`[IndexView] Language changed from ${oldLang || 'initial'} to ${langToFetch}. Refetching content.`);
-    fetchHomepageBlocks(langToFetch);   // Refetch main blocks
-    fetchSidebarBlocks(langToFetch);    // Refetch sidebar blocks on lang change
+watch(() => route.params.lang, async (newLang, oldLang) => {
+  console.log(`[IndexView] Language watcher triggered. New: ${newLang}, Old: ${oldLang}`);
+
+  const langToFetch = newLang || 'en';
+  const supportedLangs = ['en', 'zh-CN', 'ru'];
+
+  // 确保语言真正发生了变化且新语言有效
+  const validLangToFetch = supportedLangs.includes(langToFetch) ? langToFetch : 'en';
+  const validOldLang = supportedLangs.includes(oldLang) ? oldLang : 'en';
+
+  if (validLangToFetch !== validOldLang) {
+    console.log(`[IndexView] Language changed from ${oldLang || 'initial'} to ${validLangToFetch}. Refetching content.`);
+
+    // 等待一个tick确保路由和i18n都已更新
+    await nextTick();
+
+    fetchHomepageBlocks(validLangToFetch);
+    fetchSidebarBlocks(validLangToFetch);
   }
-}, {
-  // immediate: true // No longer needed as onMounted handles initial fetch
 });
 
 // Watch for swiperHtmlContent changes to re-initialize Swiper
@@ -462,7 +497,7 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
   align-items: stretch;
   box-sizing: border-box;
   /* Optional: Add min-height if slides have variable height */
-  /* min-height: 150px; */ 
+  /* min-height: 150px; */
 }
 
 :deep(.related-generic-item) {
@@ -533,7 +568,7 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
     justify-content: center;
     color: #007aff; /* Example color, adjust as needed */
     /* background-color: rgba(255, 255, 255, 0.8); */ /* Optional background */
-    /* border-radius: 50%; */ /* Optional shape */ 
+    /* border-radius: 50%; */ /* Optional shape */
 }
 :deep(.swiper-button-prev.swiper-button-disabled),
 :deep(.swiper-button-next.swiper-button-disabled) {
@@ -595,7 +630,8 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
   .swiper-button-prev,
   .swiper-button-next {
     /* Optionally hide buttons on very small screens or make them smaller */
-    /* display: none; */
+    width: 30px;
+    height: 30px;
   }
 }
 
@@ -668,9 +704,9 @@ watch(swiperHtmlContent, (newHtml, oldHtml) => {
 
 /* Styles for the SideNav in the right sidebar */
 .sidebar-right ::v-deep(.side-nav) {
-    border-right: none; 
-    border-left: 1px solid #dee2e6; 
-    padding-right: 0; 
-    padding-left: 1.5rem; 
+    border-right: none;
+    border-left: 1px solid #dee2e6;
+    padding-right: 0;
+    padding-left: 1.5rem;
 }
 </style>

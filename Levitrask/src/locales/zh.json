@@ -60,5 +60,16 @@
       "availabilityLabel": "获取方式：",
       "availabilityValue": "仅限处方；有仿制药"
     }
+  },
+  "notFound": {
+    "title": "页面未找到",
+    "message": "抱歉，您要查找的页面不存在。",
+    "goHome": "返回首页",
+    "goBack": "返回上页",
+    "helpfulLinks": "有用链接",
+    "blog": "博客",
+    "news": "新闻",
+    "terms": "服务条款",
+    "privacy": "隐私政策"
   }
-} 
+}

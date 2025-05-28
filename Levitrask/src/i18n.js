@@ -5,24 +5,34 @@ import en from './locales/en.json'
 import zh_CN from './locales/zh.json' // 重命名导入以清晰
 import ru from './locales/ru.json' // 1. 导入俄语文件 (你需要创建这个文件)
 
+// 支持的语言列表
+export const supportedLocales = ['en', 'zh-CN', 'ru'];
+
 // 获取初始语言：优先 localStorage，否则默认英文
 function getStartingLocale() {
   console.log('[Debug i18n] Entering getStartingLocale...');
-  const savedLocale = localStorage.getItem('user-locale');
+
+  // 在服务端渲染或初始化阶段，localStorage 可能不可用
+  let savedLocale = null;
+  try {
+    savedLocale = localStorage.getItem('user-locale');
+  } catch (e) {
+    console.warn('[Debug i18n] localStorage not available:', e);
+  }
+
   console.log('[Debug i18n] localStorage locale:', savedLocale);
-  // 3. 更新支持的语言代码列表
-  const supportedLocales = ['en', 'zh-CN', 'ru']; 
+
   let localeToReturn = 'en'; // Default to 'en'
-  if (savedLocale && supportedLocales.includes(savedLocale)) { 
+  if (savedLocale && supportedLocales.includes(savedLocale)) {
     console.log(`[i18n] Using saved locale: ${savedLocale}`);
     localeToReturn = savedLocale;
   } else {
     // 否则，无论浏览器设置如何，都默认使用英文
     console.log('[i18n] No valid saved locale found or unsupported, defaulting to en.');
-    localeToReturn = 'en'; 
+    localeToReturn = 'en';
   }
   console.log('[Debug i18n] getStartingLocale determined:', localeToReturn);
-  return localeToReturn; 
+  return localeToReturn;
 }
 
 const messages = {
@@ -40,7 +50,7 @@ try {
     legacy: false, // 使用 Composition API 模式
     locale: getStartingLocale(), // 设置初始语言 (现在会严格默认 en)
     fallbackLocale: 'en', // 回退语言
-    messages, 
+    messages,
     // 其他选项...
     // missingWarn: false, // 可选：禁用缺少翻译的警告
     // fallbackWarn: false, // 可选：禁用回退翻译的警告
@@ -52,4 +62,4 @@ try {
   // Or handle error appropriately
 }
 
-export default i18n; 
+export default i18n;

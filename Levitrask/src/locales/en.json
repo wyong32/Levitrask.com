@@ -60,5 +60,16 @@
       "availabilityLabel": "Availability:",
       "availabilityValue": "Prescription only; generic available"
     }
+  },
+  "notFound": {
+    "title": "Page Not Found",
+    "message": "Sorry, the page you are looking for does not exist.",
+    "goHome": "Go back to Home",
+    "goBack": "Go Back",
+    "helpfulLinks": "Helpful Links",
+    "blog": "Blog",
+    "news": "News",
+    "terms": "Terms",
+    "privacy": "Privacy"
   }
-} 
+}
