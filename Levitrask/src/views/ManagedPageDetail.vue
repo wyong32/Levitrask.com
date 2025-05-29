@@ -1,7 +1,7 @@
 <template>
   <div class="managed-page-detail-view">
     <PageHeader />
-    
+
     <main class="content-area-3-column">
       <!-- Optional: Breadcrumbs or Title Area -->
       <!-- <h1 v-if="pageData">{{ pageData.list_title || pageData.meta_title }}</h1> -->
@@ -50,30 +50,34 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios'; // Or your shared api instance
 import PageHeader from '../components/PageHeader.vue';
 import PageFooter from '../components/PageFooter.vue';
 import SideNav from '../components/SideNav.vue'; // Import SideNav
 import { cloneDeep } from 'lodash'; // Import cloneDeep if needed for parsing, though likely not required here
 
-// --- Props --- 
+// --- Props ---
 // We get type and identifier from the route params directly using useRoute()
 // defineProps is not needed if we don't pass props from parent component
 // UPDATED: We now only get identifier from route params
 
-// --- State --- 
+// --- State ---
 const pageData = ref(null);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const route = useRoute();
+const router = useRouter();
 
 // --- API Setup ---
 // Correct baseURL setup: Use environment variable for production, leave empty for local dev (Vite proxy handles /api)
-const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : ''; 
+const baseUrl = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL || '') : '';
 const api = axios.create({ baseURL: baseUrl });
 console.log(`[API Setup Detail] Axios configured with baseURL: '${baseUrl || '(empty for local proxy)'}'`); // Add log for debugging
 // No auth token needed for public requests
+
+// --- SEO重定向到404页面 ---
+// 当页面不存在时，重定向到404页面，这样对SEO更友好
 
 // --- Helper to set Meta Tags (simplified from router) ---
 const setMetaTag = (attr, key, value) => {
@@ -99,9 +103,9 @@ const updateMetaTags = (data) => {
     // ... etc
 };
 
-// --- Fetch Page Data --- 
-const fetchPageData = async (identifier) => { 
-  if (!identifier) { 
+// --- Fetch Page Data ---
+const fetchPageData = async (identifier) => {
+  if (!identifier) {
     errorMessage.value = 'Page identifier is missing.';
     console.error('fetchPageData called with missing identifier', identifier);
     return;
@@ -117,33 +121,36 @@ const fetchPageData = async (identifier) => {
 
   isLoading.value = true;
   errorMessage.value = '';
-  pageData.value = null; 
+  pageData.value = null;
 
   try {
     // UPDATED: Use the new API endpoint with lang and identifier
     console.log(`Fetching page data for lang: ${lang}, identifier: ${identifier}`);
     // Always include /api in the path
-    const response = await api.get(`/api/managed-pages/${lang}/${identifier}`); 
+    const response = await api.get(`/api/managed-pages/${lang}/${identifier}`);
     pageData.value = response.data;
     console.log('Fetched page data:', pageData.value);
 
-    await nextTick(); 
+    await nextTick();
     updateMetaTags(pageData.value);
 
   } catch (error) {
     console.error(`Error fetching page data (lang: ${lang}, identifier: ${identifier}):`, error);
     if (error.response?.status === 404) {
-        errorMessage.value = `Sorry, the page '${identifier}' could not be found or is not available in this language.`; // Updated message
+        // 对于404错误，重定向到404页面，这样对SEO更友好
+        console.log(`Page '${identifier}' not found, redirecting to 404 page for SEO purposes`);
+        router.replace(`/${lang}/404`);
+        return; // 提前返回，不设置错误消息
     } else {
         errorMessage.value = error.response?.data?.message || 'An error occurred while loading the page content.';
     }
-    pageData.value = null; 
+    pageData.value = null;
   } finally {
     isLoading.value = false;
   }
 };
 
-// --- Lifecycle and Route Watching --- 
+// --- Lifecycle and Route Watching ---
 onMounted(() => {
     // Fetch data based on initial route identifier and language
     fetchPageData(route.params.identifier);
@@ -154,15 +161,15 @@ watch(
     () => [route.params.lang, route.params.identifier], // Watch both lang and identifier
     (newParams, oldParams) => {
         const [newLang, newIdentifier] = newParams;
-        const [oldLang, oldIdentifier] = oldParams || []; 
-        
+        const [oldLang, oldIdentifier] = oldParams || [];
+
         // Refetch data only if identifier or language actually changed
-        if (newIdentifier && (newIdentifier !== oldIdentifier || newLang !== oldLang)) { 
+        if (newIdentifier && (newIdentifier !== oldIdentifier || newLang !== oldLang)) {
              console.log('Route changed, refetching data...', newParams);
              fetchPageData(newIdentifier); // fetchPageData now gets lang internally
         }
     },
-    { immediate: false } 
+    { immediate: false }
 );
 
 // --- Computed properties to parse JSON safely (similar to QuestionDetails) ---
@@ -198,9 +205,9 @@ const parsedSidebarData = computed(() => {
     result = rawSidebarData;
   }
   // CHANGE: Update filter to accept content OR html_content
-  result = result.filter(block => 
-      typeof block === 'object' && 
-      block !== null && 
+  result = result.filter(block =>
+      typeof block === 'object' &&
+      block !== null &&
       (block.hasOwnProperty('content') || block.hasOwnProperty('html_content'))
   );
   return result;
@@ -393,4 +400,4 @@ const parsedSidebarData = computed(() => {
   scroll-margin-top: 100px; /* Adjust this value based on actual header height */
 }
 
-</style> 
+</style>
