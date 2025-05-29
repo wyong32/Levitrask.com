@@ -1,33 +1,31 @@
 {
   "version": 2,
-  "redirects": [
+  "rewrites": [
     {
       "source": "/author-(.+)\\.html",
-      "destination": "https://www.levitrask.com/en/",
-      "permanent": true
+      "destination": "/index.html",
+      "status": 404
     },
     {
       "source": "/date-(.+)\\.html",
-      "destination": "https://www.levitrask.com/en/",
-      "permanent": true
+      "destination": "/index.html",
+      "status": 404
     },
     {
       "source": "/post/(.+)\\.html",
-      "destination": "https://www.levitrask.com/en/",
-      "permanent": true
+      "destination": "/index.html",
+      "status": 404
     },
     {
       "source": "/tags-(.+)\\.html",
-      "destination": "https://www.levitrask.com/en/",
-      "permanent": true
+      "destination": "/index.html",
+      "status": 404
     },
     {
       "source": "/category-(.+)\\.html",
-      "destination": "https://www.levitrask.com/en/",
-      "permanent": true
-    }
-  ],
-  "rewrites": [
+      "destination": "/index.html",
+      "status": 404
+    },
     {
       "source": "/((?!api/|_next/|static/|public/|assets/|favicon.ico|robots.txt|sitemap.xml|[\\w-]+\\.\\w+).*)",
       "destination": "/index.html"
