@@ -1,31 +1,33 @@
 {
   "version": 2,
-  "rewrites": [
+  "redirects": [
     {
       "source": "/author-(.+)\\.html",
-      "destination": "/index.html",
-      "status": 404
+      "destination": "/en/404",
+      "permanent": true
     },
     {
       "source": "/date-(.+)\\.html",
-      "destination": "/index.html",
-      "status": 404
+      "destination": "/en/404",
+      "permanent": true
     },
     {
       "source": "/post/(.+)\\.html",
-      "destination": "/index.html",
-      "status": 404
+      "destination": "/en/404",
+      "permanent": true
     },
     {
       "source": "/tags-(.+)\\.html",
-      "destination": "/index.html",
-      "status": 404
+      "destination": "/en/404",
+      "permanent": true
     },
     {
       "source": "/category-(.+)\\.html",
-      "destination": "/index.html",
-      "status": 404
-    },
+      "destination": "/en/404",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
     {
       "source": "/((?!api/|_next/|static/|public/|assets/|favicon.ico|robots.txt|sitemap.xml|[\\w-]+\\.\\w+).*)",
       "destination": "/index.html"

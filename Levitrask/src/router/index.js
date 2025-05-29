@@ -60,6 +60,16 @@ const requireAdminAuth = (to, from, next) => {
 // --- Define public routes ---
 const publicRoutes = [
   {
+    path: '404', // 将会是 /:lang/404
+    name: 'NotFoundPage', // 给一个唯一的名称
+    component: () => import('../views/NotFoundView.vue'),
+    meta: {
+      title: '404 - Page Not Found | Levitrask',
+      description: 'The page you are looking for does not exist.',
+      keywords: '404, not found, error'
+    }
+  },
+  {
     path: '', // 对应 /en 或 /zh (改回空字符串)
     name: 'home', // 路由名称保持唯一，但现在会带 lang 参数
     component: () => import('../views/IndexView.vue'),
@@ -414,7 +424,7 @@ const routes = [
    {
      path: '/:pathMatch(.*)*',
      name: 'NotFound',
-     component: () => import('../views/NotFound.vue'),
+     component: () => import('../views/NotFoundView.vue'),
      meta: {
        title: '404 - Page Not Found | Levitrask',
        description: 'The page you are looking for does not exist.',
