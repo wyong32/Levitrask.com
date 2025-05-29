@@ -273,17 +273,6 @@ const publicRoutes = [
       keywords: '隐私, 政策, 数据保护, 用户隐私, 法律',
     },
   },
-  // 明确的404路由，用于重定向
-  {
-    path: '404',
-    name: 'NotFoundPage',
-    component: () => import('../views/NotFound.vue'),
-    meta: {
-      title: '404 - Page Not Found | Levitrask',
-      description: 'The page you are looking for does not exist.',
-      keywords: '404, not found, error'
-    }
-  },
   {
     path: ':identifier',
     name: 'managed-page-detail',
@@ -296,17 +285,6 @@ const publicRoutes = [
       keywords: 'page, information',
     },
   },
-  // 404 route for language-prefixed paths - must be last in publicRoutes
-  {
-    path: ':pathMatch(.*)*',
-    name: 'NotFoundWithLang',
-    component: () => import('../views/NotFound.vue'),
-    meta: {
-      title: '404 - Page Not Found | Levitrask',
-      description: 'The page you are looking for does not exist.',
-      keywords: '404, not found, error'
-    }
-  }
 ];
 
 // --- Define Admin routes (Restore Nested Structure) ---
@@ -432,17 +410,17 @@ const routes = [
     component: RouterView, // Top-level wrapper for /admin routes
     children: adminRoutes // Use the nested adminRoutes definition
   },
-  // Global catch-all 404 route for paths that don't match any pattern
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
-    component: () => import('../views/NotFound.vue'),
-    meta: {
-      title: '404 - Page Not Found | Levitrask',
-      description: 'The page you are looking for does not exist.',
-      keywords: '404, not found, error'
-    }
-  }
+   // Add a catch-all 404 route
+   {
+     path: '/:pathMatch(.*)*',
+     name: 'NotFound',
+     component: () => import('../views/NotFound.vue'),
+     meta: {
+       title: '404 - Page Not Found | Levitrask',
+       description: 'The page you are looking for does not exist.',
+       keywords: '404, not found, error'
+     }
+   }
 ];
 
 const router = createRouter({
