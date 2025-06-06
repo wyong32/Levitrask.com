@@ -449,76 +449,69 @@ const router = createRouter({
   },
 })
 
-// Navigation Guard for Language Handling and Meta Tags
+// 守卫 1: 专门处理 .php 路径，最高优先级
 router.beforeEach((to, from, next) => {
-  // console.log('[Router] Guard entered. Path:', to.path, 'Params:', to.params);
+  if (to.path.endsWith('.php')) {
+    // 确保有一个语言参数，默认为 'en'
+    const lang = to.params.lang || i18n.global.locale.value || 'en';
+    // 重定向到 404 页面
+    next({ name: 'NotFoundPage', params: { lang: lang }, replace: true });
+    return; // 结束处理
+  }
+  next(); // 继续下一个守卫
+});
 
-  // Skip ALL processing for admin routes
+// 守卫 2: 处理语言、元标签和常规 404
+router.beforeEach((to, from, next) => {
+  // --- Admin Route Logic ---
   if (to.path.startsWith('/admin')) {
-    // console.log('[Router] Skipping admin route:', to.path);
     document.title = to.meta.title || 'Admin Panel';
     next();
     return;
   }
-
+  
   // --- Frontend Locale Logic ---
   const lang = to.params.lang;
-  // console.log('[Router] Extracted lang from params:', lang);
-
-  // 检查语言参数是否有效
   if (!lang || !supportedLocales.includes(lang)) {
-     // console.log('[Router] Invalid or missing lang in params. Checking localStorage...');
+    let userLocale = null;
+    try {
+      userLocale = localStorage.getItem('user-locale');
+    } catch (e) {
+      // localStorage not available
+    }
+    const targetLocale = (userLocale && supportedLocales.includes(userLocale)) ? userLocale : 'en';
+    const intendedPath = to.fullPath === '/' ? '' : to.fullPath;
 
-     let userLocale = null;
-     try {
-       userLocale = localStorage.getItem('user-locale');
-     } catch (e) {
-       console.warn('[Router] localStorage not available:', e);
-     }
-
-     // console.log('[Router] localStorage locale:', userLocale);
-     const targetLocale = (userLocale && supportedLocales.includes(userLocale)) ? userLocale : 'en';
-     // console.log('[Router] Determined target locale for redirect:', targetLocale);
-
-     // 构建重定向路径
-     const intendedPath = to.fullPath === '/' ? '' : to.fullPath;
-     // console.log('[Router] Intended path:', intendedPath);
-
-     if (!intendedPath.startsWith(`/${targetLocale}`)) {
-       const redirectPath = `/${targetLocale}${intendedPath}`;
-       // console.log('[Router] Redirecting to:', redirectPath);
-       next(redirectPath);
-       return;
-     } else {
-        // console.log('[Router] Already has correct locale, proceeding...');
-        next();
-        return;
-     }
+    if (!intendedPath.startsWith(`/${targetLocale}`)) {
+      const redirectPath = `/${targetLocale}${intendedPath}`;
+      next(redirectPath);
+      return;
+    }
   }
 
-  // console.log('[Router] Valid lang found:', lang);
-
-  // --- 简化的语言设置逻辑 ---
   if (i18n && i18n.global) {
     const currentLocale = i18n.global.locale.value;
-    // console.log('[Router] Current i18n locale:', currentLocale, 'Target lang:', lang);
-
-    // 只在语言真正不同时才更新
     if (currentLocale !== lang) {
-      // console.log('[Router] Updating i18n locale from', currentLocale, 'to', lang);
       i18n.global.locale.value = lang;
-
       try {
         localStorage.setItem('user-locale', lang);
       } catch (e) {
-        console.warn('[Router] Failed to save locale to localStorage:', e);
+        // localStorage not available
       }
-
-      // console.log('[Router] i18n locale updated successfully');
     }
-  } else {
-    console.error('[Router] i18n instance is not available!');
   }
+
+  // --- Meta Tag and Finalization Logic ---
+  nextTick(() => {
+    document.title = to.meta.title || DEFAULT_TITLE;
+    setMetaTag('name', 'description', to.meta.description || DEFAULT_DESCRIPTION);
+    setMetaTag('name', 'keywords', to.meta.keywords || DEFAULT_KEYWORDS);
+    setMetaTag('property', 'og:title', to.meta.title || DEFAULT_TITLE);
+    setMetaTag('property', 'og:description', to.meta.description || DEFAULT_DESCRIPTION);
+    setMetaTag('property', 'og:image', to.meta.ogImage || DEFAULT_OG_IMAGE);
+    setMetaTag('property', 'og:type', 'website');
+    setCanonicalUrl(window.location.href);
+  });
 
   next();
 });
