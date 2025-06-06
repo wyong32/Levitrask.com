@@ -560,4 +560,16 @@ router.afterEach((to) => {
   });
 });
 
+// --- 404 Handler (Catch-All Route) ---
+// This MUST be the LAST route in the router configuration
+router.addRoute({
+  path: '/:pathMatch(.*)*',
+  name: 'GlobalNotFound',
+  component: () => import('../views/NotFoundView.vue'),
+  meta: {
+    title: '404 - Page Not Found | Levitrask',
+    description: 'The page you are looking for does not exist.',
+  }
+});
+
 export default router
