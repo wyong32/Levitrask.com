@@ -284,10 +284,9 @@ const publicRoutes = [
     },
   },
   {
-    path: ':identifier',
+    path: 'page/:identifier',
     name: 'managed-page-detail',
     component: () => import('../views/ManagedPageDetail.vue'),
-    props: false,
     meta: {
       // Default meta tags (组件会覆盖)
       title: 'Page Detail | Levitrask.com',
