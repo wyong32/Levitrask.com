@@ -419,16 +419,17 @@ const routes = [
     component: RouterView, // Top-level wrapper for /admin routes
     children: adminRoutes // Use the nested adminRoutes definition
   },
-  // Meta tags will be updated dynamically in the component
-  {
-    path: ':pathMatch(.*)*', // Matches anything not matched above
-    name: 'NotFound', // Give it a unique name to distinguish from the root NotFound
-    component: () => import('../views/NotFoundView.vue'),
-    meta: {
-      title: '404 - Page Not Found | Levitrask',
-      description: 'The page you are looking for does not exist.',
-    }
-  }
+   // Add a catch-all 404 route
+   {
+     path: '/:pathMatch(.*)*',
+     name: 'NotFound',
+     component: () => import('../views/NotFoundView.vue'),
+     meta: {
+       title: '404 - Page Not Found | Levitrask',
+       description: 'The page you are looking for does not exist.',
+       keywords: '404, not found, error'
+     }
+   }
 ];
 
 const router = createRouter({
@@ -558,18 +559,6 @@ router.afterEach((to) => {
     // Set Canonical URL
     setCanonicalUrl(canonicalUrl);
   });
-});
-
-// --- 404 Handler (Catch-All Route) ---
-// This MUST be the LAST route in the router configuration
-router.addRoute({
-  path: '/:pathMatch(.*)*',
-  name: 'GlobalNotFound',
-  component: () => import('../views/NotFoundView.vue'),
-  meta: {
-    title: '404 - Page Not Found | Levitrask',
-    description: 'The page you are looking for does not exist.',
-  }
 });
 
 export default router
