@@ -50,7 +50,7 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick, computed } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios'; // Or your shared api instance
 import PageHeader from '../components/PageHeader.vue';
 import PageFooter from '../components/PageFooter.vue';
@@ -67,6 +67,7 @@ const pageData = ref(null);
 const isLoading = ref(false);
 const errorMessage = ref('');
 const route = useRoute();
+const router = useRouter(); // 获取 router 实例
 
 // --- API Setup ---
 // Correct baseURL setup: Use environment variable for production, leave empty for local dev (Vite proxy handles /api)
@@ -133,7 +134,9 @@ const fetchPageData = async (identifier) => {
   } catch (error) {
     console.error(`Error fetching page data (lang: ${lang}, identifier: ${identifier}):`, error);
     if (error.response?.status === 404) {
-        errorMessage.value = `Sorry, the page '${identifier}' could not be found or is not available in this language.`; // Updated message
+        // errorMessage.value = `Sorry, the page '${identifier}' could not be found or is not available in this language.`; // OLD WAY
+        // NEW WAY: Redirect to the main 404 page
+        router.push({ name: 'NotFoundPage', params: { lang: route.params.lang || 'en' } });
     } else {
         errorMessage.value = error.response?.data?.message || 'An error occurred while loading the page content.';
     }

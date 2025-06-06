@@ -419,17 +419,16 @@ const routes = [
     component: RouterView, // Top-level wrapper for /admin routes
     children: adminRoutes // Use the nested adminRoutes definition
   },
-   // Add a catch-all 404 route
-   {
-     path: '/:pathMatch(.*)*',
-     name: 'NotFound',
-     component: () => import('../views/NotFoundView.vue'),
-     meta: {
-       title: '404 - Page Not Found | Levitrask',
-       description: 'The page you are looking for does not exist.',
-       keywords: '404, not found, error'
-     }
-   }
+  // Meta tags will be updated dynamically in the component
+  {
+    path: ':pathMatch(.*)*', // Matches anything not matched above
+    name: 'NotFound', // Give it a unique name to distinguish from the root NotFound
+    component: () => import('../views/NotFoundView.vue'),
+    meta: {
+      title: '404 - Page Not Found | Levitrask',
+      description: 'The page you are looking for does not exist.',
+    }
+  }
 ];
 
 const router = createRouter({
