@@ -26,15 +26,39 @@
       "destination": "/en/404",
       "permanent": true
     },
+    
     {
-      "source": "/parking.php",
+      "source": "/(.*)",
       "destination": "/en/404",
-      "permanent": true
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
+          "value": "your-unused-domain1.com"
+        }
+      ]
     },
     {
-      "source": "/(.+)\\.php",
+      "source": "/(.*)",
+      "destination": "/en/404", 
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
+          "value": "your-unused-domain2.com"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
       "destination": "/en/404",
-      "permanent": true
+      "permanent": true,
+      "has": [
+        {
+          "type": "host",
+          "value": "your-unused-domain3.com"
+        }
+      ]
     }
   ],
   "rewrites": [
