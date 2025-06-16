@@ -35,6 +35,11 @@
       "source": "/(.+)\\.php",
       "destination": "/en/404",
       "permanent": true
+    },
+    {
+      "source": "/page_(.+)\\.html",
+      "destination": "/en/404",
+      "permanent": true
     }
   ],
   "rewrites": [
