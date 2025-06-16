@@ -1,55 +1,9 @@
 {
   "version": 2,
-  "redirects": [
-    {
-      "source": "/author-(.+)\\.html",
-      "destination": "/en/404",
-      "permanent": true
-    },
-    {
-      "source": "/date-(.+)\\.html",
-      "destination": "/en/404",
-      "permanent": true
-    },
-    {
-      "source": "/post/(.+)\\.html",
-      "destination": "/en/404",
-      "permanent": true
-    },
-    {
-      "source": "/tags-(.+)\\.html",
-      "destination": "/en/404",
-      "permanent": true
-    },
-    {
-      "source": "/category-(.+)\\.html",
-      "destination": "/en/404",
-      "permanent": true
-    },
-    {
-      "source": "/parking.php",
-      "destination": "/en/404",
-      "permanent": true
-    },
-    {
-      "source": "/(.+)\\.php",
-      "destination": "/en/404",
-      "permanent": true
-    },
-    {
-      "source": "/((?!api/|_next/|static/|public/|assets/|favicon.ico|robots.txt|sitemap.xml|[\\w-]+\\.\\w+).*)",
-      "destination": "/en/404",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     {
-      "source": "/page_(.+)\\.html",
-      "destination": "/api/410"
-    },
-    {
       "source": "/((?!api/|_next/|static/|public/|assets/|favicon.ico|robots.txt|sitemap.xml|[\\w-]+\\.\\w+).*)",
-      "destination": "/index.html"
+      "destination": "/api/410"
     }
   ]
 }
