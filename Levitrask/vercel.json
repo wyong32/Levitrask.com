@@ -1,9 +1,17 @@
 {
   "version": 2,
   "rewrites": [
+    { "source": "/page_(.+)\\.html", "destination": "/api/410" },
+    { "source": "/author-(.+)\\.html", "destination": "/api/410" },
+    { "source": "/date-(.+)\\.html", "destination": "/api/410" },
+    { "source": "/post/(.+)\\.html", "destination": "/api/410" },
+    { "source": "/tags-(.+)\\.html", "destination": "/api/410" },
+    { "source": "/category-(.+)\\.html", "destination": "/api/410" },
+    { "source": "/parking.php", "destination": "/api/410" },
+    { "source": "/(.+)\\.php", "destination": "/api/410" },
     {
       "source": "/((?!api/|_next/|static/|public/|assets/|favicon.ico|robots.txt|sitemap.xml|[\\w-]+\\.\\w+).*)",
-      "destination": "/api/410"
+      "destination": "/index.html"
     }
   ]
 }
